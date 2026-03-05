@@ -1,52 +1,54 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>Aurora · Log</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
-  <!-- PWA: Add to Home Screen support -->
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="Aurora Log">
-  <meta name="theme-color" content="#0d0c0a">
+  <meta name="theme-color" content="#0f1117">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Aurora+Receiving+Log%22%2C%22short_name%22%3A%22Aurora+Log%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230d0c0a%22%2C%22theme_color%22%3A%22%230d0c0a%22%2C%22orientation%22%3A%22portrait%22%7D">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0d0c0a; color: #f0ede8; font-family: 'Courier New', monospace; overflow-x: hidden; }
+  body { background: #0f1117; color: #e8edf5; font-family: 'Courier New', monospace; overflow-x: hidden; }
   ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: #0d0c0a; }
-  ::-webkit-scrollbar-thumb { background: #2a2520; border-radius: 2px; }
+  ::-webkit-scrollbar-track { background: #0f1117; }
+  ::-webkit-scrollbar-thumb { background: #252d42; border-radius: 2px; }
   input, select, textarea { font-family: 'Courier New', monospace; }
-  option { background: #1a1714; color: #f0ede8; }
+  option { background: #1c2133; color: #e8edf5; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
 <script>
 (function() {
+  // Silence Babel in-browser transpiler warning
+  var _warn = console.warn;
+  console.warn = function(msg) {
+    if (typeof msg === 'string' && msg.indexOf('Babel') !== -1) return;
+    _warn.apply(console, arguments);
+  };
+  // Generate apple touch icon via canvas
   var c = document.createElement('canvas');
   c.width = 180; c.height = 180;
   var ctx = c.getContext('2d');
-  // Background
-  ctx.fillStyle = '#0d0c0a';
+  ctx.fillStyle = '#0f1117';
   ctx.fillRect(0, 0, 180, 180);
-  // Border accent
-  ctx.strokeStyle = '#c9a84c';
+  ctx.strokeStyle = '#5b8fff';
   ctx.lineWidth = 8;
   ctx.strokeRect(4, 4, 172, 172);
-  // Text: "A"
-  ctx.fillStyle = '#c9a84c';
+  ctx.fillStyle = '#5b8fff';
   ctx.font = 'bold 110px Courier New';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText('A', 90, 88);
-  // Subtext
-  ctx.fillStyle = '#5a5048';
+  ctx.fillStyle = '#3d4a6a';
   ctx.font = 'bold 22px Courier New';
   ctx.fillText('LOG', 90, 148);
-  // Set as apple touch icon
   var link = document.createElement('link');
   link.rel = 'apple-touch-icon';
   link.href = c.toDataURL('image/png');
@@ -62,1147 +64,378 @@ window.storage = {
   async set(k, v) { localStorage.setItem("aurora_log_" + k, v); return { key: k, value: v }; }
 };
 </script>
-<script>const {
-  useState,
-  useEffect,
-  useRef
-} = React;
-const STORES = ["Hillsboro", "Eugene", "Gresham", "Vancouver"];
-const inp = {
-  width: "100%",
-  background: "#0d0c0a",
-  border: "1px solid #2e2b27",
-  color: "#f0ede8",
-  padding: "8px 10px",
-  fontSize: "0.97rem",
-  outline: "none",
-  fontFamily: "'Courier New', monospace",
-  boxSizing: "border-box"
-};
-const lbl = {
-  display: "block",
-  fontSize: "0.7rem",
-  letterSpacing: "0.14em",
-  color: "#6a6258",
-  marginBottom: 4
-};
-function getApiKey() {
-  return localStorage.getItem("aurora_api_key") || "";
-}
-function setApiKeyVal(k) {
-  localStorage.setItem("aurora_api_key", k);
-}
-function getApiHeaders() {
-  return {
-    "Content-Type": "application/json",
-    "x-api-key": getApiKey(),
-    "anthropic-version": "2023-06-01",
-    "anthropic-dangerous-direct-browser-access": "true"
-  };
-}
-function today() {
-  return new Date().toISOString().slice(0, 10);
-}
+<script type="text/babel" data-type="module">
+const { useState, useEffect, useRef } = React;
+
+const STORES = [“Hillsboro”, “Eugene”, “Gresham”, “Vancouver”];
+const inp = { width: “100%”, background: “#0f1117”, border: “1px solid #252d42”, color: “#e8edf5”, padding: “8px 10px”, fontSize: “0.97rem”, outline: “none”, fontFamily: “‘Courier New’, monospace”, boxSizing: “border-box” };
+const lbl = { display: “block”, fontSize: “0.7rem”, letterSpacing: “0.14em”, color: “#4e5a7a”, marginBottom: 4 };
+
+function getApiKey() { return localStorage.getItem(“aurora_api_key”) || “”; }
+function setApiKeyVal(k) { localStorage.setItem(“aurora_api_key”, k); }
+function getApiHeaders() { return { “Content-Type”: “application/json”, “x-api-key”: getApiKey(), “anthropic-version”: “2023-06-01”, “anthropic-dangerous-direct-browser-access”: “true” }; }
+function today() { return new Date().toISOString().slice(0, 10); }
 function formatDateHeading(dateStr) {
-  const [y, m, d] = dateStr.split('-').map(Number);
-  const dt = new Date(y, m - 1, d);
-  const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const months = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  return `${days[dt.getDay()]}, ${months[dt.getMonth()]} ${d}`;
+const [y, m, d] = dateStr.split(’-’).map(Number);
+const dt = new Date(y, m - 1, d);
+const days = [“Sunday”,“Monday”,“Tuesday”,“Wednesday”,“Thursday”,“Friday”,“Saturday”];
+const months = [“January”,“February”,“March”,“April”,“May”,“June”,“July”,“August”,“September”,“October”,“November”,“December”];
+return `${days[dt.getDay()]}, ${months[dt.getMonth()]} ${d}`;
 }
-function AIIntake({
-  onSave
-}) {
-  const [input, setInput] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [parsed, setParsed] = useState(null);
-  const [error, setError] = useState("");
-  const [imageData, setImageData] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const fileRef = useRef();
-  const systemPrompt = `You are a document parser for Aurora, a construction and building materials supply warehouse in Portland, Oregon. Aurora's neighboring stores are: Hillsboro, Eugene, Gresham, Vancouver.
+
+function AIIntake({ onSave }) {
+const [input, setInput] = useState(””);
+const [loading, setLoading] = useState(false);
+const [parsed, setParsed] = useState(null);
+const [error, setError] = useState(””);
+const [imageData, setImageData] = useState(null);
+const [imagePreview, setImagePreview] = useState(null);
+const fileRef = useRef();
+
+const systemPrompt = `You are a document parser for Aurora, a construction and building materials supply warehouse in Portland, Oregon. Aurora’s neighboring stores are: Hillsboro, Eugene, Gresham, Vancouver.
 
 Identify the document type:
-- "PO" — Purchase Order: supplies arriving from an external vendor or supplier
-- "Transfer In" — Stock arriving AT Aurora FROM another store
-- "Transfer Out" — Stock leaving Aurora TO another store
+
+- “PO” — Purchase Order: supplies arriving from an external vendor or supplier
+- “Transfer In” — Stock arriving AT Aurora FROM another store
+- “Transfer Out” — Stock leaving Aurora TO another store
 
 Return ONLY valid JSON, no markdown:
 {
-  "type": "PO" or "Transfer In" or "Transfer Out",
-  "party": vendor company name (for PO) or store name like "Hillsboro" (for transfers),
-  "docId": document or order number as string, or "",
-  "date": "YYYY-MM-DD" (use today ${today()} if not visible),
-  "lineItems": [ { "name": "full item name exactly as written", "qty": number, "unit": "bags/pcs/rolls/etc" } ],
-  "notes": ""
+“type”: “PO” or “Transfer In” or “Transfer Out”,
+“party”: vendor company name (for PO) or store name like “Hillsboro” (for transfers),
+“docId”: document or order number as string, or “”,
+“date”: “YYYY-MM-DD” (use today ${today()} if not visible),
+“lineItems”: [ { “name”: “full item name exactly as written”, “qty”: number, “unit”: “bags/pcs/rolls/etc” } ],
+“notes”: “”
 }`;
-  const handleImage = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = ev => {
-      setImageData({
-        base64: ev.target.result.split(",")[1],
-        mediaType: file.type
-      });
-      setImagePreview(ev.target.result);
-    };
-    reader.readAsDataURL(file);
-  };
-  const clearImage = () => {
-    setImageData(null);
-    setImagePreview(null);
-    if (fileRef.current) fileRef.current.value = "";
-  };
-  const parse = async () => {
-    if (!input.trim() && !imageData) return;
-    if (!getApiKey()) {
-      setError("API key required — tap 🔑 in the header.");
-      return;
-    }
-    setLoading(true);
-    setError("");
-    setParsed(null);
-    try {
-      const userContent = [];
-      if (imageData) userContent.push({
-        type: "image",
-        source: {
-          type: "base64",
-          media_type: imageData.mediaType,
-          data: imageData.base64
-        }
-      });
-      userContent.push({
-        type: "text",
-        text: input.trim() || "Parse this warehouse document."
-      });
-      const res = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: getApiHeaders(),
-        body: JSON.stringify({
-          model: "claude-sonnet-4-20250514",
-          max_tokens: 4096,
-          system: systemPrompt,
-          messages: [{
-            role: "user",
-            content: userContent
-          }]
-        })
-      });
-      const data = await res.json();
-      if (data.error) {
-        setError(`API error: ${data.error.message}`);
-        setLoading(false);
-        return;
-      }
-      const text = data.content?.map(b => b.text || "").join("").trim();
-      let result;
-      try {
-        result = JSON.parse(text.replace(/```json|```/g, "").trim());
-      } catch {
-        setError("Couldn't parse — try again or enter manually.");
-        setLoading(false);
-        return;
-      }
-      setParsed(result);
-    } catch (e) {
-      setError(`Error: ${e.message}`);
-    }
-    setLoading(false);
-  };
-  const set = (k, v) => setParsed(p => ({
-    ...p,
-    [k]: v
-  }));
-  const updateLine = (idx, key, val) => setParsed(p => ({
-    ...p,
-    lineItems: p.lineItems.map((li, i) => i === idx ? {
-      ...li,
-      [key]: val
-    } : li)
-  }));
-  const removeLine = idx => setParsed(p => ({
-    ...p,
-    lineItems: p.lineItems.filter((_, i) => i !== idx)
-  }));
-  const addLine = () => setParsed(p => ({
-    ...p,
-    lineItems: [...(p.lineItems || []), {
-      name: "",
-      qty: "",
-      unit: ""
-    }]
-  }));
-  const confirm = () => {
-    if (!parsed) return;
-    onSave(parsed);
-    setParsed(null);
-    setInput("");
-    clearImage();
-  };
-  const typeAccent = {
-    "PO": "#6a9a5a",
-    "Transfer In": "#5a8aaa",
-    "Transfer Out": "#b58a3a"
-  };
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "#111009",
-      borderBottom: "1px solid #2a2520",
-      padding: "12px 14px"
-    }
-  }, imagePreview && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 10,
-      position: "relative",
-      display: "inline-block"
-    }
-  }, /*#__PURE__*/React.createElement("img", {
-    src: imagePreview,
-    alt: "",
-    style: {
-      maxHeight: 130,
-      maxWidth: "100%",
-      border: "1px solid #2a2520",
-      display: "block"
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: clearImage,
-    style: {
-      position: "absolute",
-      top: 3,
-      right: 3,
-      background: "#0d0c0a",
-      border: "1px solid #2a2520",
-      color: "#f0ede8",
-      cursor: "pointer",
-      fontSize: "0.8rem",
-      padding: "1px 6px"
-    }
-  }, "\u2715")), !parsed && /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      alignItems: "flex-start"
-    }
-  }, /*#__PURE__*/React.createElement("textarea", {
-    value: input,
-    onChange: e => setInput(e.target.value),
-    onKeyDown: e => {
-      if (e.key === "Enter" && !e.shiftKey) {
-        e.preventDefault();
-        parse();
-      }
-    },
-    placeholder: imageData ? "Add context (optional)..." : "Describe a PO or transfer, or snap a photo →",
-    rows: 2,
-    style: {
-      ...inp,
-      flex: 1,
-      resize: "none",
-      background: "#0d0c0a",
-      fontSize: "0.9rem"
-    }
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      flexDirection: "column",
-      gap: 6
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => fileRef.current?.click(),
-    style: {
-      background: imageData ? "#1e3a1e" : "#181614",
-      border: `1px solid ${imageData ? "#3a6a3a" : "#2e2b27"}`,
-      color: imageData ? "#7aba6a" : "#6a6258",
-      padding: "7px 11px",
-      fontFamily: "'Courier New',monospace",
-      fontWeight: 700,
-      fontSize: "0.82rem",
-      cursor: "pointer"
-    }
-  }, imageData ? "📷✓" : "📷"), /*#__PURE__*/React.createElement("button", {
-    onClick: parse,
-    disabled: loading || !input.trim() && !imageData,
-    style: {
-      background: loading ? "#2a2218" : "#c9a84c",
-      color: loading ? "#7a6a3a" : "#0d0c0a",
-      border: "none",
-      padding: "7px 11px",
-      fontFamily: "'Courier New',monospace",
-      fontWeight: 700,
-      fontSize: "0.9rem",
-      cursor: loading ? "default" : "pointer"
-    }
-  }, loading ? "···" : "GO"))), /*#__PURE__*/React.createElement("input", {
-    ref: fileRef,
-    type: "file",
-    accept: "image/*",
-    capture: "environment",
-    onChange: handleImage,
-    style: {
-      display: "none"
-    }
-  }), error && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 8,
-      color: "#c47a5a",
-      fontSize: "0.82rem",
-      padding: "6px 8px",
-      background: "#1a1210",
-      border: "1px solid #3a2218"
-    }
-  }, error), parsed && /*#__PURE__*/React.createElement("div", {
-    style: {
-      background: "#16140f",
-      border: "1px solid #2e2b27",
-      padding: "14px"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 12
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: typeAccent[parsed.type] || "#c9a84c",
-      fontWeight: 700,
-      fontSize: "0.78rem",
-      letterSpacing: "0.1em"
-    }
-  }, (parsed.type || "").toUpperCase()), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      setParsed(null);
-      setInput("");
-      clearImage();
-    },
-    style: {
-      background: "none",
-      border: "none",
-      color: "#4a4540",
-      cursor: "pointer",
-      fontSize: "1.1rem"
-    }
-  }, "\u2715")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      marginBottom: 10,
-      flexWrap: "wrap"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: "2 1 150px"
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, parsed.type === "PO" ? "VENDOR" : parsed.type === "Transfer In" ? "FROM STORE" : "TO STORE"), parsed.type !== "PO" ? /*#__PURE__*/React.createElement("select", {
-    value: parsed.party || "",
-    onChange: e => set("party", e.target.value),
-    style: {
-      ...inp,
-      background: "#0d0c0a",
-      padding: "7px 9px"
-    }
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "Select store..."), STORES.map(s => /*#__PURE__*/React.createElement("option", {
-    key: s
-  }, s))) : /*#__PURE__*/React.createElement("input", {
-    value: parsed.party || "",
-    onChange: e => set("party", e.target.value),
-    style: {
-      ...inp,
-      background: "#0d0c0a"
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: "1 1 90px"
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, "DOC #"), /*#__PURE__*/React.createElement("input", {
-    value: parsed.docId || "",
-    onChange: e => set("docId", e.target.value),
-    style: {
-      ...inp,
-      background: "#0d0c0a"
-    }
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: "1 1 110px"
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, "DATE"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: parsed.date || today(),
-    onChange: e => set("date", e.target.value),
-    style: {
-      ...inp,
-      background: "#0d0c0a"
-    }
-  }))), /*#__PURE__*/React.createElement("label", {
-    style: {
-      ...lbl,
-      marginBottom: 6
-    }
-  }, "LINE ITEMS"), (parsed.lineItems || []).map((li, idx) => /*#__PURE__*/React.createElement("div", {
-    key: idx,
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 56px 56px 22px",
-      gap: 5,
-      marginBottom: 5
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    value: li.name || "",
-    onChange: e => updateLine(idx, "name", e.target.value),
-    placeholder: "Item name",
-    style: {
-      ...inp,
-      background: "#0d0c0a",
-      fontSize: "0.88rem",
-      padding: "5px 7px"
-    }
-  }), /*#__PURE__*/React.createElement("input", {
-    value: li.qty || "",
-    onChange: e => updateLine(idx, "qty", e.target.value),
-    placeholder: "Qty",
-    style: {
-      ...inp,
-      background: "#0d0c0a",
-      fontSize: "0.88rem",
-      padding: "5px 7px"
-    }
-  }), /*#__PURE__*/React.createElement("input", {
-    value: li.unit || "",
-    onChange: e => updateLine(idx, "unit", e.target.value),
-    placeholder: "Unit",
-    style: {
-      ...inp,
-      background: "#0d0c0a",
-      fontSize: "0.88rem",
-      padding: "5px 7px"
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => removeLine(idx),
-    style: {
-      background: "none",
-      border: "none",
-      color: "#5c2a2a",
-      cursor: "pointer",
-      fontSize: "0.94rem",
-      padding: 0,
-      alignSelf: "center"
-    }
-  }, "\u2715"))), /*#__PURE__*/React.createElement("button", {
-    onClick: addLine,
-    style: {
-      background: "none",
-      border: "1px solid #2a2520",
-      color: "#6a6258",
-      padding: "3px 10px",
-      fontFamily: "'Courier New',monospace",
-      fontSize: "0.72rem",
-      cursor: "pointer",
-      marginTop: 2,
-      marginBottom: 12
-    }
-  }, "+ LINE"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: confirm,
-    style: {
-      background: "#2d6a4f",
-      color: "#f0ede8",
-      border: "none",
-      padding: "8px 20px",
-      fontFamily: "'Courier New',monospace",
-      fontWeight: 700,
-      fontSize: "0.9rem",
-      letterSpacing: "0.08em",
-      cursor: "pointer"
-    }
-  }, "\u2713 LOG IT"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      setParsed(null);
-      setInput("");
-      clearImage();
-    },
-    style: {
-      background: "none",
-      border: "1px solid #2a2520",
-      color: "#6a6258",
-      padding: "8px 14px",
-      fontFamily: "'Courier New',monospace",
-      fontSize: "0.84rem",
-      cursor: "pointer"
-    }
-  }, "CANCEL"))));
+
+const handleImage = (e) => {
+const file = e.target.files[0]; if (!file) return;
+const reader = new FileReader();
+reader.onload = (ev) => { setImageData({ base64: ev.target.result.split(”,”)[1], mediaType: file.type }); setImagePreview(ev.target.result); };
+reader.readAsDataURL(file);
+};
+const clearImage = () => { setImageData(null); setImagePreview(null); if (fileRef.current) fileRef.current.value = “”; };
+
+const parse = async () => {
+if (!input.trim() && !imageData) return;
+if (!getApiKey()) { setError(“API key required — tap 🔑 in the header.”); return; }
+setLoading(true); setError(””); setParsed(null);
+try {
+const userContent = [];
+if (imageData) userContent.push({ type: “image”, source: { type: “base64”, media_type: imageData.mediaType, data: imageData.base64 } });
+userContent.push({ type: “text”, text: input.trim() || “Parse this warehouse document.” });
+const res = await fetch(“https://api.anthropic.com/v1/messages”, { method: “POST”, headers: getApiHeaders(), body: JSON.stringify({ model: “claude-sonnet-4-20250514”, max_tokens: 4096, system: systemPrompt, messages: [{ role: “user”, content: userContent }] }) });
+const data = await res.json();
+if (data.error) { setError(`API error: ${data.error.message}`); setLoading(false); return; }
+const text = data.content?.map(b => b.text || “”).join(””).trim();
+let result;
+try { result = JSON.parse(text.replace(/`json|`/g, “”).trim()); } catch { setError(“Couldn’t parse — try again or enter manually.”); setLoading(false); return; }
+setParsed(result);
+} catch (e) { setError(`Error: ${e.message}`); }
+setLoading(false);
+};
+
+const set = (k, v) => setParsed(p => ({ …p, [k]: v }));
+const updateLine = (idx, key, val) => setParsed(p => ({ …p, lineItems: p.lineItems.map((li, i) => i === idx ? { …li, [key]: val } : li) }));
+const removeLine = (idx) => setParsed(p => ({ …p, lineItems: p.lineItems.filter((_, i) => i !== idx) }));
+const addLine = () => setParsed(p => ({ …p, lineItems: […(p.lineItems || []), { name: “”, qty: “”, unit: “” }] }));
+const confirm = () => { if (!parsed) return; onSave(parsed); setParsed(null); setInput(””); clearImage(); };
+
+const typeAccent = { “PO”: “#4a80e0”, “Transfer In”: “#2a9a8a”, “Transfer Out”: “#9b7fe8” };
+
+return (
+<div style={{ background: “#0f1117”, borderBottom: “1px solid #252d42”, padding: “12px 14px” }}>
+{imagePreview && (
+<div style={{ marginBottom: 10, position: “relative”, display: “inline-block” }}>
+<img src={imagePreview} alt=”” style={{ maxHeight: 130, maxWidth: “100%”, border: “1px solid #252d42”, display: “block” }} />
+<button onClick={clearImage} style={{ position: “absolute”, top: 3, right: 3, background: “#0f1117”, border: “1px solid #252d42”, color: “#e8edf5”, cursor: “pointer”, fontSize: “0.8rem”, padding: “1px 6px” }}>✕</button>
+</div>
+)}
+{!parsed && (
+<div style={{ display: “flex”, gap: 8, alignItems: “flex-start” }}>
+<textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === “Enter” && !e.shiftKey) { e.preventDefault(); parse(); } }}
+placeholder={imageData ? “Add context (optional)…” : “Describe a PO or transfer, or snap a photo →”}
+rows={2} style={{ …inp, flex: 1, resize: “none”, background: “#0f1117”, fontSize: “0.9rem” }} />
+<div style={{ display: “flex”, flexDirection: “column”, gap: 6 }}>
+<button onClick={() => fileRef.current?.click()} style={{ background: imageData ? “#1a2d5a” : “#1c2133”, border: `1px solid ${imageData ? "#2a4a8a" : "#252d42"}`, color: imageData ? “#7aa8f0” : “#4e5a7a”, padding: “7px 11px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.82rem”, cursor: “pointer” }}>{imageData ? “📷✓” : “📷”}</button>
+<button onClick={parse} disabled={loading || (!input.trim() && !imageData)} style={{ background: loading ? “#1e2540” : “#5b8fff”, color: loading ? “#2d4a8a” : “#0f1117”, border: “none”, padding: “7px 11px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.9rem”, cursor: loading ? “default” : “pointer” }}>{loading ? “···” : “GO”}</button>
+</div>
+</div>
+)}
+<input ref={fileRef} type=“file” accept=“image/*” capture=“environment” onChange={handleImage} style={{ display: “none” }} />
+{error && <div style={{ marginTop: 8, color: “#e06a8a”, fontSize: “0.82rem”, padding: “6px 8px”, background: “#1a1f2e”, border: “1px solid #2a1a3a” }}>{error}</div>}
+{parsed && (
+<div style={{ background: “#161b27”, border: “1px solid #252d42”, padding: “14px” }}>
+<div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “center”, marginBottom: 12 }}>
+<span style={{ color: typeAccent[parsed.type] || “#5b8fff”, fontWeight: 700, fontSize: “0.78rem”, letterSpacing: “0.1em” }}>{(parsed.type || “”).toUpperCase()}</span>
+<button onClick={() => { setParsed(null); setInput(””); clearImage(); }} style={{ background: “none”, border: “none”, color: “#2e3a58”, cursor: “pointer”, fontSize: “1.1rem” }}>✕</button>
+</div>
+<div style={{ display: “flex”, gap: 8, marginBottom: 10, flexWrap: “wrap” }}>
+<div style={{ flex: “2 1 150px” }}>
+<label style={lbl}>{parsed.type === “PO” ? “VENDOR” : parsed.type === “Transfer In” ? “FROM STORE” : “TO STORE”}</label>
+{parsed.type !== “PO” ? (
+<select value={parsed.party || “”} onChange={e => set(“party”, e.target.value)} style={{ …inp, background: “#0f1117”, padding: “7px 9px” }}>
+<option value="">Select store…</option>
+{STORES.map(s => <option key={s}>{s}</option>)}
+</select>
+) : (
+<input value={parsed.party || “”} onChange={e => set(“party”, e.target.value)} style={{ …inp, background: “#0f1117” }} />
+)}
+</div>
+<div style={{ flex: “1 1 90px” }}><label style={lbl}>DOC #</label><input value={parsed.docId || “”} onChange={e => set(“docId”, e.target.value)} style={{ …inp, background: “#0f1117” }} /></div>
+<div style={{ flex: “1 1 110px” }}><label style={lbl}>DATE</label><input type=“date” value={parsed.date || today()} onChange={e => set(“date”, e.target.value)} style={{ …inp, background: “#0f1117” }} /></div>
+</div>
+<label style={{ …lbl, marginBottom: 6 }}>LINE ITEMS</label>
+{(parsed.lineItems || []).map((li, idx) => (
+<div key={idx} style={{ display: “grid”, gridTemplateColumns: “1fr 56px 56px 22px”, gap: 5, marginBottom: 5 }}>
+<input value={li.name || “”} onChange={e => updateLine(idx, “name”, e.target.value)} placeholder=“Item name” style={{ …inp, background: “#0f1117”, fontSize: “0.88rem”, padding: “5px 7px” }} />
+<input value={li.qty || “”} onChange={e => updateLine(idx, “qty”, e.target.value)} placeholder=“Qty” style={{ …inp, background: “#0f1117”, fontSize: “0.88rem”, padding: “5px 7px” }} />
+<input value={li.unit || “”} onChange={e => updateLine(idx, “unit”, e.target.value)} placeholder=“Unit” style={{ …inp, background: “#0f1117”, fontSize: “0.88rem”, padding: “5px 7px” }} />
+<button onClick={() => removeLine(idx)} style={{ background: “none”, border: “none”, color: “#4a1a3a”, cursor: “pointer”, fontSize: “0.94rem”, padding: 0, alignSelf: “center” }}>✕</button>
+</div>
+))}
+<button onClick={addLine} style={{ background: “none”, border: “1px solid #252d42”, color: “#4e5a7a”, padding: “3px 10px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.72rem”, cursor: “pointer”, marginTop: 2, marginBottom: 12 }}>+ LINE</button>
+<div style={{ display: “flex”, gap: 8 }}>
+<button onClick={confirm} style={{ background: “#2d5fbf”, color: “#e8edf5”, border: “none”, padding: “8px 20px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.9rem”, letterSpacing: “0.08em”, cursor: “pointer” }}>✓ LOG IT</button>
+<button onClick={() => { setParsed(null); setInput(””); clearImage(); }} style={{ background: “none”, border: “1px solid #252d42”, color: “#4e5a7a”, padding: “8px 14px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.84rem”, cursor: “pointer” }}>CANCEL</button>
+</div>
+</div>
+)}
+</div>
+);
 }
-function EntryCard({
-  entry,
-  onDelete
-}) {
-  const [confirmDel, setConfirmDel] = useState(false);
-  const isPO = entry.type === "PO";
-  const isIn = entry.type === "Transfer In";
-  const accentColor = isPO ? "#3a6a3a" : isIn ? "#2a5a7a" : "#7a5a1a";
-  const partyLine = isPO ? entry.party : isIn ? `From ${entry.party}` : `To ${entry.party}`;
-  const partyColor = isPO ? "#8aca7e" : isIn ? "#7ab8d8" : "#c9a84c";
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      borderLeft: `3px solid ${accentColor}`,
-      background: "#141210",
-      padding: "11px 13px",
-      marginBottom: 7,
-      position: "relative"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "flex-start",
-      marginBottom: 7
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      minWidth: 0
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: partyColor,
-      fontWeight: 700,
-      fontSize: "1rem",
-      letterSpacing: "0.03em"
-    }
-  }, partyLine), entry.docId && /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#4a4540",
-      fontSize: "0.76rem",
-      marginLeft: 10,
-      letterSpacing: "0.04em"
-    }
-  }, entry.docId)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flexShrink: 0,
-      marginLeft: 8
-    }
-  }, confirmDel ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 5
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => onDelete(entry.id),
-    style: {
-      background: "#5c2a2a",
-      color: "#f0ede8",
-      border: "none",
-      padding: "2px 8px",
-      fontFamily: "'Courier New',monospace",
-      fontSize: "0.7rem",
-      cursor: "pointer"
-    }
-  }, "DEL"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setConfirmDel(false),
-    style: {
-      background: "none",
-      border: "1px solid #2a2520",
-      color: "#6a6258",
-      padding: "2px 7px",
-      fontFamily: "'Courier New',monospace",
-      fontSize: "0.7rem",
-      cursor: "pointer"
-    }
-  }, "NO")) : /*#__PURE__*/React.createElement("button", {
-    onClick: () => setConfirmDel(true),
-    style: {
-      background: "none",
-      border: "none",
-      color: "#2e2b27",
-      cursor: "pointer",
-      fontSize: "0.9rem",
-      padding: "2px 4px"
-    }
-  }, "\u2715"))), /*#__PURE__*/React.createElement("div", null, (entry.lineItems || []).filter(li => li.name).map((li, idx) => /*#__PURE__*/React.createElement("div", {
-    key: idx,
-    style: {
-      display: "flex",
-      gap: 10,
-      padding: "2px 0",
-      alignItems: "baseline"
-    }
-  }, (li.qty || li.unit) && /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#c9a84c",
-      fontWeight: 700,
-      fontSize: "0.84rem",
-      whiteSpace: "nowrap",
-      flexShrink: 0,
-      minWidth: 52
-    }
-  }, li.qty, li.unit ? ` ${li.unit}` : ""), /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#ddd8d0",
-      fontSize: "0.94rem",
-      lineHeight: 1.45,
-      wordBreak: "normal",
-      overflowWrap: "anywhere"
-    }
-  }, li.name)))), entry.notes && /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginTop: 7,
-      fontSize: "0.78rem",
-      color: "#4a4540",
-      fontStyle: "italic"
-    }
-  }, entry.notes));
+
+function EntryCard({ entry, onDelete }) {
+const [confirmDel, setConfirmDel] = useState(false);
+const isPO = entry.type === “PO”;
+const isIn = entry.type === “Transfer In”;
+const accentColor = isPO ? “#2a4a8a” : isIn ? “#1a5a6a” : “#4a3a7a”;
+const partyLine = isPO ? entry.party : isIn ? `From ${entry.party}` : `To ${entry.party}`;
+const partyColor = isPO ? “#7ab0f5” : isIn ? “#4dd4c8” : “#5b8fff”;
+
+return (
+<div style={{ borderLeft: `3px solid ${accentColor}`, background: “#161b27”, padding: “11px 13px”, marginBottom: 7, position: “relative” }}>
+<div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “flex-start”, marginBottom: 7 }}>
+<div style={{ flex: 1, minWidth: 0 }}>
+<span style={{ color: partyColor, fontWeight: 700, fontSize: “1rem”, letterSpacing: “0.03em” }}>{partyLine}</span>
+{entry.docId && <span style={{ color: “#2e3a58”, fontSize: “0.76rem”, marginLeft: 10, letterSpacing: “0.04em” }}>{entry.docId}</span>}
+</div>
+<div style={{ flexShrink: 0, marginLeft: 8 }}>
+{confirmDel ? (
+<div style={{ display: “flex”, gap: 5 }}>
+<button onClick={() => onDelete(entry.id)} style={{ background: “#4a1a3a”, color: “#e8edf5”, border: “none”, padding: “2px 8px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.7rem”, cursor: “pointer” }}>DEL</button>
+<button onClick={() => setConfirmDel(false)} style={{ background: “none”, border: “1px solid #252d42”, color: “#4e5a7a”, padding: “2px 7px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.7rem”, cursor: “pointer” }}>NO</button>
+</div>
+) : (
+<button onClick={() => setConfirmDel(true)} style={{ background: “none”, border: “none”, color: “#252d42”, cursor: “pointer”, fontSize: “0.9rem”, padding: “2px 4px” }}>✕</button>
+)}
+</div>
+</div>
+<div>
+{(entry.lineItems || []).filter(li => li.name).map((li, idx) => (
+<div key={idx} style={{ display: “flex”, gap: 10, padding: “2px 0”, alignItems: “baseline” }}>
+{(li.qty || li.unit) && (
+<span style={{ color: “#5b8fff”, fontWeight: 700, fontSize: “0.84rem”, whiteSpace: “nowrap”, flexShrink: 0, minWidth: 52 }}>
+{li.qty}{li.unit ? ` ${li.unit}` : “”}
+</span>
+)}
+<span style={{ color: “#d4daf0”, fontSize: “0.94rem”, lineHeight: 1.45, wordBreak: “normal”, overflowWrap: “anywhere” }}>{li.name}</span>
+</div>
+))}
+</div>
+{entry.notes && <div style={{ marginTop: 7, fontSize: “0.78rem”, color: “#2e3a58”, fontStyle: “italic” }}>{entry.notes}</div>}
+</div>
+);
 }
-function DateHeader({
-  dateStr
-}) {
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      alignItems: "center",
-      gap: 10,
-      margin: "28px 0 10px"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      height: 1,
-      background: "#1e1c18"
-    }
-  }), /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#c9a84c",
-      fontSize: "0.76rem",
-      fontWeight: 700,
-      letterSpacing: "0.2em",
-      whiteSpace: "nowrap"
-    }
-  }, formatDateHeading(dateStr).toUpperCase()), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: 1,
-      height: 1,
-      background: "#1e1c18"
-    }
-  }));
+
+function DateHeader({ dateStr }) {
+return (
+<div style={{ display: “flex”, alignItems: “center”, gap: 10, margin: “28px 0 10px” }}>
+<div style={{ flex: 1, height: 1, background: “#1e2438” }} />
+<span style={{ color: “#5b8fff”, fontSize: “0.76rem”, fontWeight: 700, letterSpacing: “0.2em”, whiteSpace: “nowrap” }}>{formatDateHeading(dateStr).toUpperCase()}</span>
+<div style={{ flex: 1, height: 1, background: “#1e2438” }} />
+</div>
+);
 }
-function AddModal({
-  onClose,
-  onSave,
-  defaultType
-}) {
-  const [form, setFormState] = useState({
-    type: defaultType || "PO",
-    party: "",
-    docId: "",
-    date: today(),
-    lineItems: [{
-      name: "",
-      qty: "",
-      unit: ""
-    }],
-    notes: ""
-  });
-  const set = (k, v) => setFormState(f => ({
-    ...f,
-    [k]: v
-  }));
-  const updateLine = (idx, k, v) => setFormState(f => ({
-    ...f,
-    lineItems: f.lineItems.map((li, i) => i === idx ? {
-      ...li,
-      [k]: v
-    } : li)
-  }));
-  const addLine = () => setFormState(f => ({
-    ...f,
-    lineItems: [...f.lineItems, {
-      name: "",
-      qty: "",
-      unit: ""
-    }]
-  }));
-  const removeLine = idx => setFormState(f => ({
-    ...f,
-    lineItems: f.lineItems.filter((_, i) => i !== idx)
-  }));
-  const isTransfer = form.type !== "PO";
-  const partyLabel = form.type === "PO" ? "VENDOR / SUPPLIER" : form.type === "Transfer In" ? "FROM STORE" : "TO STORE";
-  const save = () => {
-    if (!form.party.trim() || !form.lineItems.some(li => li.name.trim())) return;
-    onSave(form);
-    onClose();
-  };
-  return /*#__PURE__*/React.createElement("div", {
-    onClick: onClose,
-    style: {
-      position: "fixed",
-      inset: 0,
-      background: "rgba(8,7,5,0.88)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 1000
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    onClick: e => e.stopPropagation(),
-    style: {
-      background: "#1a1714",
-      border: "1px solid #2e2b27",
-      width: "min(500px,96vw)",
-      maxHeight: "92vh",
-      overflowY: "auto",
-      padding: "18px 16px"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center",
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("span", {
-    style: {
-      color: "#c9a84c",
-      fontWeight: 700,
-      fontSize: "1.05rem",
-      letterSpacing: "0.1em"
-    }
-  }, "LOG ENTRY"), /*#__PURE__*/React.createElement("button", {
-    onClick: onClose,
-    style: {
-      background: "none",
-      border: "none",
-      color: "#5a5048",
-      cursor: "pointer",
-      fontSize: "1.3rem"
-    }
-  }, "\u2715")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 12
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, "TYPE"), /*#__PURE__*/React.createElement("select", {
-    value: form.type,
-    onChange: e => set("type", e.target.value),
-    style: {
-      ...inp,
-      padding: "7px 9px"
-    }
-  }, /*#__PURE__*/React.createElement("option", null, "PO"), /*#__PURE__*/React.createElement("option", null, "Transfer In"), /*#__PURE__*/React.createElement("option", null, "Transfer Out"))), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 8,
-      marginBottom: 12,
-      flexWrap: "wrap"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: "2 1 150px"
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, partyLabel), isTransfer ? /*#__PURE__*/React.createElement("select", {
-    value: form.party,
-    onChange: e => set("party", e.target.value),
-    style: {
-      ...inp,
-      padding: "7px 9px"
-    }
-  }, /*#__PURE__*/React.createElement("option", {
-    value: ""
-  }, "Select..."), STORES.map(s => /*#__PURE__*/React.createElement("option", {
-    key: s
-  }, s))) : /*#__PURE__*/React.createElement("input", {
-    value: form.party,
-    onChange: e => set("party", e.target.value),
-    placeholder: "e.g. Pacific Supply Co.",
-    style: inp
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: "1 1 90px"
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, "DOC #"), /*#__PURE__*/React.createElement("input", {
-    value: form.docId,
-    onChange: e => set("docId", e.target.value),
-    placeholder: "optional",
-    style: inp
-  })), /*#__PURE__*/React.createElement("div", {
-    style: {
-      flex: "1 1 110px"
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, "DATE"), /*#__PURE__*/React.createElement("input", {
-    type: "date",
-    value: form.date,
-    onChange: e => set("date", e.target.value),
-    style: inp
-  }))), /*#__PURE__*/React.createElement("label", {
-    style: {
-      ...lbl,
-      marginBottom: 7
-    }
-  }, "LINE ITEMS"), form.lineItems.map((li, idx) => /*#__PURE__*/React.createElement("div", {
-    key: idx,
-    style: {
-      display: "grid",
-      gridTemplateColumns: "1fr 56px 56px 22px",
-      gap: 5,
-      marginBottom: 5
-    }
-  }, /*#__PURE__*/React.createElement("input", {
-    value: li.name,
-    onChange: e => updateLine(idx, "name", e.target.value),
-    placeholder: "Item name",
-    style: {
-      ...inp,
-      fontSize: "0.88rem",
-      padding: "5px 7px"
-    }
-  }), /*#__PURE__*/React.createElement("input", {
-    value: li.qty,
-    onChange: e => updateLine(idx, "qty", e.target.value),
-    placeholder: "Qty",
-    style: {
-      ...inp,
-      fontSize: "0.88rem",
-      padding: "5px 7px"
-    }
-  }), /*#__PURE__*/React.createElement("input", {
-    value: li.unit,
-    onChange: e => updateLine(idx, "unit", e.target.value),
-    placeholder: "Unit",
-    style: {
-      ...inp,
-      fontSize: "0.88rem",
-      padding: "5px 7px"
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => removeLine(idx),
-    style: {
-      background: "none",
-      border: "none",
-      color: "#5c2a2a",
-      cursor: "pointer",
-      fontSize: "0.94rem",
-      alignSelf: "center"
-    }
-  }, "\u2715"))), /*#__PURE__*/React.createElement("button", {
-    onClick: addLine,
-    style: {
-      background: "none",
-      border: "1px solid #2a2520",
-      color: "#6a6258",
-      padding: "3px 10px",
-      fontFamily: "'Courier New',monospace",
-      fontSize: "0.72rem",
-      cursor: "pointer",
-      marginBottom: 12
-    }
-  }, "+ LINE"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      marginBottom: 16
-    }
-  }, /*#__PURE__*/React.createElement("label", {
-    style: lbl
-  }, "NOTES (OPTIONAL)"), /*#__PURE__*/React.createElement("input", {
-    value: form.notes,
-    onChange: e => set("notes", e.target.value),
-    style: inp
-  })), /*#__PURE__*/React.createElement("button", {
-    onClick: save,
-    style: {
-      width: "100%",
-      background: "#c9a84c",
-      color: "#0d0c0a",
-      border: "none",
-      padding: "10px",
-      fontFamily: "'Courier New',monospace",
-      fontWeight: 700,
-      fontSize: "0.97rem",
-      letterSpacing: "0.1em",
-      cursor: "pointer"
-    }
-  }, "SAVE")));
+
+function AddModal({ onClose, onSave, defaultType }) {
+const [form, setFormState] = useState({ type: defaultType || “PO”, party: “”, docId: “”, date: today(), lineItems: [{ name: “”, qty: “”, unit: “” }], notes: “” });
+const set = (k, v) => setFormState(f => ({ …f, [k]: v }));
+const updateLine = (idx, k, v) => setFormState(f => ({ …f, lineItems: f.lineItems.map((li, i) => i === idx ? { …li, [k]: v } : li) }));
+const addLine = () => setFormState(f => ({ …f, lineItems: […f.lineItems, { name: “”, qty: “”, unit: “” }] }));
+const removeLine = (idx) => setFormState(f => ({ …f, lineItems: f.lineItems.filter((_, i) => i !== idx) }));
+const isTransfer = form.type !== “PO”;
+const partyLabel = form.type === “PO” ? “VENDOR / SUPPLIER” : form.type === “Transfer In” ? “FROM STORE” : “TO STORE”;
+const save = () => {
+if (!form.party.trim() || !form.lineItems.some(li => li.name.trim())) return;
+onSave(form); onClose();
+};
+
+return (
+<div onClick={onClose} style={{ position: “fixed”, inset: 0, background: “rgba(8,7,5,0.88)”, display: “flex”, alignItems: “center”, justifyContent: “center”, zIndex: 1000 }}>
+<div onClick={e => e.stopPropagation()} style={{ background: “#1c2133”, border: “1px solid #252d42”, width: “min(500px,96vw)”, maxHeight: “92vh”, overflowY: “auto”, padding: “18px 16px” }}>
+<div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “center”, marginBottom: 16 }}>
+<span style={{ color: “#5b8fff”, fontWeight: 700, fontSize: “1.05rem”, letterSpacing: “0.1em” }}>LOG ENTRY</span>
+<button onClick={onClose} style={{ background: “none”, border: “none”, color: “#3d4a6a”, cursor: “pointer”, fontSize: “1.3rem” }}>✕</button>
+</div>
+<div style={{ marginBottom: 12 }}>
+<label style={lbl}>TYPE</label>
+<select value={form.type} onChange={e => set(“type”, e.target.value)} style={{ …inp, padding: “7px 9px” }}>
+<option>PO</option><option>Transfer In</option><option>Transfer Out</option>
+</select>
+</div>
+<div style={{ display: “flex”, gap: 8, marginBottom: 12, flexWrap: “wrap” }}>
+<div style={{ flex: “2 1 150px” }}>
+<label style={lbl}>{partyLabel}</label>
+{isTransfer ? (
+<select value={form.party} onChange={e => set(“party”, e.target.value)} style={{ …inp, padding: “7px 9px” }}>
+<option value="">Select…</option>
+{STORES.map(s => <option key={s}>{s}</option>)}
+</select>
+) : (
+<input value={form.party} onChange={e => set(“party”, e.target.value)} placeholder=“e.g. Pacific Supply Co.” style={inp} />
+)}
+</div>
+<div style={{ flex: “1 1 90px” }}><label style={lbl}>DOC #</label><input value={form.docId} onChange={e => set(“docId”, e.target.value)} placeholder=“optional” style={inp} /></div>
+<div style={{ flex: “1 1 110px” }}><label style={lbl}>DATE</label><input type=“date” value={form.date} onChange={e => set(“date”, e.target.value)} style={inp} /></div>
+</div>
+<label style={{ …lbl, marginBottom: 7 }}>LINE ITEMS</label>
+{form.lineItems.map((li, idx) => (
+<div key={idx} style={{ display: “grid”, gridTemplateColumns: “1fr 56px 56px 22px”, gap: 5, marginBottom: 5 }}>
+<input value={li.name} onChange={e => updateLine(idx, “name”, e.target.value)} placeholder=“Item name” style={{ …inp, fontSize: “0.88rem”, padding: “5px 7px” }} />
+<input value={li.qty} onChange={e => updateLine(idx, “qty”, e.target.value)} placeholder=“Qty” style={{ …inp, fontSize: “0.88rem”, padding: “5px 7px” }} />
+<input value={li.unit} onChange={e => updateLine(idx, “unit”, e.target.value)} placeholder=“Unit” style={{ …inp, fontSize: “0.88rem”, padding: “5px 7px” }} />
+<button onClick={() => removeLine(idx)} style={{ background: “none”, border: “none”, color: “#4a1a3a”, cursor: “pointer”, fontSize: “0.94rem”, alignSelf: “center” }}>✕</button>
+</div>
+))}
+<button onClick={addLine} style={{ background: “none”, border: “1px solid #252d42”, color: “#4e5a7a”, padding: “3px 10px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.72rem”, cursor: “pointer”, marginBottom: 12 }}>+ LINE</button>
+<div style={{ marginBottom: 16 }}><label style={lbl}>NOTES (OPTIONAL)</label><input value={form.notes} onChange={e => set(“notes”, e.target.value)} style={inp} /></div>
+<button onClick={save} style={{ width: “100%”, background: “#5b8fff”, color: “#0f1117”, border: “none”, padding: “10px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.97rem”, letterSpacing: “0.1em”, cursor: “pointer” }}>SAVE</button>
+</div>
+</div>
+);
 }
-function ApiKeyModal({
-  onClose
-}) {
-  const [val, setVal] = useState(getApiKey());
-  return /*#__PURE__*/React.createElement("div", {
-    onClick: onClose,
-    style: {
-      position: "fixed",
-      inset: 0,
-      background: "rgba(8,7,5,0.88)",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      zIndex: 1000
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    onClick: e => e.stopPropagation(),
-    style: {
-      background: "#1a1714",
-      border: "1px solid #2e2b27",
-      width: "min(380px,92vw)",
-      padding: "20px 16px"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      color: "#c9a84c",
-      fontWeight: 700,
-      fontSize: "0.94rem",
-      letterSpacing: "0.12em",
-      marginBottom: 12
-    }
-  }, "API KEY"), /*#__PURE__*/React.createElement("input", {
-    value: val,
-    onChange: e => setVal(e.target.value),
-    placeholder: "sk-ant-...",
-    type: "password",
-    style: {
-      ...inp,
-      marginBottom: 10
-    }
-  }), /*#__PURE__*/React.createElement("button", {
-    onClick: () => {
-      setApiKeyVal(val);
-      onClose();
-    },
-    style: {
-      width: "100%",
-      background: "#c9a84c",
-      color: "#0d0c0a",
-      border: "none",
-      padding: "8px",
-      fontFamily: "'Courier New',monospace",
-      fontWeight: 700,
-      cursor: "pointer"
-    }
-  }, "SAVE")));
+
+function ApiKeyModal({ onClose }) {
+const [val, setVal] = useState(getApiKey());
+return (
+<div onClick={onClose} style={{ position: “fixed”, inset: 0, background: “rgba(8,7,5,0.88)”, display: “flex”, alignItems: “center”, justifyContent: “center”, zIndex: 1000 }}>
+<div onClick={e => e.stopPropagation()} style={{ background: “#1c2133”, border: “1px solid #252d42”, width: “min(380px,92vw)”, padding: “20px 16px” }}>
+<div style={{ color: “#5b8fff”, fontWeight: 700, fontSize: “0.94rem”, letterSpacing: “0.12em”, marginBottom: 12 }}>API KEY</div>
+<input value={val} onChange={e => setVal(e.target.value)} placeholder=“sk-ant-…” type=“password” style={{ …inp, marginBottom: 10 }} />
+<button onClick={() => { setApiKeyVal(val); onClose(); }} style={{ width: “100%”, background: “#5b8fff”, color: “#0f1117”, border: “none”, padding: “8px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, cursor: “pointer” }}>SAVE</button>
+</div>
+</div>
+);
 }
+
 function App() {
-  const [entries, setEntries] = useState([]);
-  const [tab, setTab] = useState("po");
-  const [showIntake, setShowIntake] = useState(false);
-  const [showAdd, setShowAdd] = useState(false);
-  const [showApiKey, setShowApiKey] = useState(false);
-  const [loaded, setLoaded] = useState(false);
-  useEffect(() => {
-    (async () => {
-      const SAMPLE_ENTRIES = [
-        { id: "s1", type: "PO", party: "Pacific Supply Co.", docId: "PO-4821", date: "2026-03-04", lineItems: [{ name: "Dimple board 3/8\" 4x8", qty: 40, unit: "sheets" }, { name: "Hydraulic cement 10lb", qty: 24, unit: "pails" }, { name: "Poly sheeting 6mil 20x100", qty: 6, unit: "rolls" }], notes: "", createdAt: 1 },
-        { id: "s2", type: "PO", party: "Mutual Materials", docId: "PO-4819", date: "2026-03-04", lineItems: [{ name: "Anchor bolts 5/8 x 10", qty: 200, unit: "pcs" }, { name: "Anchor bolts 1/2 x 8", qty: 150, unit: "pcs" }, { name: "Post anchor bolts 7/8 x 30", qty: 50, unit: "pcs" }], notes: "", createdAt: 2 },
-        { id: "s3", type: "PO", party: "Pacific Supply Co.", docId: "PO-4804", date: "2026-03-03", lineItems: [{ name: "Drainage mat 2ft x 50ft", qty: 12, unit: "rolls" }, { name: "Waterproofing membrane 5gal", qty: 8, unit: "pails" }, { name: "Foam backer rod 3/8\"", qty: 10, unit: "bags" }, { name: "Fiberglass window well covers 32\"", qty: 15, unit: "pcs" }], notes: "", createdAt: 3 },
-        { id: "s4", type: "Transfer In", party: "Hillsboro", docId: "TR-0291", date: "2026-03-04", lineItems: [{ name: "Dimple board 1/4\" 4x8", qty: 20, unit: "sheets" }, { name: "Grey vent wells 6\"", qty: 12, unit: "pcs" }, { name: "Plastic sheeting 4mil 12x100", qty: 4, unit: "rolls" }], notes: "", createdAt: 4 },
-        { id: "s5", type: "Transfer Out", party: "Hillsboro", docId: "SO-8847", date: "2026-03-04", lineItems: [{ name: "Hydraulic cement 50lb", qty: 10, unit: "bags" }, { name: "Anchor bolts 5/8 x 10", qty: 100, unit: "pcs" }], notes: "", createdAt: 5 },
-        { id: "s6", type: "Transfer In", party: "Eugene", docId: "TR-0288", date: "2026-03-03", lineItems: [{ name: "Sleeve anchors 3/8 x 3\"", qty: 4, unit: "boxes" }, { name: "Expansion bolts 1/2 x 4\"", qty: 3, unit: "boxes" }], notes: "", createdAt: 6 },
-        { id: "s7", type: "Transfer Out", party: "Gresham", docId: "SO-8801", date: "2026-03-01", lineItems: [{ name: "Dimple board 3/8\" 4x8", qty: 30, unit: "sheets" }, { name: "Waterproofing sealer 1gal", qty: 6, unit: "pails" }, { name: "Window well gravel guard 24\"", qty: 8, unit: "pcs" }], notes: "", createdAt: 7 },
-        { id: "s8", type: "PO", party: "Northwest Building Products", docId: "PO-4798", date: "2026-03-01", lineItems: [{ name: "PVC pipe 3\" x 10ft", qty: 24, unit: "pcs" }, { name: "PVC elbow 3\" 90deg", qty: 30, unit: "pcs" }, { name: "PVC coupling 3\"", qty: 20, unit: "pcs" }, { name: "Drain grate 4\" square", qty: 15, unit: "pcs" }], notes: "", createdAt: 8 },
-      ];
-      try {
-        const r = await window.storage.get("entries");
-        if (r?.value) {
-          setEntries(JSON.parse(r.value));
-        } else {
-          setEntries(SAMPLE_ENTRIES);
-          await window.storage.set("entries", JSON.stringify(SAMPLE_ENTRIES));
-        }
-      } catch { setEntries(SAMPLE_ENTRIES); }
-      setLoaded(true);
-      if (!getApiKey()) setTimeout(() => setShowApiKey(true), 300);
-    })();
-  }, []);
-  const persist = async next => {
-    setEntries(next);
-    try {
-      await window.storage.set("entries", JSON.stringify(next));
-    } catch {}
-  };
-  const addEntry = data => {
-    const entry = {
-      id: Date.now().toString() + Math.random().toString(36).slice(2, 5),
-      type: data.type,
-      party: (data.party || "").trim(),
-      docId: (data.docId || "").trim(),
-      date: data.date || today(),
-      lineItems: (data.lineItems || []).filter(li => (li.name || "").trim()),
-      notes: (data.notes || "").trim(),
-      createdAt: Date.now()
-    };
-    persist([entry, ...entries]);
-    setShowIntake(false);
-  };
-  const deleteEntry = id => persist(entries.filter(e => e.id !== id));
-  const visible = tab === "po" ? entries.filter(e => e.type === "PO") : entries.filter(e => e.type === "Transfer In" || e.type === "Transfer Out");
-  const grouped = (() => {
-    const map = {};
-    visible.forEach(e => {
-      if (!map[e.date]) map[e.date] = [];
-      map[e.date].push(e);
-    });
-    return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
-  })();
-  const poCount = entries.filter(e => e.type === "PO").length;
-  const trCount = entries.filter(e => e.type !== "PO").length;
-  const tabBtn = (id, label, count) => /*#__PURE__*/React.createElement("button", {
-    onClick: () => setTab(id),
-    style: {
-      background: "none",
-      border: "none",
-      borderBottom: tab === id ? "2px solid #c9a84c" : "2px solid transparent",
-      color: tab === id ? "#c9a84c" : "#6a6258",
-      padding: "9px 16px",
-      fontFamily: "'Courier New',monospace",
-      fontWeight: 700,
-      fontSize: "0.82rem",
-      letterSpacing: "0.1em",
-      cursor: "pointer",
-      whiteSpace: "nowrap",
-      flex: "1 1 0",
-      textAlign: "center"
-    }
-  }, label, count > 0 && /*#__PURE__*/React.createElement("span", {
-    style: {
-      marginLeft: 6,
-      fontSize: "0.68rem",
-      color: tab === id ? "#c9a84c" : "#4a4540"
-    }
-  }, count));
-  return /*#__PURE__*/React.createElement("div", {
-    style: {
-      minHeight: "100vh",
-      background: "#0d0c0a",
-      color: "#f0ede8",
-      fontFamily: "'Courier New', monospace",
-      maxWidth: 660,
-      margin: "0 auto"
-    }
-  }, /*#__PURE__*/React.createElement("div", {
-    style: {
-      borderBottom: "2px solid #c9a84c",
-      padding: "12px 14px",
-      display: "flex",
-      justifyContent: "space-between",
-      alignItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: "0.62rem",
-      letterSpacing: "0.22em",
-      color: "#5a5048",
-      marginBottom: 1
-    }
-  }, "AURORA"), /*#__PURE__*/React.createElement("div", {
-    style: {
-      fontSize: "1.25rem",
-      fontWeight: 700,
-      color: "#c9a84c",
-      letterSpacing: "0.06em",
-      lineHeight: 1
-    }
-  }, "RECEIVING LOG")), /*#__PURE__*/React.createElement("div", {
-    style: {
-      display: "flex",
-      gap: 6,
-      alignItems: "center"
-    }
-  }, /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowIntake(s => !s),
-    style: {
-      background: showIntake ? "#1e1c14" : "none",
-      border: `1px solid ${showIntake ? "#c9a84c55" : "#2e2b27"}`,
-      color: showIntake ? "#c9a84c" : "#6a6258",
-      padding: "5px 10px",
-      fontFamily: "'Courier New',monospace",
-      fontSize: "0.74rem",
-      fontWeight: 700,
-      cursor: "pointer",
-      letterSpacing: "0.06em"
-    }
-  }, showIntake ? "HIDE" : "📷 SCAN"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowAdd(true),
-    style: {
-      background: "#c9a84c",
-      color: "#0d0c0a",
-      border: "none",
-      padding: "5px 10px",
-      fontFamily: "'Courier New',monospace",
-      fontSize: "0.74rem",
-      fontWeight: 700,
-      cursor: "pointer",
-      letterSpacing: "0.06em"
-    }
-  }, "+ LOG"), /*#__PURE__*/React.createElement("button", {
-    onClick: () => setShowApiKey(true),
-    style: {
-      background: getApiKey() ? "none" : "#3a1a1a",
-      border: `1px solid ${getApiKey() ? "#2a2520" : "#8a3a3a"}`,
-      color: getApiKey() ? "#4a4540" : "#c07070",
-      padding: "5px 8px",
-      fontFamily: "'Courier New',monospace",
-      fontSize: "0.74rem",
-      cursor: "pointer"
-    }
-  }, "\uD83D\uDD11"))), showIntake && /*#__PURE__*/React.createElement(AIIntake, {
-    onSave: addEntry
-  }), /*#__PURE__*/React.createElement("div", {
-    style: {
-      borderBottom: "1px solid #1e1c18",
-      display: "flex"
-    }
-  }, tabBtn("po", "PURCHASE ORDERS", poCount), tabBtn("transfers", "TRANSFERS", trCount)), /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: "0 12px 80px"
-    }
-  }, !loaded ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 50,
-      textAlign: "center",
-      color: "#4a4540",
-      fontSize: "0.84rem"
-    }
-  }, "Loading...") : grouped.length === 0 ? /*#__PURE__*/React.createElement("div", {
-    style: {
-      padding: 60,
-      textAlign: "center",
-      color: "#2e2b27",
-      fontSize: "0.9rem"
-    }
-  }, "No ", tab === "po" ? "purchase orders" : "transfers", " logged yet.") : grouped.map(([date, dayEntries]) => /*#__PURE__*/React.createElement("div", {
-    key: date
-  }, /*#__PURE__*/React.createElement(DateHeader, {
-    dateStr: date
-  }), dayEntries.map(entry => /*#__PURE__*/React.createElement(EntryCard, {
-    key: entry.id,
-    entry: entry,
-    onDelete: deleteEntry
-  }))))), showAdd && /*#__PURE__*/React.createElement(AddModal, {
-    onClose: () => setShowAdd(false),
-    onSave: addEntry,
-    defaultType: tab === "po" ? "PO" : "Transfer In"
-  }), showApiKey && /*#__PURE__*/React.createElement(ApiKeyModal, {
-    onClose: () => setShowApiKey(false)
-  }));
+const [entries, setEntries] = useState([]);
+const [tab, setTab] = useState(“po”);
+const [showIntake, setShowIntake] = useState(false);
+const [showAdd, setShowAdd] = useState(false);
+const [showApiKey, setShowApiKey] = useState(false);
+const [loaded, setLoaded] = useState(false);
+
+useEffect(() => {
+(async () => {
+try { const r = await window.storage.get(“entries”); if (r?.value) setEntries(JSON.parse(r.value)); } catch {}
+setLoaded(true);
+if (!getApiKey()) setTimeout(() => setShowApiKey(true), 300);
+})();
+}, []);
+
+const persist = async (next) => { setEntries(next); try { await window.storage.set(“entries”, JSON.stringify(next)); } catch {} };
+
+const addEntry = (data) => {
+const entry = {
+id: Date.now().toString() + Math.random().toString(36).slice(2, 5),
+type: data.type, party: (data.party || “”).trim(), docId: (data.docId || “”).trim(),
+date: data.date || today(),
+lineItems: (data.lineItems || []).filter(li => (li.name || “”).trim()),
+notes: (data.notes || “”).trim(), createdAt: Date.now()
+};
+persist([entry, …entries]);
+setShowIntake(false);
+};
+
+const deleteEntry = (id) => persist(entries.filter(e => e.id !== id));
+
+const visible = tab === “po”
+? entries.filter(e => e.type === “PO”)
+: entries.filter(e => e.type === “Transfer In” || e.type === “Transfer Out”);
+
+const grouped = (() => {
+const map = {};
+visible.forEach(e => { if (!map[e.date]) map[e.date] = []; map[e.date].push(e); });
+return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
+})();
+
+const poCount = entries.filter(e => e.type === “PO”).length;
+const trCount = entries.filter(e => e.type !== “PO”).length;
+
+const tabBtn = (id, label, count) => (
+<button onClick={() => setTab(id)} style={{
+background: “none”, border: “none”,
+borderBottom: tab === id ? “2px solid #5b8fff” : “2px solid transparent”,
+color: tab === id ? “#5b8fff” : “#4e5a7a”,
+padding: “9px 16px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700,
+fontSize: “0.82rem”, letterSpacing: “0.1em”, cursor: “pointer”, whiteSpace: “nowrap”, flex: “1 1 0”, textAlign: “center”
+}}>
+{label}
+{count > 0 && <span style={{ marginLeft: 6, fontSize: “0.68rem”, color: tab === id ? “#5b8fff” : “#2e3a58” }}>{count}</span>}
+</button>
+);
+
+return (
+<div style={{ minHeight: “100vh”, background: “#0f1117”, color: “#e8edf5”, fontFamily: “‘Courier New’, monospace”, maxWidth: 660, margin: “0 auto” }}>
+<div style={{ borderBottom: “2px solid #5b8fff”, padding: “12px 14px”, display: “flex”, justifyContent: “space-between”, alignItems: “center” }}>
+<div>
+<div style={{ fontSize: “0.62rem”, letterSpacing: “0.22em”, color: “#3d4a6a”, marginBottom: 1 }}>AURORA</div>
+<div style={{ fontSize: “1.25rem”, fontWeight: 700, color: “#5b8fff”, letterSpacing: “0.06em”, lineHeight: 1 }}>RECEIVING LOG</div>
+</div>
+<div style={{ display: “flex”, gap: 6, alignItems: “center” }}>
+<button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? “#1a2035” : “none”, border: `1px solid ${showIntake ? "#5b8fff55" : "#252d42"}`, color: showIntake ? “#5b8fff” : “#4e5a7a”, padding: “5px 10px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.74rem”, fontWeight: 700, cursor: “pointer”, letterSpacing: “0.06em” }}>{showIntake ? “HIDE” : “📷 SCAN”}</button>
+<button onClick={() => setShowAdd(true)} style={{ background: “#5b8fff”, color: “#0f1117”, border: “none”, padding: “5px 10px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.74rem”, fontWeight: 700, cursor: “pointer”, letterSpacing: “0.06em” }}>+ LOG</button>
+<button onClick={() => setShowApiKey(true)} style={{ background: getApiKey() ? “none” : “#3a1a1a”, border: `1px solid ${getApiKey() ? "#252d42" : "#8a3a3a"}`, color: getApiKey() ? “#2e3a58” : “#c07070”, padding: “5px 8px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.74rem”, cursor: “pointer” }}>🔑</button>
+</div>
+</div>
+
+```
+  {showIntake && <AIIntake onSave={addEntry} />}
+
+  <div style={{ borderBottom: "1px solid #1e2438", display: "flex" }}>
+    {tabBtn("po", "PURCHASE ORDERS", poCount)}
+    {tabBtn("transfers", "TRANSFERS", trCount)}
+  </div>
+
+  <div style={{ padding: "0 12px 80px" }}>
+    {!loaded ? (
+      <div style={{ padding: 50, textAlign: "center", color: "#2e3a58", fontSize: "0.84rem" }}>Loading...</div>
+    ) : grouped.length === 0 ? (
+      <div style={{ padding: 60, textAlign: "center", color: "#252d42", fontSize: "0.9rem" }}>No {tab === "po" ? "purchase orders" : "transfers"} logged yet.</div>
+    ) : (
+      grouped.map(([date, dayEntries]) => (
+        <div key={date}>
+          <DateHeader dateStr={date} />
+          {dayEntries.map(entry => <EntryCard key={entry.id} entry={entry} onDelete={deleteEntry} />)}
+        </div>
+      ))
+    )}
+  </div>
+
+  {showAdd && <AddModal onClose={() => setShowAdd(false)} onSave={addEntry} defaultType={tab === "po" ? "PO" : "Transfer In"} />}
+  {showApiKey && <ApiKeyModal onClose={() => setShowApiKey(false)} />}
+</div>
+```
+
+);
 }
-ReactDOM.render(/*#__PURE__*/React.createElement(App, null), document.getElementById("root"));</script>
+
+ReactDOM.render(<App />, document.getElementById(“root”));
+</script>
+
 </body>
 </html>
