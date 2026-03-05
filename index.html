@@ -160,7 +160,7 @@ placeholder={imageData ? “Add context (optional)…” : “Describe a PO or t
 rows={2} style={{ …inp, flex: 1, resize: “none”, background: “#0a0a0a”, fontSize: “0.9rem” }} />
 <div style={{ display: “flex”, flexDirection: “column”, gap: 6 }}>
 <button onClick={() => fileRef.current?.click()} style={{ background: imageData ? “#1a2d5a” : “#141414”, border: `1px solid ${imageData ? "#2a2a2a" : "#2a2a2a"}`, color: imageData ? “#7aa8f0” : “#666666”, padding: “7px 11px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.82rem”, cursor: “pointer” }}>{imageData ? “📷✓” : “📷”}</button>
-<button onClick={parse} disabled={loading || (!input.trim() && !imageData)} style={{ background: loading ? “#141414” : “#5b8fff”, color: loading ? “#2d4a8a” : “#0a0a0a”, border: “none”, padding: “7px 11px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.9rem”, cursor: loading ? “default” : “pointer” }}>{loading ? “···” : “GO”}</button>
+<button onClick={parse} disabled={loading || (!input.trim() && !imageData)} style={{ background: loading ? “#141414” : “#ffffff”, color: loading ? “#2d4a8a” : “#0a0a0a”, border: “none”, padding: “7px 11px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.9rem”, cursor: loading ? “default” : “pointer” }}>{loading ? “···” : “GO”}</button>
 </div>
 </div>
 )}
@@ -169,7 +169,7 @@ rows={2} style={{ …inp, flex: 1, resize: “none”, background: “#0a0a0a”
 {parsed && (
 <div style={{ background: “#111111”, border: “1px solid #2a2a2a”, padding: “14px” }}>
 <div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “center”, marginBottom: 12 }}>
-<span style={{ color: typeAccent[parsed.type] || “#5b8fff”, fontWeight: 700, fontSize: “0.78rem”, letterSpacing: “0.1em” }}>{(parsed.type || “”).toUpperCase()}</span>
+<span style={{ color: typeAccent[parsed.type] || “#ffffff”, fontWeight: 700, fontSize: “0.78rem”, letterSpacing: “0.1em” }}>{(parsed.type || “”).toUpperCase()}</span>
 <button onClick={() => { setParsed(null); setInput(””); clearImage(); }} style={{ background: “none”, border: “none”, color: “#555555”, cursor: “pointer”, fontSize: “1.1rem” }}>✕</button>
 </div>
 <div style={{ display: “flex”, gap: 8, marginBottom: 10, flexWrap: “wrap” }}>
@@ -207,11 +207,11 @@ rows={2} style={{ …inp, flex: 1, resize: “none”, background: “#0a0a0a”
 );
 }
 
-function EntryCard({ entry, onDelete }) {
+function EntryCard({ entry, onDelete, onEdit }) {
 const [confirmDel, setConfirmDel] = useState(false);
 const isPO = entry.type === “PO”;
 const isIn = entry.type === “Transfer In”;
-const accentColor = isPO ? “#2a2a2a” : isIn ? “#1a5a6a” : “#4a3a7a”;
+const accentColor = isPO ? “#333333” : isIn ? “#00c853” : “#cc0000”;
 const partyLine = isPO ? entry.party : isIn ? `From ${entry.party}` : `To ${entry.party}`;
 const partyColor = isPO ? “#ffffff” : isIn ? “#00e676” : “#ff3d3d”;
 
@@ -222,14 +222,17 @@ return (
 <span style={{ color: partyColor, fontWeight: 700, fontSize: “1rem”, letterSpacing: “0.03em” }}>{partyLine}</span>
 {entry.docId && <span style={{ color: “#555555”, fontSize: “0.76rem”, marginLeft: 10, letterSpacing: “0.04em” }}>{entry.docId}</span>}
 </div>
-<div style={{ flexShrink: 0, marginLeft: 8 }}>
+<div style={{ flexShrink: 0, marginLeft: 8, display: “flex”, gap: 6, alignItems: “center” }}>
 {confirmDel ? (
 <div style={{ display: “flex”, gap: 5 }}>
 <button onClick={() => onDelete(entry.id)} style={{ background: “#4a0000”, color: “#f5f5f5”, border: “none”, padding: “2px 8px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.7rem”, cursor: “pointer” }}>DEL</button>
 <button onClick={() => setConfirmDel(false)} style={{ background: “none”, border: “1px solid #2a2a2a”, color: “#666666”, padding: “2px 7px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.7rem”, cursor: “pointer” }}>NO</button>
 </div>
 ) : (
+<>
+<button onClick={() => onEdit(entry)} style={{ background: “none”, border: “none”, color: “#555555”, cursor: “pointer”, fontSize: “0.72rem”, padding: “2px 4px”, fontFamily: “‘Courier New’,monospace”, letterSpacing: “0.06em” }}>EDIT</button>
 <button onClick={() => setConfirmDel(true)} style={{ background: “none”, border: “none”, color: “#2a2a2a”, cursor: “pointer”, fontSize: “0.9rem”, padding: “2px 4px” }}>✕</button>
+</>
 )}
 </div>
 </div>
@@ -315,7 +318,7 @@ return (
 ))}
 <button onClick={addLine} style={{ background: “none”, border: “1px solid #2a2a2a”, color: “#666666”, padding: “3px 10px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.72rem”, cursor: “pointer”, marginBottom: 12 }}>+ LINE</button>
 <div style={{ marginBottom: 16 }}><label style={lbl}>NOTES (OPTIONAL)</label><input value={form.notes} onChange={e => set(“notes”, e.target.value)} style={inp} /></div>
-<button onClick={save} style={{ width: “100%”, background: “#5b8fff”, color: “#0a0a0a”, border: “none”, padding: “10px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.97rem”, letterSpacing: “0.1em”, cursor: “pointer” }}>{editEntry ? “SAVE CHANGES” : “SAVE”}</button>
+<button onClick={save} style={{ width: “100%”, background: “#ffffff”, color: “#0a0a0a”, border: “none”, padding: “10px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.97rem”, letterSpacing: “0.1em”, cursor: “pointer” }}>{editEntry ? “SAVE CHANGES” : “SAVE”}</button>
 </div>
 </div>
 );
@@ -328,7 +331,7 @@ return (
 <div onClick={e => e.stopPropagation()} style={{ background: “#141414”, border: “1px solid #2a2a2a”, width: “min(380px,92vw)”, padding: “20px 16px” }}>
 <div style={{ color: “#ffffff”, fontWeight: 700, fontSize: “0.94rem”, letterSpacing: “0.12em”, marginBottom: 12 }}>API KEY</div>
 <input value={val} onChange={e => setVal(e.target.value)} placeholder=“sk-ant-…” type=“password” style={{ …inp, marginBottom: 10 }} />
-<button onClick={() => { setApiKeyVal(val); onClose(); }} style={{ width: “100%”, background: “#5b8fff”, color: “#0a0a0a”, border: “none”, padding: “8px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, cursor: “pointer” }}>SAVE</button>
+<button onClick={() => { setApiKeyVal(val); onClose(); }} style={{ width: “100%”, background: “#ffffff”, color: “#0a0a0a”, border: “none”, padding: “8px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, cursor: “pointer” }}>SAVE</button>
 </div>
 </div>
 );
@@ -408,11 +411,11 @@ return (
 <div style={{ borderBottom: “2px solid #ffffff”, padding: “12px 14px”, display: “flex”, justifyContent: “space-between”, alignItems: “center” }}>
 <div>
 <div style={{ fontSize: “0.62rem”, letterSpacing: “0.22em”, color: “#555555”, marginBottom: 1 }}>AURORA</div>
-<div style={{ fontSize: “1.25rem”, fontWeight: 700, color: “#5b8fff”, letterSpacing: “0.06em”, lineHeight: 1 }}>RECEIVING LOG</div>
+<div style={{ fontSize: “1.25rem”, fontWeight: 700, color: “#ffffff”, letterSpacing: “0.06em”, lineHeight: 1 }}>RECEIVING LOG</div>
 </div>
 <div style={{ display: “flex”, gap: 6, alignItems: “center” }}>
-<button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? “#141414” : “none”, border: `1px solid ${showIntake ? "#5b8fff55" : "#2a2a2a"}`, color: showIntake ? “#5b8fff” : “#666666”, padding: “5px 10px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.74rem”, fontWeight: 700, cursor: “pointer”, letterSpacing: “0.06em” }}>{showIntake ? “HIDE” : “📷 SCAN”}</button>
-<button onClick={() => setShowAdd(true)} style={{ background: “#5b8fff”, color: “#0a0a0a”, border: “none”, padding: “5px 10px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.74rem”, fontWeight: 700, cursor: “pointer”, letterSpacing: “0.06em” }}>+ LOG</button>
+<button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? “#141414” : “none”, border: `1px solid ${showIntake ? "#ffffff55" : "#2a2a2a"}`, color: showIntake ? “#ffffff” : “#666666”, padding: “5px 10px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.74rem”, fontWeight: 700, cursor: “pointer”, letterSpacing: “0.06em” }}>{showIntake ? “HIDE” : “📷 SCAN”}</button>
+<button onClick={() => setShowAdd(true)} style={{ background: “#ffffff”, color: “#0a0a0a”, border: “none”, padding: “5px 10px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.74rem”, fontWeight: 700, cursor: “pointer”, letterSpacing: “0.06em” }}>+ LOG</button>
 <button onClick={() => setShowApiKey(true)} style={{ background: getApiKey() ? “none” : “#1a0000”, border: `1px solid ${getApiKey() ? "#2a2a2a" : "#8a2020"}`, color: getApiKey() ? “#555555” : “#c07070”, padding: “5px 8px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.74rem”, cursor: “pointer” }}>🔑</button>
 </div>
 </div>
