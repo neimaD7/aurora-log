@@ -258,8 +258,11 @@ function DateHeader({ dateStr }) {
   );
 }
 
-function AddModal({ onClose, onSave, defaultType }) {
-  const [form, setFormState] = useState({ type: defaultType || "PO", party: "", docId: "", date: today(), lineItems: [{ name: "", qty: "", unit: "" }], notes: "" });
+function AddModal({ onClose, onSave, defaultType, editEntry }) {
+  const [form, setFormState] = useState(editEntry ? {
+    type: editEntry.type, party: editEntry.party, docId: editEntry.docId,
+    date: editEntry.date, lineItems: editEntry.lineItems.map(li => ({...li})), notes: editEntry.notes || ""
+  } : { type: defaultType || "PO", party: "", docId: "", date: today(), lineItems: [{ name: "", qty: "", unit: "" }], notes: "" });
   const set = (k, v) => setFormState(f => ({ ...f, [k]: v }));
   const updateLine = (idx, k, v) => setFormState(f => ({ ...f, lineItems: f.lineItems.map((li, i) => i === idx ? { ...li, [k]: v } : li) }));
   const addLine = () => setFormState(f => ({ ...f, lineItems: [...f.lineItems, { name: "", qty: "", unit: "" }] }));
@@ -275,7 +278,7 @@ function AddModal({ onClose, onSave, defaultType }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(500px,96vw)", maxHeight: "92vh", overflowY: "auto", padding: "18px 16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.1em" }}>LOG ENTRY</span>
+          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.1em" }}>{editEntry ? "EDIT ENTRY" : "LOG ENTRY"}</span>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>✕</button>
         </div>
         <div style={{ marginBottom: 12 }}>
@@ -310,7 +313,7 @@ function AddModal({ onClose, onSave, defaultType }) {
         ))}
         <button onClick={addLine} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginBottom: 12 }}>+ LINE</button>
         <div style={{ marginBottom: 16 }}><label style={lbl}>NOTES (OPTIONAL)</label><input value={form.notes} onChange={e => set("notes", e.target.value)} style={inp} /></div>
-        <button onClick={save} style={{ width: "100%", background: "#5b8fff", color: "#0a0a0a", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.97rem", letterSpacing: "0.1em", cursor: "pointer" }}>SAVE</button>
+        <button onClick={save} style={{ width: "100%", background: "#5b8fff", color: "#0a0a0a", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.97rem", letterSpacing: "0.1em", cursor: "pointer" }}>{editEntry ? "SAVE CHANGES" : "SAVE"}</button>
       </div>
     </div>
   );
@@ -336,6 +339,7 @@ function App() {
   const [showAdd, setShowAdd] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [editEntry, setEditEntry] = useState(null);
 
   useEffect(() => {
     (async () => {
@@ -360,6 +364,16 @@ function App() {
   };
 
   const deleteEntry = (id) => persist(entries.filter(e => e.id !== id));
+  const handleEdit = (entry) => { setEditEntry(entry); setShowAdd(true); };
+  const handleSaveEdit = (data) => {
+    const updated = entries.map(e => e.id === editEntry.id ? {
+      ...e, type: data.type, party: (data.party || "").trim(), docId: (data.docId || "").trim(),
+      date: data.date || today(), lineItems: (data.lineItems || []).filter(li => (li.name || "").trim()), notes: (data.notes || "").trim()
+    } : e);
+    persist(updated);
+    setEditEntry(null);
+    setShowAdd(false);
+  };
 
   const visible = tab === "po"
     ? entries.filter(e => e.type === "PO")
@@ -417,13 +431,18 @@ function App() {
           grouped.map(([date, dayEntries]) => (
             <div key={date}>
               <DateHeader dateStr={date} />
-              {dayEntries.map(entry => <EntryCard key={entry.id} entry={entry} onDelete={deleteEntry} />)}
+              {dayEntries.map(entry => <EntryCard key={entry.id} entry={entry} onDelete={deleteEntry} onEdit={handleEdit} />)}
             </div>
           ))
         )}
       </div>
 
-      {showAdd && <AddModal onClose={() => setShowAdd(false)} onSave={addEntry} defaultType={tab === "po" ? "PO" : "Transfer In"} />}
+      {showAdd && <AddModal
+  onClose={() => { setShowAdd(false); setEditEntry(null); }}
+  onSave={editEntry ? handleSaveEdit : addEntry}
+  defaultType={tab === "po" ? "PO" : "Transfer In"}
+  editEntry={editEntry}
+/>}
       {showApiKey && <ApiKeyModal onClose={() => setShowApiKey(false)} />}
     </div>
   );
