@@ -227,10 +227,10 @@ function EntryCard({ entry, onDelete, onEdit }) {
               <button onClick={() => setConfirmDel(false)} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "2px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>NO</button>
             </div>
           ) : (
-            <>
+            <React.Fragment>
               <button onClick={() => onEdit(entry)} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "0.72rem", padding: "2px 4px", fontFamily: "'Courier New',monospace", letterSpacing: "0.06em" }}>EDIT</button>
               <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.9rem", padding: "2px 4px" }}>✕</button>
-            </>
+            </React.Fragment>
           )}
         </div>
       </div>
