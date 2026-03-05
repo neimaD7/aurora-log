@@ -116,8 +116,7 @@ const [input, setInput] = useState(””);
 const [loading, setLoading] = useState(false);
 const [parsed, setParsed] = useState(null);
 const [error, setError] = useState(””);
-const [imageData, setImageData] = useState(null);
-const [imagePreview, setImagePreview] = useState(null);
+const [images, setImages] = useState([]);
 const fileRef = useRef();
 
 const knownItemsList = knownItems.length > 0
@@ -131,6 +130,8 @@ Identify the document type:
 - “PO” — Purchase Order: supplies arriving from an external vendor or supplier
 - “Transfer In” — Stock arriving AT Aurora FROM another store
 - “Transfer Out” — Stock leaving Aurora TO another store
+
+The user may provide MULTIPLE PHOTOS of the same document (e.g. a multi-page PO). Treat all images as pages of ONE document — combine all line items into a single result. Do NOT create separate entries per page.
 
 Return ONLY valid JSON, no markdown:
 {
@@ -147,19 +148,24 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
 const handleImage = (e) => {
 const file = e.target.files[0]; if (!file) return;
 const reader = new FileReader();
-reader.onload = (ev) => { setImageData({ base64: ev.target.result.split(”,”)[1], mediaType: file.type }); setImagePreview(ev.target.result); };
+reader.onload = (ev) => { setImages(prev => […prev, { base64: ev.target.result.split(”,”)[1], mediaType: file.type, preview: ev.target.result }]); };
 reader.readAsDataURL(file);
+if (fileRef.current) fileRef.current.value = “”;
 };
-const clearImage = () => { setImageData(null); setImagePreview(null); if (fileRef.current) fileRef.current.value = “”; };
+const removeImage = (idx) => setImages(prev => prev.filter((_, i) => i !== idx));
+const clearAllImages = () => { setImages([]); if (fileRef.current) fileRef.current.value = “”; };
 
 const parse = async () => {
-if (!input.trim() && !imageData) return;
+if (!input.trim() && images.length === 0) return;
 if (!getApiKey()) { setError(“API key required — tap 🔑 in the header.”); return; }
 setLoading(true); setError(””); setParsed(null);
 try {
 const userContent = [];
-if (imageData) userContent.push({ type: “image”, source: { type: “base64”, media_type: imageData.mediaType, data: imageData.base64 } });
-userContent.push({ type: “text”, text: input.trim() || “Parse this warehouse document.” });
+images.forEach((img, i) => {
+userContent.push({ type: “image”, source: { type: “base64”, media_type: img.mediaType, data: img.base64 } });
+});
+const textPart = input.trim() || (images.length > 1 ? `Parse this ${images.length}-page warehouse document. Combine all line items into one result.` : “Parse this warehouse document.”);
+userContent.push({ type: “text”, text: textPart });
 const res = await fetch(“https://api.anthropic.com/v1/messages”, { method: “POST”, headers: getApiHeaders(), body: JSON.stringify({ model: “claude-sonnet-4-20250514”, max_tokens: 4096, system: systemPrompt, messages: [{ role: “user”, content: userContent }] }) });
 const data = await res.json();
 if (data.error) { setError(`API error: ${data.error.message}`); setLoading(false); return; }
@@ -189,7 +195,7 @@ const set = (k, v) => setParsed(p => ({ …p, [k]: v }));
 const updateLine = (idx, key, val) => setParsed(p => ({ …p, lineItems: p.lineItems.map((li, i) => i === idx ? { …li, [key]: val } : li) }));
 const removeLine = (idx) => setParsed(p => ({ …p, lineItems: p.lineItems.filter((_, i) => i !== idx) }));
 const addLine = () => setParsed(p => ({ …p, lineItems: […(p.lineItems || []), { name: “”, qty: “”, unit: “” }] }));
-const confirm = () => { if (!parsed) return; onSave(parsed); setParsed(null); setInput(””); clearImage(); };
+const confirm = () => { if (!parsed) return; onSave(parsed); setParsed(null); setInput(””); clearAllImages(); };
 
 const typeAccent = { “PO”: “#aaaaaa”, “Transfer In”: “#00e676”, “Transfer Out”: “#ff3d3d” };
 
@@ -246,20 +252,25 @@ return (
 
 return (
 <div style={{ background: “#0a0a0a”, borderBottom: “1px solid #2a2a2a”, padding: “12px 14px” }}>
-{imagePreview && (
-<div style={{ marginBottom: 10, position: “relative”, display: “inline-block” }}>
-<img src={imagePreview} alt=”” style={{ maxHeight: 130, maxWidth: “100%”, border: “1px solid #2a2a2a”, display: “block” }} />
-<button onClick={clearImage} style={{ position: “absolute”, top: 3, right: 3, background: “#0a0a0a”, border: “1px solid #2a2a2a”, color: “#f5f5f5”, cursor: “pointer”, fontSize: “0.8rem”, padding: “1px 6px” }}>✕</button>
+{images.length > 0 && (
+<div style={{ marginBottom: 10, display: “flex”, gap: 8, flexWrap: “wrap”, alignItems: “flex-start” }}>
+{images.map((img, idx) => (
+<div key={idx} style={{ position: “relative”, display: “inline-block” }}>
+<img src={img.preview} alt=”” style={{ height: 80, maxWidth: 100, border: “1px solid #2a2a2a”, display: “block”, objectFit: “cover” }} />
+<button onClick={() => removeImage(idx)} style={{ position: “absolute”, top: 2, right: 2, background: “#0a0a0a”, border: “1px solid #2a2a2a”, color: “#f5f5f5”, cursor: “pointer”, fontSize: “0.7rem”, padding: “0px 4px”, lineHeight: “16px” }}>✕</button>
+<div style={{ position: “absolute”, bottom: 2, left: 2, background: “#0a0a0a”, color: “#666666”, fontSize: “0.6rem”, padding: “0 3px”, fontWeight: 700 }}>P{idx + 1}</div>
+</div>
+))}
 </div>
 )}
 {!parsed && (
 <div style={{ display: “flex”, gap: 8, alignItems: “flex-start” }}>
 <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === “Enter” && !e.shiftKey) { e.preventDefault(); parse(); } }}
-placeholder={imageData ? “Add context (optional)…” : “Describe a PO or transfer, or snap a photo →”}
+placeholder={images.length > 0 ? `${images.length} photo${images.length > 1 ? "s" : ""} — add more or hit GO` : “Describe a PO or transfer, or snap a photo →”}
 rows={2} style={{ …inp, flex: 1, resize: “none”, background: “#0a0a0a”, fontSize: “0.9rem” }} />
 <div style={{ display: “flex”, flexDirection: “column”, gap: 6 }}>
-<button onClick={() => fileRef.current?.click()} style={{ background: imageData ? “#1a2d5a” : “#141414”, border: `1px solid ${imageData ? "#2a2a2a" : "#2a2a2a"}`, color: imageData ? “#7aa8f0” : “#666666”, padding: “7px 11px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.82rem”, cursor: “pointer” }}>{imageData ? “📷✓” : “📷”}</button>
-<button onClick={parse} disabled={loading || (!input.trim() && !imageData)} style={{ background: loading ? “#141414” : “#ffffff”, color: loading ? “#2d4a8a” : “#0a0a0a”, border: “none”, padding: “7px 11px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.9rem”, cursor: loading ? “default” : “pointer” }}>{loading ? “···” : “GO”}</button>
+<button onClick={() => fileRef.current?.click()} style={{ background: images.length > 0 ? “#1a2d5a” : “#141414”, border: `1px solid #2a2a2a`, color: images.length > 0 ? “#7aa8f0” : “#666666”, padding: “7px 11px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.82rem”, cursor: “pointer” }}>{images.length > 0 ? `📷+${images.length}` : “📷”}</button>
+<button onClick={parse} disabled={loading || (!input.trim() && images.length === 0)} style={{ background: loading ? “#141414” : “#ffffff”, color: loading ? “#2d4a8a” : “#0a0a0a”, border: “none”, padding: “7px 11px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.9rem”, cursor: loading ? “default” : “pointer” }}>{loading ? “···” : “GO”}</button>
 </div>
 </div>
 )}
@@ -269,7 +280,7 @@ rows={2} style={{ …inp, flex: 1, resize: “none”, background: “#0a0a0a”
 <div style={{ background: “#111111”, border: “1px solid #2a2a2a”, padding: “14px” }}>
 <div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “center”, marginBottom: 12 }}>
 <span style={{ color: typeAccent[parsed.type] || “#ffffff”, fontWeight: 700, fontSize: “0.78rem”, letterSpacing: “0.1em” }}>{(parsed.type || “”).toUpperCase()}</span>
-<button onClick={() => { setParsed(null); setInput(””); clearImage(); }} style={{ background: “none”, border: “none”, color: “#555555”, cursor: “pointer”, fontSize: “1.1rem” }}>✕</button>
+<button onClick={() => { setParsed(null); setInput(””); clearAllImages(); }} style={{ background: “none”, border: “none”, color: “#555555”, cursor: “pointer”, fontSize: “1.1rem” }}>✕</button>
 </div>
 <div style={{ display: “flex”, gap: 8, marginBottom: 10, flexWrap: “wrap” }}>
 <div style={{ flex: “2 1 150px” }}>
@@ -301,7 +312,7 @@ rows={2} style={{ …inp, flex: 1, resize: “none”, background: “#0a0a0a”
 <button onClick={addLine} style={{ background: “none”, border: “1px solid #2a2a2a”, color: “#666666”, padding: “3px 10px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.72rem”, cursor: “pointer”, marginTop: 2, marginBottom: 12 }}>+ LINE</button>
 <div style={{ display: “flex”, gap: 8 }}>
 <button onClick={confirm} style={{ background: “#ffffff”, color: “#0a0a0a”, border: “none”, padding: “8px 20px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.9rem”, letterSpacing: “0.08em”, cursor: “pointer” }}>✓ LOG IT</button>
-<button onClick={() => { setParsed(null); setInput(””); clearImage(); }} style={{ background: “none”, border: “1px solid #2a2a2a”, color: “#666666”, padding: “8px 14px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.84rem”, cursor: “pointer” }}>CANCEL</button>
+<button onClick={() => { setParsed(null); setInput(””); clearAllImages(); }} style={{ background: “none”, border: “1px solid #2a2a2a”, color: “#666666”, padding: “8px 14px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.84rem”, cursor: “pointer” }}>CANCEL</button>
 </div>
 </div>
 )}
