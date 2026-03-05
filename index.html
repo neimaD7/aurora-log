@@ -81,7 +81,7 @@ const lbl = { display: “block”, fontSize: “0.7rem”, letterSpacing: “0.
 function getApiKey() { return localStorage.getItem(“aurora_api_key”) || “”; }
 function setApiKeyVal(k) { localStorage.setItem(“aurora_api_key”, k); }
 function getApiHeaders() { return { “Content-Type”: “application/json”, “x-api-key”: getApiKey(), “anthropic-version”: “2023-06-01”, “anthropic-dangerous-direct-browser-access”: “true” }; }
-function today() { return new Date().toISOString().slice(0, 10); }
+function today() { const d = new Date(); return d.getFullYear() + “-” + String(d.getMonth()+1).padStart(2,“0”) + “-” + String(d.getDate()).padStart(2,“0”); }
 function formatDateHeading(dateStr) {
 const [y, m, d] = dateStr.split(’-’).map(Number);
 const dt = new Date(y, m - 1, d);
