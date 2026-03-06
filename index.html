@@ -111,51 +111,6 @@ if (score > bestScore) { bestScore = score; bestItem = item; }
 return bestScore >= 0.5 ? bestItem : null;
 }
 
-function NameInput({ value, onChange, placeholder, knownItems, inputStyle }) {
-const [showSugg, setShowSugg] = useState(false);
-const [suggestions, setSuggestions] = useState([]);
-const inputRef = useRef();
-
-const handleChange = useCallback((e) => {
-const v = e.target.value;
-onChange(v);
-if (v.trim().length >= 2 && knownItems && knownItems.length > 0) {
-const norm = normalizeForMatch(v);
-const matches = knownItems.filter(k => {
-const kn = normalizeForMatch(k.name);
-return kn.includes(norm) || norm.split(” “).some(t => t.length > 1 && kn.includes(t));
-}).slice(0, 5);
-setSuggestions(matches);
-setShowSugg(matches.length > 0);
-} else {
-setSuggestions([]);
-setShowSugg(false);
-}
-}, [onChange, knownItems]);
-
-return (
-<div style={{ position: “relative” }}>
-<input ref={inputRef} value={value || “”} onChange={handleChange}
-onFocus={() => { if (suggestions.length) setShowSugg(true); }}
-onBlur={() => setTimeout(() => setShowSugg(false), 200)}
-placeholder={placeholder}
-style={inputStyle || { …inp, background: “#0a0a0a”, fontSize: “0.88rem”, padding: “5px 7px” }} />
-{showSugg && (
-<div style={{ position: “absolute”, top: “100%”, left: 0, right: 0, background: “#1a1a1a”, border: “1px solid #333333”, zIndex: 100, maxHeight: 140, overflowY: “auto” }}>
-{suggestions.map((s, i) => (
-<div key={i} onMouseDown={(e) => { e.preventDefault(); onChange(s.name); setSuggestions([]); setShowSugg(false); }}
-style={{ padding: “6px 8px”, fontSize: “0.82rem”, color: “#cccccc”, cursor: “pointer”, borderBottom: “1px solid #222222” }}
-onMouseEnter={e => e.currentTarget.style.background = “#252525”}
-onMouseLeave={e => e.currentTarget.style.background = “transparent”}>
-{s.name} <span style={{ color: “#555555”, fontSize: “0.72rem” }}>{s.unit}</span>
-</div>
-))}
-</div>
-)}
-</div>
-);
-}
-
 function AIIntake({ onSave, knownItems }) {
 const [input, setInput] = useState(””);
 const [loading, setLoading] = useState(false);
@@ -244,6 +199,57 @@ const confirm = () => { if (!parsed) return; onSave(parsed); setParsed(null); se
 
 const typeAccent = { “PO”: “#aaaaaa”, “Transfer In”: “#00e676”, “Transfer Out”: “#ff3d3d” };
 
+// Autocomplete for line item name fields
+const NameInput = ({ value, onChange, placeholder }) => {
+const [showSugg, setShowSugg] = useState(false);
+const [suggestions, setSuggestions] = useState([]);
+const ref = useRef();
+
+```
+const handleChange = (e) => {
+  const v = e.target.value;
+  onChange(v);
+  if (v.trim().length >= 2 && knownItems.length > 0) {
+    const norm = normalizeForMatch(v);
+    const matches = knownItems.filter(k => {
+      const kn = normalizeForMatch(k.name);
+      return kn.includes(norm) || norm.split(" ").some(t => t.length > 1 && kn.includes(t));
+    }).slice(0, 5);
+    setSuggestions(matches);
+    setShowSugg(matches.length > 0);
+  } else {
+    setShowSugg(false);
+  }
+};
+
+const pick = (item) => {
+  onChange(item.name);
+  setShowSugg(false);
+};
+
+return (
+  <div style={{ position: "relative" }}>
+    <input ref={ref} value={value || ""} onChange={handleChange} onFocus={() => { if (suggestions.length) setShowSugg(true); }}
+      onBlur={() => setTimeout(() => setShowSugg(false), 150)}
+      placeholder={placeholder} style={{ ...inp, background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" }} />
+    {showSugg && (
+      <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a1a1a", border: "1px solid #333333", zIndex: 100, maxHeight: 140, overflowY: "auto" }}>
+        {suggestions.map((s, i) => (
+          <div key={i} onMouseDown={() => pick(s)}
+            style={{ padding: "6px 8px", fontSize: "0.82rem", color: "#cccccc", cursor: "pointer", borderBottom: "1px solid #222222" }}
+            onMouseEnter={e => e.currentTarget.style.background = "#252525"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+            {s.name} <span style={{ color: "#555555", fontSize: "0.72rem" }}>{s.unit}</span>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+);
+```
+
+};
+
 return (
 <div style={{ background: “#0a0a0a”, borderBottom: “1px solid #2a2a2a”, padding: “12px 14px” }}>
 {images.length > 0 && (
@@ -295,7 +301,7 @@ rows={2} style={{ …inp, flex: 1, resize: “none”, background: “#0a0a0a”
 {(parsed.lineItems || []).map((li, idx) => (
 <div key={idx} style={{ marginBottom: 5 }}>
 <div style={{ display: “grid”, gridTemplateColumns: “1fr 56px 56px 22px”, gap: 5 }}>
-<NameInput value={li.name} onChange={v => updateLine(idx, “name”, v)} placeholder=“Item name” knownItems={knownItems} />
+<NameInput value={li.name} onChange={v => updateLine(idx, “name”, v)} placeholder=“Item name” />
 <input value={li.qty || “”} onChange={e => updateLine(idx, “qty”, e.target.value)} placeholder=“Qty” style={{ …inp, background: “#0a0a0a”, fontSize: “0.88rem”, padding: “5px 7px” }} />
 <input value={li.unit || “”} onChange={e => updateLine(idx, “unit”, e.target.value)} placeholder=“Unit” style={{ …inp, background: “#0a0a0a”, fontSize: “0.88rem”, padding: “5px 7px” }} />
 <button onClick={() => removeLine(idx)} style={{ background: “none”, border: “none”, color: “#4a0000”, cursor: “pointer”, fontSize: “0.94rem”, padding: 0, alignSelf: “center” }}>✕</button>
@@ -386,6 +392,48 @@ if (!form.party.trim() || !form.lineItems.some(li => li.name.trim())) return;
 onSave(form); onClose();
 };
 
+// Name autocomplete for manual entry too
+const NameInput = ({ value, onChange, placeholder }) => {
+const [showSugg, setShowSugg] = useState(false);
+const [suggestions, setSuggestions] = useState([]);
+
+```
+const handleChange = (v) => {
+  onChange(v);
+  if (v.trim().length >= 2 && knownItems.length > 0) {
+    const norm = normalizeForMatch(v);
+    const matches = knownItems.filter(k => {
+      const kn = normalizeForMatch(k.name);
+      return kn.includes(norm) || norm.split(" ").some(t => t.length > 1 && kn.includes(t));
+    }).slice(0, 5);
+    setSuggestions(matches);
+    setShowSugg(matches.length > 0);
+  } else { setShowSugg(false); }
+};
+
+return (
+  <div style={{ position: "relative" }}>
+    <input value={value} onChange={e => handleChange(e.target.value)} onFocus={() => { if (suggestions.length) setShowSugg(true); }}
+      onBlur={() => setTimeout(() => setShowSugg(false), 150)}
+      placeholder={placeholder} style={{ ...inp, fontSize: "0.88rem", padding: "5px 7px" }} />
+    {showSugg && (
+      <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a1a1a", border: "1px solid #333333", zIndex: 100, maxHeight: 140, overflowY: "auto" }}>
+        {suggestions.map((s, i) => (
+          <div key={i} onMouseDown={() => { onChange(s.name); setShowSugg(false); }}
+            style={{ padding: "6px 8px", fontSize: "0.82rem", color: "#cccccc", cursor: "pointer", borderBottom: "1px solid #222222" }}
+            onMouseEnter={e => e.currentTarget.style.background = "#252525"}
+            onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+            {s.name} <span style={{ color: "#555555", fontSize: "0.72rem" }}>{s.unit}</span>
+          </div>
+        ))}
+      </div>
+    )}
+  </div>
+);
+```
+
+};
+
 return (
 <div onClick={onClose} style={{ position: “fixed”, inset: 0, background: “rgba(8,7,5,0.88)”, display: “flex”, alignItems: “center”, justifyContent: “center”, zIndex: 1000 }}>
 <div onClick={e => e.stopPropagation()} style={{ background: “#141414”, border: “1px solid #2a2a2a”, width: “min(500px,96vw)”, maxHeight: “92vh”, overflowY: “auto”, padding: “18px 16px” }}>
@@ -417,7 +465,7 @@ return (
 <label style={{ …lbl, marginBottom: 7 }}>LINE ITEMS</label>
 {form.lineItems.map((li, idx) => (
 <div key={idx} style={{ display: “grid”, gridTemplateColumns: “1fr 56px 56px 22px”, gap: 5, marginBottom: 5 }}>
-<NameInput value={li.name} onChange={v => updateLine(idx, “name”, v)} placeholder=“Item name” knownItems={knownItems} inputStyle={{ …inp, fontSize: “0.88rem”, padding: “5px 7px” }} />
+<NameInput value={li.name} onChange={v => updateLine(idx, “name”, v)} placeholder=“Item name” />
 <input value={li.qty} onChange={e => updateLine(idx, “qty”, e.target.value)} placeholder=“Qty” style={{ …inp, fontSize: “0.88rem”, padding: “5px 7px” }} />
 <input value={li.unit} onChange={e => updateLine(idx, “unit”, e.target.value)} placeholder=“Unit” style={{ …inp, fontSize: “0.88rem”, padding: “5px 7px” }} />
 <button onClick={() => removeLine(idx)} style={{ background: “none”, border: “none”, color: “#4a0000”, cursor: “pointer”, fontSize: “0.94rem”, alignSelf: “center” }}>✕</button>
