@@ -1,9 +1,10 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Aurora · Log</title>
+<title>Aurora Log</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
@@ -56,22 +57,173 @@
 <body>
 <div id="root"></div>
 <script>
+// ═══ FAILSAFE SYSTEM (plain JS — runs even if Babel/React completely fail) ═══
+
+// 1. Validate stored JSON — nuke corrupted keys before anything loads
+[“aurora_log_entries”, “aurora_log_known_items”].forEach(function(k) {
+try { var v = localStorage.getItem(k); if (v !== null) JSON.parse(v); }
+catch(e) {
+// Try to save a backup before nuking
+try { localStorage.setItem(k + “_corrupted_backup”, localStorage.getItem(k)); } catch(x) {}
+localStorage.removeItem(k);
+}
+});
+
+// 2. Auto-backup: every write also saves to a *backup key
 window.storage = {
-  async get(k) { const v = localStorage.getItem("aurora_log_" + k); if (v === null) throw new Error("Not found"); return { key: k, value: v }; },
-  async set(k, v) { localStorage.setItem("aurora_log_" + k, v); return { key: k, value: v }; }
+async get(k) {
+var v = localStorage.getItem(“aurora_log*” + k);
+if (v === null) throw new Error(“Not found”);
+return { key: k, value: v };
+},
+async set(k, v) {
+localStorage.setItem(“aurora_log_” + k, v);
+// Mirror to backup key
+try { localStorage.setItem(“aurora_log_” + k + “_backup”, v); } catch(e) {}
+return { key: k, value: v };
+}
 };
+
+// 3. Recovery UI builder (plain JS, no React/Babel needed)
+function showRecoveryUI(reason) {
+var root = document.getElementById(“root”);
+if (!root) return;
+var entries = [];
+var known = [];
+// Try main data first, then backups
+try {
+var raw = localStorage.getItem(“aurora_log_entries”) || localStorage.getItem(“aurora_log_entries_backup”);
+if (raw) entries = JSON.parse(raw);
+} catch(e) {}
+try {
+var raw2 = localStorage.getItem(“aurora_log_known_items”) || localStorage.getItem(“aurora_log_known_items_backup”);
+if (raw2) known = JSON.parse(raw2);
+} catch(e) {}
+
+var hasData = entries.length > 0 || known.length > 0;
+
+// Build data export string
+var exportData = JSON.stringify({ entries: entries, knownItems: known, exportedAt: new Date().toISOString() }, null, 2);
+
+var html = ‘<div style="padding:24px 16px;font-family:Courier New,monospace;background:#0a0a0a;color:#f5f5f5;min-height:100vh">’;
+html += ‘<div style="max-width:500px;margin:0 auto">’;
+html += ‘<div style="color:#ff4444;font-weight:700;font-size:1rem;letter-spacing:0.1em;margin-bottom:6px">AURORA LOG — RECOVERY MODE</div>’;
+html += ‘<div style="color:#666;font-size:0.78rem;margin-bottom:20px">’ + (reason || “The app failed to load.”) + ‘</div>’;
+
+if (hasData) {
+html += ‘<div style="color:#00c853;font-size:0.82rem;margin-bottom:12px;font-weight:700">YOUR DATA IS SAFE (’ + entries.length + ’ entries, ’ + known.length + ’ dictionary items)</div>’;
+
+```
+// Show entries summary
+if (entries.length > 0) {
+  html += '<div style="margin-bottom:16px">';
+  html += '<div style="color:#888;font-size:0.72rem;letter-spacing:0.1em;margin-bottom:6px">RECENT ENTRIES</div>';
+  var show = entries.slice(0, 8);
+  for (var i = 0; i < show.length; i++) {
+    var e = show[i];
+    var items = (e.lineItems || []).map(function(li) { return li.name; }).join(", ");
+    html += '<div style="padding:4px 0;font-size:0.78rem;color:#aaa;border-bottom:1px solid #1a1a1a">';
+    html += '<span style="color:#5b8fff">' + (e.type || "") + '</span> ';
+    html += (e.party || "") + ' ' + (e.docId || "") + ' — ';
+    html += '<span style="color:#666">' + (items.length > 60 ? items.slice(0, 60) + "..." : items) + '</span>';
+    html += '</div>';
+  }
+  if (entries.length > 8) html += '<div style="color:#444;font-size:0.72rem;padding:4px 0">+ ' + (entries.length - 8) + ' more</div>';
+  html += '</div>';
+}
+
+// Export button
+html += '<div style="margin-bottom:12px">';
+html += '<button id="copyBtn" style="background:#1a2d5a;color:#7aa8f0;border:1px solid #2a2a2a;padding:10px 16px;font-family:Courier New,monospace;font-weight:700;font-size:0.84rem;cursor:pointer;width:100%;letter-spacing:0.08em">COPY DATA BACKUP TO CLIPBOARD</button>';
+html += '</div>';
+html += '<textarea id="exportArea" readonly style="width:100%;height:80px;background:#111;border:1px solid #2a2a2a;color:#555;font-size:0.7rem;padding:6px;font-family:Courier New,monospace;resize:vertical;margin-bottom:16px">' + exportData.replace(/</g, "&lt;") + '</textarea>';
+```
+
+} else {
+html += ‘<div style="color:#666;font-size:0.82rem;margin-bottom:16px">No saved data found.</div>’;
+}
+
+// Action buttons
+html += ‘<div style="display:flex;gap:8px;flex-wrap:wrap">’;
+html += ‘<button id="retryBtn" style="background:#fff;color:#0a0a0a;border:none;padding:10px 20px;font-family:Courier New,monospace;font-weight:700;font-size:0.88rem;cursor:pointer;flex:1">RETRY</button>’;
+html += ‘<button id="clearBtn" style="background:#2a0000;color:#ff4444;border:1px solid #4a0000;padding:10px 20px;font-family:Courier New,monospace;font-weight:700;font-size:0.88rem;cursor:pointer;flex:1">CLEAR + RELOAD</button>’;
+html += ‘</div>’;
+
+// Restore from backup button
+if (hasData) {
+html += ‘<button id="restoreBtn" style="background:none;border:1px solid #2a2a2a;color:#888;padding:8px 16px;font-family:Courier New,monospace;font-size:0.76rem;cursor:pointer;width:100%;margin-top:8px">RESTORE FROM BACKUP</button>’;
+}
+
+html += ‘</div></div>’;
+root.innerHTML = html;
+
+// Wire up buttons after DOM is set
+setTimeout(function() {
+var copyBtn = document.getElementById(“copyBtn”);
+var retryBtn = document.getElementById(“retryBtn”);
+var clearBtn = document.getElementById(“clearBtn”);
+var restoreBtn = document.getElementById(“restoreBtn”);
+var exportArea = document.getElementById(“exportArea”);
+
+```
+if (copyBtn) copyBtn.onclick = function() {
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(exportData).then(function() { copyBtn.textContent = "COPIED!"; copyBtn.style.background = "#0a3a1a"; copyBtn.style.color = "#00c853"; });
+  } else if (exportArea) {
+    exportArea.select();
+    document.execCommand("copy");
+    copyBtn.textContent = "COPIED!"; copyBtn.style.background = "#0a3a1a"; copyBtn.style.color = "#00c853";
+  }
+};
+if (retryBtn) retryBtn.onclick = function() { location.reload(); };
+if (clearBtn) clearBtn.onclick = function() {
+  if (confirm("This will erase all data. Make sure you copied the backup first!")) {
+    localStorage.clear();
+    location.reload();
+  }
+};
+if (restoreBtn) restoreBtn.onclick = function() {
+  // Restore backup keys to main keys
+  ["aurora_log_entries", "aurora_log_known_items"].forEach(function(k) {
+    var backup = localStorage.getItem(k + "_backup");
+    if (backup) {
+      try { JSON.parse(backup); localStorage.setItem(k, backup); } catch(e) {}
+    }
+  });
+  location.reload();
+};
+```
+
+}, 50);
+}
+
+// 4. Error handler — catches runtime errors
+window.onerror = function(msg, src, line) {
+showRecoveryUI(“Error: “ + msg + “ (line “ + line + “)”);
+return true;
+};
+
+// 5. Babel/React load timeout — if app hasn’t mounted in 8 seconds, show recovery
+window._appMounted = false;
+setTimeout(function() {
+if (!window._appMounted) {
+showRecoveryUI(“The app failed to initialize (Babel/React may not have loaded). Your data is preserved below.”);
+}
+}, 8000);
 </script>
+
 <script type="text/babel" data-type="module">
-const { useState, useEffect, useRef, useCallback } = React;
+const { useState, useEffect, useRef } = React;
 
 const STORES = ["Hillsboro", "Eugene", "Gresham", "Vancouver"];
+const FENCE_RE = new RegExp(String.fromCharCode(96,96,96) + "json|" + String.fromCharCode(96,96,96), "g");
 const inp = { width: "100%", background: "#0a0a0a", border: "1px solid #2a2a2a", color: "#f5f5f5", padding: "8px 10px", fontSize: "0.97rem", outline: "none", fontFamily: "'Courier New', monospace", boxSizing: "border-box" };
 const lbl = { display: "block", fontSize: "0.7rem", letterSpacing: "0.14em", color: "#666666", marginBottom: 4 };
 
 function getApiKey() { return localStorage.getItem("aurora_api_key") || ""; }
 function setApiKeyVal(k) { localStorage.setItem("aurora_api_key", k); }
 function getApiHeaders() { return { "Content-Type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }; }
-function today() { return new Date().toISOString().slice(0, 10); }
+function today() { const n = new Date(); return n.getFullYear() + "-" + String(n.getMonth()+1).padStart(2,"0") + "-" + String(n.getDate()).padStart(2,"0"); }
 function formatDateHeading(dateStr) {
   const [y, m, d] = dateStr.split('-').map(Number);
   const dt = new Date(y, m - 1, d);
@@ -89,10 +241,8 @@ function findBestMatch(name, knownItems) {
   if (!name || !knownItems.length) return null;
   const norm = normalizeForMatch(name);
   if (!norm) return null;
-  // Exact normalized match
   const exact = knownItems.find(k => normalizeForMatch(k.name) === norm);
   if (exact) return exact;
-  // Token-overlap scoring
   const tokens = norm.split(" ").filter(t => t.length > 1);
   if (!tokens.length) return null;
   let bestScore = 0, bestItem = null;
@@ -106,8 +256,60 @@ function findBestMatch(name, knownItems) {
     const score = overlap / Math.max(tokens.length, kTokens.length);
     if (score > bestScore) { bestScore = score; bestItem = item; }
   }
-  // Require at least 50% token overlap to match
   return bestScore >= 0.5 ? bestItem : null;
+}
+
+/* ── TOP-LEVEL NameInput — never define inside another component ── */
+function NameInput({ value, onChange, placeholder, knownItems, inputStyle }) {
+  const [showSugg, setShowSugg] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const items = knownItems || [];
+
+  const handleChange = (e) => {
+    const v = e.target.value;
+    onChange(v);
+    if (v.trim().length >= 2 && items.length > 0) {
+      const norm = normalizeForMatch(v);
+      const matches = items.filter(k => {
+        const kn = normalizeForMatch(k.name);
+        return kn.includes(norm) || norm.split(" ").some(t => t.length > 1 && kn.includes(t));
+      }).slice(0, 5);
+      setSuggestions(matches);
+      setShowSugg(matches.length > 0);
+    } else {
+      setSuggestions([]);
+      setShowSugg(false);
+    }
+  };
+
+  const pick = (item) => {
+    onChange(item.name);
+    setSuggestions([]);
+    setShowSugg(false);
+  };
+
+  const style = inputStyle || { ...inp, background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" };
+
+  return (
+    <div style={{ position: "relative" }}>
+      <input value={value || ""} onChange={handleChange}
+        onFocus={() => { if (suggestions.length) setShowSugg(true); }}
+        onBlur={() => setTimeout(() => setShowSugg(false), 200)}
+        placeholder={placeholder} style={style} />
+      {showSugg && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a1a1a", border: "1px solid #333333", zIndex: 100, maxHeight: 140, overflowY: "auto" }}>
+          {suggestions.map((s, i) => (
+            <div key={i} onMouseDown={(e) => { e.preventDefault(); pick(s); }}
+              style={{ padding: "6px 8px", fontSize: "0.82rem", color: "#cccccc", cursor: "pointer", borderBottom: "1px solid #222222" }}
+              onMouseEnter={e => e.currentTarget.style.background = "#252525"}
+              onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
+              {s.name} <span style={{ color: "#555555", fontSize: "0.72rem" }}>{s.unit}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function AIIntake({ onSave, knownItems }) {
@@ -119,7 +321,7 @@ function AIIntake({ onSave, knownItems }) {
   const fileRef = useRef();
 
   const knownItemsList = knownItems.length > 0
-    ? `\n\nKNOWN ITEM NAMES (ALWAYS use these exact names when you recognize the same product, even if the document uses a different abbreviation or description):\n${knownItems.map(k => `- "${k.name}"${k.unit ? ` (unit: ${k.unit})` : ""}`).join("\n")}`
+    ? "\n\nKNOWN ITEM NAMES (ALWAYS use these exact names when you recognize the same product, even if the document uses a different abbreviation or description):\n" + knownItems.map(k => `- "${k.name}"${k.unit ? ` (unit: ${k.unit})` : ""}`).join("\n")
     : "";
 
   const systemPrompt = `You are a document parser for Aurora, a construction and building materials supply warehouse in Portland, Oregon. Aurora's neighboring stores are: Hillsboro, Eugene, Gresham, Vancouver.
@@ -142,7 +344,7 @@ Return ONLY valid JSON, no markdown:
   "notes": ""
 }
 
-CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a known item below, you MUST use the known item's exact name — even if the document abbreviates it, shortens it, or describes it differently. For example, if "Rebar #4 20' Grade 60" is a known item and the document says "#4 rebar", use "Rebar #4 20' Grade 60".${knownItemsList}`;
+CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a known item below, you MUST use the known item's exact name — even if the document abbreviates it, shortens it, or describes it differently. For example, if "Rebar #4 20' Grade 60" is a known item and the document says "#4 rebar", use "Rebar #4 20' Grade 60".` + knownItemsList;
 
   const handleImage = (e) => {
     const file = e.target.files[0]; if (!file) return;
@@ -160,7 +362,7 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
     setLoading(true); setError(""); setParsed(null);
     try {
       const userContent = [];
-      images.forEach((img, i) => {
+      images.forEach((img) => {
         userContent.push({ type: "image", source: { type: "base64", media_type: img.mediaType, data: img.base64 } });
       });
       const textPart = input.trim() || (images.length > 1 ? `Parse this ${images.length}-page warehouse document. Combine all line items into one result.` : "Parse this warehouse document.");
@@ -170,9 +372,8 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
       if (data.error) { setError(`API error: ${data.error.message}`); setLoading(false); return; }
       const text = data.content?.map(b => b.text || "").join("").trim();
       let result;
-      try { result = JSON.parse(text.replace(/```json|```/g, "").trim()); } catch { setError("Couldn't parse — try again or enter manually."); setLoading(false); return; }
+      try { result = JSON.parse(text.replace(FENCE_RE, "").trim()); } catch { setError("Couldn't parse — try again or enter manually."); setLoading(false); return; }
 
-      // Client-side fallback: match parsed names against known items
       if (result.lineItems) {
         result.lineItems = result.lineItems.map(li => {
           const match = findBestMatch(li.name, knownItems);
@@ -195,54 +396,6 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
 
   const typeAccent = { "PO": "#aaaaaa", "Transfer In": "#00e676", "Transfer Out": "#ff3d3d" };
 
-  // Autocomplete for line item name fields
-  const NameInput = ({ value, onChange, placeholder }) => {
-    const [showSugg, setShowSugg] = useState(false);
-    const [suggestions, setSuggestions] = useState([]);
-    const ref = useRef();
-
-    const handleChange = (e) => {
-      const v = e.target.value;
-      onChange(v);
-      if (v.trim().length >= 2 && knownItems.length > 0) {
-        const norm = normalizeForMatch(v);
-        const matches = knownItems.filter(k => {
-          const kn = normalizeForMatch(k.name);
-          return kn.includes(norm) || norm.split(" ").some(t => t.length > 1 && kn.includes(t));
-        }).slice(0, 5);
-        setSuggestions(matches);
-        setShowSugg(matches.length > 0);
-      } else {
-        setShowSugg(false);
-      }
-    };
-
-    const pick = (item) => {
-      onChange(item.name);
-      setShowSugg(false);
-    };
-
-    return (
-      <div style={{ position: "relative" }}>
-        <input ref={ref} value={value || ""} onChange={handleChange} onFocus={() => { if (suggestions.length) setShowSugg(true); }}
-          onBlur={() => setTimeout(() => setShowSugg(false), 150)}
-          placeholder={placeholder} style={{ ...inp, background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" }} />
-        {showSugg && (
-          <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a1a1a", border: "1px solid #333333", zIndex: 100, maxHeight: 140, overflowY: "auto" }}>
-            {suggestions.map((s, i) => (
-              <div key={i} onMouseDown={() => pick(s)}
-                style={{ padding: "6px 8px", fontSize: "0.82rem", color: "#cccccc", cursor: "pointer", borderBottom: "1px solid #222222" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#252525"}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                {s.name} <span style={{ color: "#555555", fontSize: "0.72rem" }}>{s.unit}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div style={{ background: "#0a0a0a", borderBottom: "1px solid #2a2a2a", padding: "12px 14px" }}>
       {images.length > 0 && (
@@ -250,8 +403,8 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
           {images.map((img, idx) => (
             <div key={idx} style={{ position: "relative", display: "inline-block" }}>
               <img src={img.preview} alt="" style={{ height: 80, maxWidth: 100, border: "1px solid #2a2a2a", display: "block", objectFit: "cover" }} />
-              <button onClick={() => removeImage(idx)} style={{ position: "absolute", top: 2, right: 2, background: "#0a0a0a", border: "1px solid #2a2a2a", color: "#f5f5f5", cursor: "pointer", fontSize: "0.7rem", padding: "0px 4px", lineHeight: "16px" }}>✕</button>
-              <div style={{ position: "absolute", bottom: 2, left: 2, background: "#0a0a0a", color: "#666666", fontSize: "0.6rem", padding: "0 3px", fontWeight: 700 }}>P{idx + 1}</div>
+              <button onClick={() => removeImage(idx)} style={{ position: "absolute", top: 2, right: 2, background: "#0a0a0a", border: "1px solid #2a2a2a", color: "#f5f5f5", cursor: "pointer", fontSize: "0.7rem", padding: "0px 4px", lineHeight: "16px" }}>x</button>
+              <div style={{ position: "absolute", bottom: 2, left: 2, background: "#0a0a0a", color: "#666666", fontSize: "0.6rem", padding: "0 3px", fontWeight: 700 }}>{"P" + (idx + 1)}</div>
             </div>
           ))}
         </div>
@@ -259,10 +412,10 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
       {!parsed && (
         <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
           <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); parse(); } }}
-            placeholder={images.length > 0 ? `${images.length} photo${images.length > 1 ? "s" : ""} — add more or hit GO` : "Describe a PO or transfer, or snap a photo →"}
+            placeholder={images.length > 0 ? images.length + " photo" + (images.length > 1 ? "s" : "") + " — add more or hit GO" : "Describe a PO or transfer, or snap a photo →"}
             rows={2} style={{ ...inp, flex: 1, resize: "none", background: "#0a0a0a", fontSize: "0.9rem" }} />
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <button onClick={() => fileRef.current?.click()} style={{ background: images.length > 0 ? "#1a2d5a" : "#141414", border: `1px solid #2a2a2a`, color: images.length > 0 ? "#7aa8f0" : "#666666", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer" }}>{images.length > 0 ? `📷+${images.length}` : "📷"}</button>
+            <button onClick={() => fileRef.current?.click()} style={{ background: images.length > 0 ? "#1a2d5a" : "#141414", border: "1px solid #2a2a2a", color: images.length > 0 ? "#7aa8f0" : "#666666", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer" }}>{images.length > 0 ? "📷+" + images.length : "📷"}</button>
             <button onClick={parse} disabled={loading || (!input.trim() && images.length === 0)} style={{ background: loading ? "#141414" : "#ffffff", color: loading ? "#2d4a8a" : "#0a0a0a", border: "none", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", cursor: loading ? "default" : "pointer" }}>{loading ? "···" : "GO"}</button>
           </div>
         </div>
@@ -273,14 +426,14 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
         <div style={{ background: "#111111", border: "1px solid #2a2a2a", padding: "14px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <span style={{ color: typeAccent[parsed.type] || "#ffffff", fontWeight: 700, fontSize: "0.78rem", letterSpacing: "0.1em" }}>{(parsed.type || "").toUpperCase()}</span>
-            <button onClick={() => { setParsed(null); setInput(""); clearAllImages(); }} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.1rem" }}>✕</button>
+            <button onClick={() => { setParsed(null); setInput(""); clearAllImages(); }} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.1rem" }}>x</button>
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
             <div style={{ flex: "2 1 150px" }}>
               <label style={lbl}>{parsed.type === "PO" ? "VENDOR" : parsed.type === "Transfer In" ? "FROM STORE" : "TO STORE"}</label>
               {parsed.type !== "PO" ? (
                 <select value={parsed.party || ""} onChange={e => set("party", e.target.value)} style={{ ...inp, background: "#0a0a0a", padding: "7px 9px" }}>
-                  <option value="">Select store…</option>
+                  <option value="">Select store</option>
                   {STORES.map(s => <option key={s}>{s}</option>)}
                 </select>
               ) : (
@@ -294,17 +447,17 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
           {(parsed.lineItems || []).map((li, idx) => (
             <div key={idx} style={{ marginBottom: 5 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 22px", gap: 5 }}>
-                <NameInput value={li.name} onChange={v => updateLine(idx, "name", v)} placeholder="Item name" />
+                <NameInput value={li.name} onChange={v => updateLine(idx, "name", v)} placeholder="Item name" knownItems={knownItems} />
                 <input value={li.qty || ""} onChange={e => updateLine(idx, "qty", e.target.value)} placeholder="Qty" style={{ ...inp, background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" }} />
                 <input value={li.unit || ""} onChange={e => updateLine(idx, "unit", e.target.value)} placeholder="Unit" style={{ ...inp, background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" }} />
-                <button onClick={() => removeLine(idx)} style={{ background: "none", border: "none", color: "#4a0000", cursor: "pointer", fontSize: "0.94rem", padding: 0, alignSelf: "center" }}>✕</button>
+                <button onClick={() => removeLine(idx)} style={{ background: "none", border: "none", color: "#4a0000", cursor: "pointer", fontSize: "0.94rem", padding: 0, alignSelf: "center" }}>x</button>
               </div>
-              {li._matched && <div style={{ fontSize: "0.66rem", color: "#00c853", letterSpacing: "0.06em", marginTop: 1, paddingLeft: 2 }}>✓ MATCHED</div>}
+              {li._matched && <div style={{ fontSize: "0.66rem", color: "#00c853", letterSpacing: "0.06em", marginTop: 1, paddingLeft: 2 }}>MATCHED</div>}
             </div>
           ))}
           <button onClick={addLine} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginTop: 2, marginBottom: 12 }}>+ LINE</button>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={confirm} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "8px 20px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.08em", cursor: "pointer" }}>✓ LOG IT</button>
+            <button onClick={confirm} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "8px 20px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.08em", cursor: "pointer" }}>LOG IT</button>
             <button onClick={() => { setParsed(null); setInput(""); clearAllImages(); }} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "8px 14px", fontFamily: "'Courier New',monospace", fontSize: "0.84rem", cursor: "pointer" }}>CANCEL</button>
           </div>
         </div>
@@ -318,11 +471,11 @@ function EntryCard({ entry, onDelete, onEdit }) {
   const isPO = entry.type === "PO";
   const isIn = entry.type === "Transfer In";
   const accentColor = isPO ? "#333333" : isIn ? "#00c853" : "#cc0000";
-  const partyLine = isPO ? entry.party : isIn ? `From ${entry.party}` : `To ${entry.party}`;
+  const partyLine = isPO ? entry.party : isIn ? "From " + entry.party : "To " + entry.party;
   const partyColor = isPO ? "#ffffff" : isIn ? "#00e676" : "#ff3d3d";
 
   return (
-    <div style={{ borderLeft: `3px solid ${accentColor}`, background: "#111111", padding: "11px 13px", marginBottom: 7, position: "relative" }}>
+    <div style={{ borderLeft: "3px solid " + accentColor, background: "#111111", padding: "11px 13px", marginBottom: 7, position: "relative" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 7 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <span style={{ color: partyColor, fontWeight: 700, fontSize: "1rem", letterSpacing: "0.03em" }}>{partyLine}</span>
@@ -337,7 +490,7 @@ function EntryCard({ entry, onDelete, onEdit }) {
           ) : (
             <React.Fragment>
               <button onClick={() => onEdit(entry)} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "0.72rem", padding: "2px 4px", fontFamily: "'Courier New',monospace", letterSpacing: "0.06em" }}>EDIT</button>
-              <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.9rem", padding: "2px 4px" }}>✕</button>
+              <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.9rem", padding: "2px 4px" }}>x</button>
             </React.Fragment>
           )}
         </div>
@@ -347,7 +500,7 @@ function EntryCard({ entry, onDelete, onEdit }) {
           <div key={idx} style={{ display: "flex", gap: 10, padding: "2px 0", alignItems: "baseline" }}>
             {(li.qty || li.unit) && (
               <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.84rem", whiteSpace: "nowrap", flexShrink: 0, minWidth: 52 }}>
-                {li.qty}{li.unit ? ` ${li.unit}` : ""}
+                {li.qty}{li.unit ? " " + li.unit : ""}
               </span>
             )}
             <span style={{ color: "#ffffff", fontSize: "0.94rem", lineHeight: 1.45, wordBreak: "normal", overflowWrap: "anywhere" }}>{li.name}</span>
@@ -385,51 +538,12 @@ function AddModal({ onClose, onSave, defaultType, editEntry, knownItems }) {
     onSave(form); onClose();
   };
 
-  // Name autocomplete for manual entry too
-  const NameInput = ({ value, onChange, placeholder }) => {
-    const [showSugg, setShowSugg] = useState(false);
-    const [suggestions, setSuggestions] = useState([]);
-
-    const handleChange = (v) => {
-      onChange(v);
-      if (v.trim().length >= 2 && knownItems.length > 0) {
-        const norm = normalizeForMatch(v);
-        const matches = knownItems.filter(k => {
-          const kn = normalizeForMatch(k.name);
-          return kn.includes(norm) || norm.split(" ").some(t => t.length > 1 && kn.includes(t));
-        }).slice(0, 5);
-        setSuggestions(matches);
-        setShowSugg(matches.length > 0);
-      } else { setShowSugg(false); }
-    };
-
-    return (
-      <div style={{ position: "relative" }}>
-        <input value={value} onChange={e => handleChange(e.target.value)} onFocus={() => { if (suggestions.length) setShowSugg(true); }}
-          onBlur={() => setTimeout(() => setShowSugg(false), 150)}
-          placeholder={placeholder} style={{ ...inp, fontSize: "0.88rem", padding: "5px 7px" }} />
-        {showSugg && (
-          <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a1a1a", border: "1px solid #333333", zIndex: 100, maxHeight: 140, overflowY: "auto" }}>
-            {suggestions.map((s, i) => (
-              <div key={i} onMouseDown={() => { onChange(s.name); setShowSugg(false); }}
-                style={{ padding: "6px 8px", fontSize: "0.82rem", color: "#cccccc", cursor: "pointer", borderBottom: "1px solid #222222" }}
-                onMouseEnter={e => e.currentTarget.style.background = "#252525"}
-                onMouseLeave={e => e.currentTarget.style.background = "transparent"}>
-                {s.name} <span style={{ color: "#555555", fontSize: "0.72rem" }}>{s.unit}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    );
-  };
-
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(500px,96vw)", maxHeight: "92vh", overflowY: "auto", padding: "18px 16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.1em" }}>{editEntry ? "EDIT ENTRY" : "LOG ENTRY"}</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>✕</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
         </div>
         <div style={{ marginBottom: 12 }}>
           <label style={lbl}>TYPE</label>
@@ -442,7 +556,7 @@ function AddModal({ onClose, onSave, defaultType, editEntry, knownItems }) {
             <label style={lbl}>{partyLabel}</label>
             {isTransfer ? (
               <select value={form.party} onChange={e => set("party", e.target.value)} style={{ ...inp, padding: "7px 9px" }}>
-                <option value="">Select…</option>
+                <option value="">Select</option>
                 {STORES.map(s => <option key={s}>{s}</option>)}
               </select>
             ) : (
@@ -455,10 +569,10 @@ function AddModal({ onClose, onSave, defaultType, editEntry, knownItems }) {
         <label style={{ ...lbl, marginBottom: 7 }}>LINE ITEMS</label>
         {form.lineItems.map((li, idx) => (
           <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 22px", gap: 5, marginBottom: 5 }}>
-            <NameInput value={li.name} onChange={v => updateLine(idx, "name", v)} placeholder="Item name" />
+            <NameInput value={li.name} onChange={v => updateLine(idx, "name", v)} placeholder="Item name" knownItems={knownItems} />
             <input value={li.qty} onChange={e => updateLine(idx, "qty", e.target.value)} placeholder="Qty" style={{ ...inp, fontSize: "0.88rem", padding: "5px 7px" }} />
             <input value={li.unit} onChange={e => updateLine(idx, "unit", e.target.value)} placeholder="Unit" style={{ ...inp, fontSize: "0.88rem", padding: "5px 7px" }} />
-            <button onClick={() => removeLine(idx)} style={{ background: "none", border: "none", color: "#4a0000", cursor: "pointer", fontSize: "0.94rem", alignSelf: "center" }}>✕</button>
+            <button onClick={() => removeLine(idx)} style={{ background: "none", border: "none", color: "#4a0000", cursor: "pointer", fontSize: "0.94rem", alignSelf: "center" }}>x</button>
           </div>
         ))}
         <button onClick={addLine} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginBottom: 12 }}>+ LINE</button>
@@ -475,7 +589,7 @@ function ApiKeyModal({ onClose }) {
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
       <div onClick={e => e.stopPropagation()} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(380px,92vw)", padding: "20px 16px" }}>
         <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em", marginBottom: 12 }}>API KEY</div>
-        <input value={val} onChange={e => setVal(e.target.value)} placeholder="sk-ant-…" type="password" style={{ ...inp, marginBottom: 10 }} />
+        <input value={val} onChange={e => setVal(e.target.value)} placeholder="sk-ant-..." type="password" style={{ ...inp, marginBottom: 10 }} />
         <button onClick={() => { setApiKeyVal(val); onClose(); }} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", padding: "8px", fontFamily: "'Courier New',monospace", fontWeight: 700, cursor: "pointer" }}>SAVE</button>
       </div>
     </div>
@@ -507,7 +621,7 @@ function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown }) {
       <div onClick={e => e.stopPropagation()} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(460px,96vw)", maxHeight: "85vh", overflowY: "auto", padding: "18px 16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em" }}>ITEM DICTIONARY</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>✕</button>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
         </div>
         <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>
           These names are auto-learned from every entry you log. The AI will match incoming documents to these names. Tap a name to edit it.
@@ -526,7 +640,7 @@ function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown }) {
                 <span onClick={() => startEdit(item, idx)} style={{ flex: 1, color: "#cccccc", fontSize: "0.88rem", cursor: "pointer" }}>
                   {item.name} {item.unit && <span style={{ color: "#444444", fontSize: "0.72rem" }}>({item.unit})</span>}
                 </span>
-                <button onClick={() => remove(idx)} style={{ background: "none", border: "none", color: "#3a1010", cursor: "pointer", fontSize: "0.82rem" }}>✕</button>
+                <button onClick={() => remove(idx)} style={{ background: "none", border: "none", color: "#3a1010", cursor: "pointer", fontSize: "0.82rem" }}>x</button>
               </React.Fragment>
             )}
           </div>
@@ -552,6 +666,7 @@ function App() {
       try { const r = await window.storage.get("entries"); if (r?.value) setEntries(JSON.parse(r.value)); } catch {}
       try { const r = await window.storage.get("known_items"); if (r?.value) setKnownItems(JSON.parse(r.value)); } catch {}
       setLoaded(true);
+      window._appMounted = true;
       if (!getApiKey()) setTimeout(() => setShowApiKey(true), 300);
     })();
   }, []);
@@ -559,7 +674,6 @@ function App() {
   const persist = async (next) => { setEntries(next); try { await window.storage.set("entries", JSON.stringify(next)); } catch {} };
   const persistKnown = async (next) => { try { await window.storage.set("known_items", JSON.stringify(next)); } catch {} };
 
-  // Learn item names from line items
   const learnItems = (lineItems) => {
     const updated = [...knownItems];
     let changed = false;
@@ -573,7 +687,6 @@ function App() {
       }
     }
     if (changed) {
-      // Sort alphabetically
       updated.sort((a, b) => a.name.localeCompare(b.name));
       setKnownItems(updated);
       persistKnown(updated);
@@ -643,9 +756,9 @@ function App() {
           <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "5px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em", position: "relative" }}>
             📖{knownItems.length > 0 && <span style={{ fontSize: "0.58rem", color: "#666666", marginLeft: 2 }}>{knownItems.length}</span>}
           </button>
-          <button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? "#141414" : "none", border: `1px solid ${showIntake ? "#ffffff55" : "#2a2a2a"}`, color: showIntake ? "#ffffff" : "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>{showIntake ? "HIDE" : "📷 SCAN"}</button>
+          <button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? "#141414" : "none", border: "1px solid " + (showIntake ? "rgba(255,255,255,0.33)" : "#2a2a2a"), color: showIntake ? "#ffffff" : "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>{showIntake ? "HIDE" : "📷 SCAN"}</button>
           <button onClick={() => setShowAdd(true)} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>+ LOG</button>
-          <button onClick={() => setShowApiKey(true)} style={{ background: getApiKey() ? "none" : "#1a0000", border: `1px solid ${getApiKey() ? "#2a2a2a" : "#8a2020"}`, color: getApiKey() ? "#555555" : "#c07070", padding: "5px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer" }}>🔑</button>
+          <button onClick={() => setShowApiKey(true)} style={{ background: getApiKey() ? "none" : "#1a0000", border: "1px solid " + (getApiKey() ? "#2a2a2a" : "#8a2020"), color: getApiKey() ? "#555555" : "#c07070", padding: "5px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer" }}>🔑</button>
         </div>
       </div>
 
@@ -660,7 +773,7 @@ function App() {
         {!loaded ? (
           <div style={{ padding: 50, textAlign: "center", color: "#555555", fontSize: "0.84rem" }}>Loading...</div>
         ) : grouped.length === 0 ? (
-          <div style={{ padding: 60, textAlign: "center", color: "#2a2a2a", fontSize: "0.9rem" }}>No {tab === "po" ? "purchase orders" : "transfers"} logged yet.</div>
+          <div style={{ padding: 60, textAlign: "center", color: "#2a2a2a", fontSize: "0.9rem" }}>{"No " + (tab === "po" ? "purchase orders" : "transfers") + " logged yet."}</div>
         ) : (
           grouped.map(([date, dayEntries]) => (
             <div key={date}>
@@ -686,5 +799,6 @@ function App() {
 
 ReactDOM.render(<App />, document.getElementById("root"));
 </script>
+
 </body>
 </html>
