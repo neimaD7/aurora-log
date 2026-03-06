@@ -70,7 +70,7 @@ window.onerror = function(msg, src, line) {
   document.getElementById("root").innerHTML = '<div style="padding:40px;color:#ff4444;font-family:monospace"><b>ERROR</b><br>' + msg + ' (line ' + line + ')<br><br><button onclick="localStorage.clear();location.reload()" style="background:#fff;color:#000;border:none;padding:8px 16px;cursor:pointer;font-family:monospace;font-weight:bold">CLEAR DATA + RELOAD</button></div>';
 };
 </script>
-<script type="text/babel" data-type="module">
+<script type="text/babel">
 const { useState, useEffect, useRef } = React;
 
 const STORES = [“Hillsboro”, “Eugene”, “Gresham”, “Vancouver”];
@@ -81,7 +81,7 @@ const lbl = { display: “block”, fontSize: “0.7rem”, letterSpacing: “0.
 function getApiKey() { return localStorage.getItem(“aurora_api_key”) || “”; }
 function setApiKeyVal(k) { localStorage.setItem(“aurora_api_key”, k); }
 function getApiHeaders() { return { “Content-Type”: “application/json”, “x-api-key”: getApiKey(), “anthropic-version”: “2023-06-01”, “anthropic-dangerous-direct-browser-access”: “true” }; }
-function today() { const d = new Date(); return d.getFullYear() + “-” + String(d.getMonth()+1).padStart(2,“0”) + “-” + String(d.getDate()).padStart(2,“0”); }
+function today() { var n = new Date(); var y = n.getFullYear(); var m = n.getMonth() + 1; var d = n.getDate(); return y + “-” + (m < 10 ? “0” : “”) + m + “-” + (d < 10 ? “0” : “”) + d; }
 function formatDateHeading(dateStr) {
 const [y, m, d] = dateStr.split(’-’).map(Number);
 const dt = new Date(y, m - 1, d);
