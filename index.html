@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -13,13 +12,13 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Aurora+Receiving+Log%22%2C%22short_name%22%3A%22Aurora+Log%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230d0c0a%22%2C%22theme_color%22%3A%22%230d0c0a%22%2C%22orientation%22%3A%22portrait%22%7D">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0a0a0a; color: #f5f5f5; font-family: 'Courier New', monospace; overflow-x: hidden; }
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: #0a0a0a; }
-  ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
-  input, select, textarea { font-family: 'Courier New', monospace; }
-  option { background: #141414; color: #f5f5f5; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { background: #0a0a0a; color: #f5f5f5; font-family: 'Courier New', monospace; overflow-x: hidden; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: #0a0a0a; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+input, select, textarea { font-family: 'Courier New', monospace; }
+option { background: #141414; color: #f5f5f5; }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -57,543 +56,593 @@
 <body>
 <div id="root"></div>
 <script>
-// Validate stored JSON on load - nuke corrupted data silently
-["aurora_log_entries", "aurora_log_known_items"].forEach(function(k) {
-  try { var v = localStorage.getItem(k); if (v !== null) JSON.parse(v); }
-  catch(e) { localStorage.removeItem(k); }
-});
 window.storage = {
-  async get(k) { const v = localStorage.getItem("aurora_log_" + k); if (v === null) throw new Error("Not found"); return { key: k, value: v }; },
+  async get(k) { var v = localStorage.getItem("aurora_log_" + k); if (v === null) throw new Error("Not found"); return { key: k, value: v }; },
   async set(k, v) { localStorage.setItem("aurora_log_" + k, v); return { key: k, value: v }; }
 };
-window.onerror = function(msg, src, line) {
-  document.getElementById("root").innerHTML = '<div style="padding:40px;color:#ff4444;font-family:monospace"><b>ERROR</b><br>' + msg + ' (line ' + line + ')<br><br><button onclick="localStorage.clear();location.reload()" style="background:#fff;color:#000;border:none;padding:8px 16px;cursor:pointer;font-family:monospace;font-weight:bold">CLEAR DATA + RELOAD</button></div>';
-};
 </script>
-<script type="text/babel" data-type="module">
-const { useState, useEffect, useRef } = React;
+<script type="text/babel">
+var useState = React.useState;
+var useEffect = React.useEffect;
+var useRef = React.useRef;
+var useCallback = React.useCallback;
 
-const STORES = [“Hillsboro”, “Eugene”, “Gresham”, “Vancouver”];
-const FENCE_RE = new RegExp(String.fromCharCode(96,96,96) + “json|” + String.fromCharCode(96,96,96), “g”);
-const inp = { width: “100%”, background: “#0a0a0a”, border: “1px solid #2a2a2a”, color: “#f5f5f5”, padding: “8px 10px”, fontSize: “0.97rem”, outline: “none”, fontFamily: “‘Courier New’, monospace”, boxSizing: “border-box” };
-const lbl = { display: “block”, fontSize: “0.7rem”, letterSpacing: “0.14em”, color: “#666666”, marginBottom: 4 };
+var STORES = ["Hillsboro", "Eugene", "Gresham", "Vancouver"];
+var FENCE = String.fromCharCode(96,96,96);
+var inp = { width: "100%", background: "#0a0a0a", border: "1px solid #2a2a2a", color: "#f5f5f5", padding: "8px 10px", fontSize: "0.97rem", outline: "none", fontFamily: "'Courier New', monospace", boxSizing: "border-box" };
+var lbl = { display: "block", fontSize: "0.7rem", letterSpacing: "0.14em", color: "#666666", marginBottom: 4 };
 
-function getApiKey() { return localStorage.getItem(“aurora_api_key”) || “”; }
-function setApiKeyVal(k) { localStorage.setItem(“aurora_api_key”, k); }
-function getApiHeaders() { return { “Content-Type”: “application/json”, “x-api-key”: getApiKey(), “anthropic-version”: “2023-06-01”, “anthropic-dangerous-direct-browser-access”: “true” }; }
+function getApiKey() { return localStorage.getItem("aurora_api_key") || ""; }
+function setApiKeyVal(k) { localStorage.setItem("aurora_api_key", k); }
+function getApiHeaders() { return { "Content-Type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }; }
 function today() { return new Date().toISOString().slice(0, 10); }
 function formatDateHeading(dateStr) {
-const [y, m, d] = dateStr.split(’-’).map(Number);
-const dt = new Date(y, m - 1, d);
-const days = [“Sunday”,“Monday”,“Tuesday”,“Wednesday”,“Thursday”,“Friday”,“Saturday”];
-const months = [“January”,“February”,“March”,“April”,“May”,“June”,“July”,“August”,“September”,“October”,“November”,“December”];
-return days[dt.getDay()] + “, “ + months[dt.getMonth()] + “ “ + d;
+  var parts = dateStr.split("-").map(Number);
+  var dt = new Date(parts[0], parts[1] - 1, parts[2]);
+  var days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  var months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  return days[dt.getDay()] + ", " + months[dt.getMonth()] + " " + parts[2];
 }
 
 function normalizeForMatch(str) {
-return (str || “”).toLowerCase().replace(/[^a-z0-9]/g, “ “).replace(/\s+/g, “ “).trim();
+  return (str || "").toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function findBestMatch(name, dict) {
-if (!name || !dict.length) return null;
-const norm = normalizeForMatch(name);
-if (!norm) return null;
-const exact = dict.find(k => normalizeForMatch(k.name) === norm);
-if (exact) return exact;
-const tokens = norm.split(” “).filter(t => t.length > 1);
-if (!tokens.length) return null;
-let best = 0, match = null;
-for (const item of dict) {
-const kt = normalizeForMatch(item.name).split(” “).filter(t => t.length > 1);
-if (!kt.length) continue;
-let ov = 0;
-for (const t of tokens) { if (kt.some(k => k.includes(t) || t.includes(k))) ov++; }
-const sc = ov / Math.max(tokens.length, kt.length);
-if (sc > best) { best = sc; match = item; }
-}
-return best >= 0.5 ? match : null;
-}
-
-function NameInput({ value, onChange, placeholder, knownItems, style: customStyle }) {
-const [showSugg, setShowSugg] = useState(false);
-const [sugg, setSugg] = useState([]);
-const items = knownItems || [];
-
-const onType = (e) => {
-const v = e.target.value;
-onChange(v);
-if (v.trim().length >= 2 && items.length > 0) {
-const n = normalizeForMatch(v);
-const m = items.filter(k => {
-const kn = normalizeForMatch(k.name);
-return kn.includes(n) || n.split(” “).some(t => t.length > 1 && kn.includes(t));
-}).slice(0, 5);
-setSugg(m);
-setShowSugg(m.length > 0);
-} else { setSugg([]); setShowSugg(false); }
-};
-
-return (
-<div style={{ position: “relative” }}>
-<input value={value || “”} onChange={onType}
-onFocus={() => { if (sugg.length) setShowSugg(true); }}
-onBlur={() => setTimeout(() => setShowSugg(false), 200)}
-placeholder={placeholder}
-style={customStyle || {…inp, background: “#0a0a0a”, fontSize: “0.88rem”, padding: “5px 7px”}} />
-{showSugg && (
-<div style={{ position: “absolute”, top: “100%”, left: 0, right: 0, background: “#1a1a1a”, border: “1px solid #333”, zIndex: 100, maxHeight: 140, overflowY: “auto” }}>
-{sugg.map((s, i) => (
-<div key={i}
-onMouseDown={(e) => { e.preventDefault(); onChange(s.name); setSugg([]); setShowSugg(false); }}
-onTouchStart={() => { onChange(s.name); setSugg([]); setShowSugg(false); }}
-style={{ padding: “8px”, fontSize: “0.82rem”, color: “#ccc”, cursor: “pointer”, borderBottom: “1px solid #222” }}>
-{s.name} {s.unit && <span style={{ color: “#555”, fontSize: “0.72rem” }}>{s.unit}</span>}
-</div>
-))}
-</div>
-)}
-</div>
-);
+function findBestMatch(name, knownItems) {
+  if (!name || !knownItems.length) return null;
+  var norm = normalizeForMatch(name);
+  if (!norm) return null;
+  var exact = knownItems.find(function(k) { return normalizeForMatch(k.name) === norm; });
+  if (exact) return exact;
+  var tokens = norm.split(" ").filter(function(t) { return t.length > 1; });
+  if (!tokens.length) return null;
+  var bestScore = 0, bestItem = null;
+  for (var i = 0; i < knownItems.length; i++) {
+    var item = knownItems[i];
+    var kTokens = normalizeForMatch(item.name).split(" ").filter(function(t) { return t.length > 1; });
+    if (!kTokens.length) continue;
+    var overlap = 0;
+    for (var j = 0; j < tokens.length; j++) {
+      var t = tokens[j];
+      if (kTokens.some(function(kt) { return kt.includes(t) || t.includes(kt); })) overlap++;
+    }
+    var score = overlap / Math.max(tokens.length, kTokens.length);
+    if (score > bestScore) { bestScore = score; bestItem = item; }
+  }
+  return bestScore >= 0.5 ? bestItem : null;
 }
 
-function AIIntake({ onSave, knownItems }) {
-const [input, setInput] = useState(””);
-const [loading, setLoading] = useState(false);
-const [parsed, setParsed] = useState(null);
-const [error, setError] = useState(””);
-const [images, setImages] = useState([]);
-const fileRef = useRef();
-
-const knownList = knownItems.length > 0
-? “\n\nKNOWN ITEM NAMES (use these exact names when the same product appears):\n” + knownItems.map(k => “- “ + k.name + (k.unit ? “ (” + k.unit + “)” : “”)).join(”\n”)
-: “”;
-
-const sysPrompt = “You are a document parser for Aurora, a construction/building materials supply warehouse in Portland, Oregon. Neighboring stores: Hillsboro, Eugene, Gresham, Vancouver.\n\nTypes:\n- "PO" = Purchase Order from vendor\n- "Transfer In" = stock arriving from another store\n- "Transfer Out" = stock leaving to another store\n\nMultiple photos = pages of ONE document. Combine all line items.\n\nReturn ONLY valid JSON:\n{"type":"PO or Transfer In or Transfer Out","party":"vendor or store","docId":"order number or empty","date":"YYYY-MM-DD (today is “ + today() + “)","lineItems":[{"name":"item","qty":0,"unit":"bags/pcs/etc"}],"notes":""}\n\nCRITICAL: When a line item matches a known item below, use the known item’s EXACT name.” + knownList;
-
-const handleImage = (e) => {
-const file = e.target.files[0]; if (!file) return;
-const reader = new FileReader();
-reader.onload = (ev) => {
-setImages(prev => […prev, { base64: ev.target.result.split(”,”)[1], mediaType: file.type, preview: ev.target.result }]);
-};
-reader.readAsDataURL(file);
-if (fileRef.current) fileRef.current.value = “”;
-};
-const removeImage = (idx) => setImages(prev => prev.filter((_, i) => i !== idx));
-const clearAll = () => { setImages([]); if (fileRef.current) fileRef.current.value = “”; };
-
-const parse = async () => {
-if (!input.trim() && images.length === 0) return;
-if (!getApiKey()) { setError(“API key required”); return; }
-setLoading(true); setError(””); setParsed(null);
-try {
-const uc = [];
-for (const img of images) uc.push({ type: “image”, source: { type: “base64”, media_type: img.mediaType, data: img.base64 }});
-uc.push({ type: “text”, text: input.trim() || (images.length > 1 ? “Parse this “ + images.length + “-page document.” : “Parse this document.”) });
-const res = await fetch(“https://api.anthropic.com/v1/messages”, { method: “POST”, headers: getApiHeaders(), body: JSON.stringify({ model: “claude-sonnet-4-20250514”, max_tokens: 4096, system: sysPrompt, messages: [{ role: “user”, content: uc }] }) });
-const data = await res.json();
-if (data.error) { setError(“API: “ + (data.error.message || “error”)); setLoading(false); return; }
-const text = (data.content || []).map(b => b.text || “”).join(””).trim();
-let result;
-try { result = JSON.parse(text.replace(FENCE_RE, “”).trim()); } catch(ex) { setError(“Parse failed - try again”); setLoading(false); return; }
-if (result.lineItems) {
-result.lineItems = result.lineItems.map(li => {
-const m = findBestMatch(li.name, knownItems);
-if (m) return {…li, name: m.name, unit: li.unit || m.unit || “”, _matched: true};
-return {…li, _matched: false};
-});
-}
-setParsed(result);
-} catch(e) { setError(“Error: “ + e.message); }
-setLoading(false);
-};
-
-const set = (k, v) => setParsed(p => ({…p, [k]: v}));
-const updateLine = (idx, key, val) => setParsed(p => ({…p, lineItems: p.lineItems.map((li, i) => i === idx ? {…li, [key]: val} : li)}));
-const removeLine = (idx) => setParsed(p => ({…p, lineItems: p.lineItems.filter((_, i) => i !== idx)}));
-const addLine = () => setParsed(p => ({…p, lineItems: […(p.lineItems || []), {name:””,qty:””,unit:””}]}));
-const confirm = () => { if (!parsed) return; onSave(parsed); setParsed(null); setInput(””); clearAll(); };
-
-const accent = {“PO”:”#aaa”,“Transfer In”:”#00e676”,“Transfer Out”:”#ff3d3d”};
-
-return (
-<div style={{ background: “#0a0a0a”, borderBottom: “1px solid #2a2a2a”, padding: “12px 14px” }}>
-{images.length > 0 && (
-<div style={{ marginBottom: 10, display: “flex”, gap: 8, flexWrap: “wrap” }}>
-{images.map((img, idx) => (
-<div key={idx} style={{ position: “relative” }}>
-<img src={img.preview} style={{ height: 80, maxWidth: 100, border: “1px solid #2a2a2a”, objectFit: “cover” }} />
-<button onClick={() => removeImage(idx)} style={{ position: “absolute”, top: 2, right: 2, background: “#0a0a0a”, border: “1px solid #2a2a2a”, color: “#f5f5f5”, cursor: “pointer”, fontSize: “0.7rem”, padding: “0 4px”, lineHeight: “16px” }}>x</button>
-<div style={{ position: “absolute”, bottom: 2, left: 2, background: “#0a0a0a”, color: “#666”, fontSize: “0.6rem”, padding: “0 3px”, fontWeight: 700 }}>{“P” + (idx+1)}</div>
-</div>
-))}
-</div>
-)}
-{!parsed && (
-<div style={{ display: “flex”, gap: 8, alignItems: “flex-start” }}>
-<textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === “Enter” && !e.shiftKey) { e.preventDefault(); parse(); } }}
-placeholder={images.length > 0 ? images.length + “ photo(s) - add more or GO” : “Describe a PO/transfer, or snap a photo”}
-rows={2} style={{…inp, flex: 1, resize: “none”, fontSize: “0.9rem”}} />
-<div style={{ display: “flex”, flexDirection: “column”, gap: 6 }}>
-<button onClick={() => fileRef.current && fileRef.current.click()} style={{ background: images.length ? “#1a2d5a” : “#141414”, border: “1px solid #2a2a2a”, color: images.length ? “#7aa8f0” : “#666”, padding: “7px 11px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.82rem”, cursor: “pointer” }}>{images.length ? “+” + images.length : “PHOTO”}</button>
-<button onClick={parse} disabled={loading || (!input.trim() && !images.length)} style={{ background: loading ? “#141414” : “#fff”, color: loading ? “#2d4a8a” : “#0a0a0a”, border: “none”, padding: “7px 11px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.9rem”, cursor: loading ? “default” : “pointer” }}>{loading ? “…” : “GO”}</button>
-</div>
-</div>
-)}
-<input ref={fileRef} type=“file” accept=“image/*” capture=“environment” onChange={handleImage} style={{ display: “none” }} />
-{error && <div style={{ marginTop: 8, color: “#f44”, fontSize: “0.82rem”, padding: “6px 8px”, background: “#111”, border: “1px solid #1a0000” }}>{error}</div>}
-{parsed && (
-<div style={{ background: “#111”, border: “1px solid #2a2a2a”, padding: “14px” }}>
-<div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “center”, marginBottom: 12 }}>
-<span style={{ color: accent[parsed.type] || “#fff”, fontWeight: 700, fontSize: “0.78rem”, letterSpacing: “0.1em” }}>{(parsed.type || “”).toUpperCase()}</span>
-<button onClick={() => { setParsed(null); setInput(””); clearAll(); }} style={{ background: “none”, border: “none”, color: “#555”, cursor: “pointer”, fontSize: “1.1rem” }}>x</button>
-</div>
-<div style={{ display: “flex”, gap: 8, marginBottom: 10, flexWrap: “wrap” }}>
-<div style={{ flex: “2 1 150px” }}>
-<label style={lbl}>{parsed.type === “PO” ? “VENDOR” : parsed.type === “Transfer In” ? “FROM STORE” : “TO STORE”}</label>
-{parsed.type !== “PO” ? (
-<select value={parsed.party || “”} onChange={e => set(“party”, e.target.value)} style={{…inp, padding: “7px 9px”}}>
-<option value="">Select store</option>
-{STORES.map(s => <option key={s}>{s}</option>)}
-</select>
-) : (
-<input value={parsed.party || “”} onChange={e => set(“party”, e.target.value)} style={inp} />
-)}
-</div>
-<div style={{ flex: “1 1 90px” }}><label style={lbl}>DOC #</label><input value={parsed.docId || “”} onChange={e => set(“docId”, e.target.value)} style={inp} /></div>
-<div style={{ flex: “1 1 110px” }}><label style={lbl}>DATE</label><input type=“date” value={parsed.date || today()} onChange={e => set(“date”, e.target.value)} style={inp} /></div>
-</div>
-<label style={{…lbl, marginBottom: 6}}>LINE ITEMS</label>
-{(parsed.lineItems || []).map((li, idx) => (
-<div key={idx} style={{ marginBottom: 5 }}>
-<div style={{ display: “grid”, gridTemplateColumns: “1fr 56px 56px 22px”, gap: 5 }}>
-<NameInput value={li.name} onChange={v => updateLine(idx, “name”, v)} placeholder=“Item name” knownItems={knownItems} />
-<input value={li.qty || “”} onChange={e => updateLine(idx, “qty”, e.target.value)} placeholder=“Qty” style={{…inp, fontSize: “0.88rem”, padding: “5px 7px”}} />
-<input value={li.unit || “”} onChange={e => updateLine(idx, “unit”, e.target.value)} placeholder=“Unit” style={{…inp, fontSize: “0.88rem”, padding: “5px 7px”}} />
-<button onClick={() => removeLine(idx)} style={{ background: “none”, border: “none”, color: “#4a0000”, cursor: “pointer”, fontSize: “0.94rem”, padding: 0, alignSelf: “center” }}>x</button>
-</div>
-{li._matched && <div style={{ fontSize: “0.66rem”, color: “#0c8”, letterSpacing: “0.06em”, marginTop: 1, paddingLeft: 2 }}>MATCHED</div>}
-</div>
-))}
-<button onClick={addLine} style={{ background: “none”, border: “1px solid #2a2a2a”, color: “#666”, padding: “3px 10px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.72rem”, cursor: “pointer”, marginTop: 2, marginBottom: 12 }}>+ LINE</button>
-<div style={{ display: “flex”, gap: 8 }}>
-<button onClick={confirm} style={{ background: “#fff”, color: “#0a0a0a”, border: “none”, padding: “8px 20px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.9rem”, letterSpacing: “0.08em”, cursor: “pointer” }}>LOG IT</button>
-<button onClick={() => { setParsed(null); setInput(””); clearAll(); }} style={{ background: “none”, border: “1px solid #2a2a2a”, color: “#666”, padding: “8px 14px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.84rem”, cursor: “pointer” }}>CANCEL</button>
-</div>
-</div>
-)}
-</div>
-);
+function stripFences(text) {
+  return text.replace(new RegExp(FENCE + "json", "g"), "").replace(new RegExp(FENCE, "g"), "").trim();
 }
 
-function EntryCard({ entry, onDelete, onEdit }) {
-const [confirmDel, setConfirmDel] = useState(false);
-const isPO = entry.type === “PO”;
-const isIn = entry.type === “Transfer In”;
-const ac = isPO ? “#333” : isIn ? “#00c853” : “#c00”;
-const pl = isPO ? entry.party : isIn ? “From “ + entry.party : “To “ + entry.party;
-const pc = isPO ? “#fff” : isIn ? “#00e676” : “#ff3d3d”;
-
-return (
-<div style={{ borderLeft: “3px solid “ + ac, background: “#111”, padding: “11px 13px”, marginBottom: 7 }}>
-<div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “flex-start”, marginBottom: 7 }}>
-<div style={{ flex: 1, minWidth: 0 }}>
-<span style={{ color: pc, fontWeight: 700, fontSize: “1rem” }}>{pl}</span>
-{entry.docId && <span style={{ color: “#555”, fontSize: “0.76rem”, marginLeft: 10 }}>{entry.docId}</span>}
-</div>
-<div style={{ flexShrink: 0, marginLeft: 8, display: “flex”, gap: 6, alignItems: “center” }}>
-{confirmDel ? (
-<div style={{ display: “flex”, gap: 5 }}>
-<button onClick={() => onDelete(entry.id)} style={{ background: “#4a0000”, color: “#f5f5f5”, border: “none”, padding: “2px 8px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.7rem”, cursor: “pointer” }}>DEL</button>
-<button onClick={() => setConfirmDel(false)} style={{ background: “none”, border: “1px solid #2a2a2a”, color: “#666”, padding: “2px 7px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.7rem”, cursor: “pointer” }}>NO</button>
-</div>
-) : (
-<React.Fragment>
-<button onClick={() => onEdit(entry)} style={{ background: “none”, border: “none”, color: “#555”, cursor: “pointer”, fontSize: “0.72rem”, padding: “2px 4px”, fontFamily: “‘Courier New’,monospace” }}>EDIT</button>
-<button onClick={() => setConfirmDel(true)} style={{ background: “none”, border: “none”, color: “#2a2a2a”, cursor: “pointer”, fontSize: “0.9rem”, padding: “2px 4px” }}>x</button>
-</React.Fragment>
-)}
-</div>
-</div>
-<div>
-{(entry.lineItems || []).filter(li => li.name).map((li, idx) => (
-<div key={idx} style={{ display: “flex”, gap: 10, padding: “2px 0”, alignItems: “baseline” }}>
-{(li.qty || li.unit) && <span style={{ color: “#5b8fff”, fontWeight: 700, fontSize: “0.84rem”, whiteSpace: “nowrap”, flexShrink: 0, minWidth: 52 }}>{li.qty}{li.unit ? “ “ + li.unit : “”}</span>}
-<span style={{ color: “#fff”, fontSize: “0.94rem”, lineHeight: 1.45, overflowWrap: “anywhere” }}>{li.name}</span>
-</div>
-))}
-</div>
-{entry.notes && <div style={{ marginTop: 7, fontSize: “0.78rem”, color: “#555”, fontStyle: “italic” }}>{entry.notes}</div>}
-</div>
-);
+function buildKnownList(knownItems) {
+  if (!knownItems.length) return "";
+  var lines = knownItems.map(function(k) {
+    return '- "' + k.name + '"' + (k.unit ? " (unit: " + k.unit + ")" : "");
+  });
+  return "\n\nKNOWN ITEM NAMES (use these exact names when you recognize the same product):\n" + lines.join("\n");
 }
 
-function DateHeader({ dateStr }) {
-return (
-<div style={{ display: “flex”, alignItems: “center”, gap: 10, margin: “28px 0 10px” }}>
-<div style={{ flex: 1, height: 1, background: “#1a1a1a” }} />
-<span style={{ color: “#fff”, fontSize: “0.76rem”, fontWeight: 700, letterSpacing: “0.2em”, whiteSpace: “nowrap” }}>{formatDateHeading(dateStr).toUpperCase()}</span>
-<div style={{ flex: 1, height: 1, background: “#1a1a1a” }} />
-</div>
-);
+function NameInput(props) {
+  var value = props.value;
+  var onChange = props.onChange;
+  var placeholder = props.placeholder;
+  var knownItems = props.knownItems || [];
+  var inputStyle = props.inputStyle;
+  var _s = useState(false), showSugg = _s[0], setShowSugg = _s[1];
+  var _sg = useState([]), suggestions = _sg[0], setSuggestions = _sg[1];
+
+  var handleChange = function(e) {
+    var v = e.target.value;
+    onChange(v);
+    if (v.trim().length >= 2 && knownItems.length > 0) {
+      var norm = normalizeForMatch(v);
+      var matches = knownItems.filter(function(k) {
+        var kn = normalizeForMatch(k.name);
+        return kn.includes(norm) || norm.split(" ").some(function(t) { return t.length > 1 && kn.includes(t); });
+      }).slice(0, 5);
+      setSuggestions(matches);
+      setShowSugg(matches.length > 0);
+    } else {
+      setSuggestions([]);
+      setShowSugg(false);
+    }
+  };
+
+  var style = inputStyle || Object.assign({}, inp, { background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" });
+
+  return (
+    <div style={{ position: "relative" }}>
+      <input value={value || ""} onChange={handleChange}
+        onFocus={function() { if (suggestions.length) setShowSugg(true); }}
+        onBlur={function() { setTimeout(function() { setShowSugg(false); }, 200); }}
+        placeholder={placeholder} style={style} />
+      {showSugg && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a1a1a", border: "1px solid #333333", zIndex: 100, maxHeight: 140, overflowY: "auto" }}>
+          {suggestions.map(function(s, i) {
+            return (
+              <div key={i} onMouseDown={function(e) { e.preventDefault(); onChange(s.name); setSuggestions([]); setShowSugg(false); }}
+                style={{ padding: "6px 8px", fontSize: "0.82rem", color: "#cccccc", cursor: "pointer", borderBottom: "1px solid #222222" }}
+                onMouseEnter={function(e) { e.currentTarget.style.background = "#252525"; }}
+                onMouseLeave={function(e) { e.currentTarget.style.background = "transparent"; }}>
+                {s.name} <span style={{ color: "#555555", fontSize: "0.72rem" }}>{s.unit}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
 }
 
-function AddModal({ onClose, onSave, defaultType, editEntry, knownItems }) {
-const [form, setForm] = useState(editEntry ? {
-type: editEntry.type, party: editEntry.party, docId: editEntry.docId,
-date: editEntry.date, lineItems: editEntry.lineItems.map(li => ({…li})), notes: editEntry.notes || “”
-} : { type: defaultType || “PO”, party: “”, docId: “”, date: today(), lineItems: [{ name: “”, qty: “”, unit: “” }], notes: “” });
+function AIIntake(props) {
+  var onSave = props.onSave;
+  var knownItems = props.knownItems;
+  var _i = useState(""), input = _i[0], setInput = _i[1];
+  var _l = useState(false), loading = _l[0], setLoading = _l[1];
+  var _p = useState(null), parsed = _p[0], setParsed = _p[1];
+  var _e = useState(""), error = _e[0], setError = _e[1];
+  var _im = useState([]), images = _im[0], setImages = _im[1];
+  var fileRef = useRef();
 
-const set = (k, v) => setForm(f => ({…f, [k]: v}));
-const updateLine = (idx, k, v) => setForm(f => ({…f, lineItems: f.lineItems.map((li, i) => i === idx ? {…li, [k]: v} : li)}));
-const addLine = () => setForm(f => ({…f, lineItems: […f.lineItems, {name:””,qty:””,unit:””}]}));
-const removeLine = (idx) => setForm(f => ({…f, lineItems: f.lineItems.filter((_, i) => i !== idx)}));
-const isT = form.type !== “PO”;
-const pLabel = form.type === “PO” ? “VENDOR / SUPPLIER” : form.type === “Transfer In” ? “FROM STORE” : “TO STORE”;
-const save = () => {
-if (!form.party.trim() || !form.lineItems.some(li => li.name.trim())) return;
-onSave(form); onClose();
-};
+  var systemPrompt = "You are a document parser for Aurora, a construction and building materials supply warehouse in Portland, Oregon. Aurora's neighboring stores are: Hillsboro, Eugene, Gresham, Vancouver.\n\nIdentify the document type:\n- \"PO\" - Purchase Order: supplies arriving from an external vendor or supplier\n- \"Transfer In\" - Stock arriving AT Aurora FROM another store\n- \"Transfer Out\" - Stock leaving Aurora TO another store\n\nThe user may provide MULTIPLE PHOTOS of the same document (e.g. a multi-page PO). Treat all images as pages of ONE document - combine all line items into a single result.\n\nReturn ONLY valid JSON, no markdown:\n{\"type\": \"PO\" or \"Transfer In\" or \"Transfer Out\", \"party\": \"vendor or store name\", \"docId\": \"order number or empty string\", \"date\": \"YYYY-MM-DD (use today " + today() + " if not visible)\", \"lineItems\": [{\"name\": \"item name\", \"qty\": number, \"unit\": \"bags/pcs/rolls/etc\"}], \"notes\": \"\"}\n\nCRITICAL NAME MATCHING RULE: When a line item refers to the same product as a known item below, you MUST use the known item's exact name - even if the document abbreviates it, shortens it, or describes it differently." + buildKnownList(knownItems);
 
-return (
-<div onClick={onClose} style={{ position: “fixed”, inset: 0, background: “rgba(8,7,5,0.88)”, display: “flex”, alignItems: “center”, justifyContent: “center”, zIndex: 1000 }}>
-<div onClick={e => e.stopPropagation()} style={{ background: “#141414”, border: “1px solid #2a2a2a”, width: “min(500px,96vw)”, maxHeight: “92vh”, overflowY: “auto”, padding: “18px 16px” }}>
-<div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “center”, marginBottom: 16 }}>
-<span style={{ color: “#fff”, fontWeight: 700, fontSize: “1.05rem”, letterSpacing: “0.1em” }}>{editEntry ? “EDIT ENTRY” : “LOG ENTRY”}</span>
-<button onClick={onClose} style={{ background: “none”, border: “none”, color: “#555”, cursor: “pointer”, fontSize: “1.3rem” }}>x</button>
-</div>
-<div style={{ marginBottom: 12 }}>
-<label style={lbl}>TYPE</label>
-<select value={form.type} onChange={e => set(“type”, e.target.value)} style={{…inp, padding: “7px 9px”}}>
-<option>PO</option><option>Transfer In</option><option>Transfer Out</option>
-</select>
-</div>
-<div style={{ display: “flex”, gap: 8, marginBottom: 12, flexWrap: “wrap” }}>
-<div style={{ flex: “2 1 150px” }}>
-<label style={lbl}>{pLabel}</label>
-{isT ? (
-<select value={form.party} onChange={e => set(“party”, e.target.value)} style={{…inp, padding: “7px 9px”}}>
-<option value="">Select</option>
-{STORES.map(s => <option key={s}>{s}</option>)}
-</select>
-) : (
-<input value={form.party} onChange={e => set(“party”, e.target.value)} placeholder=“e.g. Pacific Supply” style={inp} />
-)}
-</div>
-<div style={{ flex: “1 1 90px” }}><label style={lbl}>DOC #</label><input value={form.docId} onChange={e => set(“docId”, e.target.value)} placeholder=“optional” style={inp} /></div>
-<div style={{ flex: “1 1 110px” }}><label style={lbl}>DATE</label><input type=“date” value={form.date} onChange={e => set(“date”, e.target.value)} style={inp} /></div>
-</div>
-<label style={{…lbl, marginBottom: 7}}>LINE ITEMS</label>
-{form.lineItems.map((li, idx) => (
-<div key={idx} style={{ display: “grid”, gridTemplateColumns: “1fr 56px 56px 22px”, gap: 5, marginBottom: 5 }}>
-<NameInput value={li.name} onChange={v => updateLine(idx, “name”, v)} placeholder=“Item name” knownItems={knownItems} />
-<input value={li.qty} onChange={e => updateLine(idx, “qty”, e.target.value)} placeholder=“Qty” style={{…inp, fontSize: “0.88rem”, padding: “5px 7px”}} />
-<input value={li.unit} onChange={e => updateLine(idx, “unit”, e.target.value)} placeholder=“Unit” style={{…inp, fontSize: “0.88rem”, padding: “5px 7px”}} />
-<button onClick={() => removeLine(idx)} style={{ background: “none”, border: “none”, color: “#4a0000”, cursor: “pointer”, fontSize: “0.94rem”, alignSelf: “center” }}>x</button>
-</div>
-))}
-<button onClick={addLine} style={{ background: “none”, border: “1px solid #2a2a2a”, color: “#666”, padding: “3px 10px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.72rem”, cursor: “pointer”, marginBottom: 12 }}>+ LINE</button>
-<div style={{ marginBottom: 16 }}><label style={lbl}>NOTES (OPTIONAL)</label><input value={form.notes} onChange={e => set(“notes”, e.target.value)} style={inp} /></div>
-<button onClick={save} style={{ width: “100%”, background: “#fff”, color: “#0a0a0a”, border: “none”, padding: “10px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, fontSize: “0.97rem”, letterSpacing: “0.1em”, cursor: “pointer” }}>{editEntry ? “SAVE CHANGES” : “SAVE”}</button>
-</div>
-</div>
-);
+  var handleImage = function(e) {
+    var file = e.target.files[0]; if (!file) return;
+    var reader = new FileReader();
+    reader.onload = function(ev) {
+      setImages(function(prev) { return prev.concat([{ base64: ev.target.result.split(",")[1], mediaType: file.type, preview: ev.target.result }]); });
+    };
+    reader.readAsDataURL(file);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+  var removeImage = function(idx) { setImages(function(prev) { return prev.filter(function(_, i) { return i !== idx; }); }); };
+  var clearAllImages = function() { setImages([]); if (fileRef.current) fileRef.current.value = ""; };
+
+  var parse = async function() {
+    if (!input.trim() && images.length === 0) return;
+    if (!getApiKey()) { setError("API key required - tap key icon in the header."); return; }
+    setLoading(true); setError(""); setParsed(null);
+    try {
+      var userContent = [];
+      for (var i = 0; i < images.length; i++) {
+        userContent.push({ type: "image", source: { type: "base64", media_type: images[i].mediaType, data: images[i].base64 } });
+      }
+      var textPart = input.trim() || (images.length > 1 ? "Parse this " + images.length + "-page warehouse document. Combine all line items into one result." : "Parse this warehouse document.");
+      userContent.push({ type: "text", text: textPart });
+      var res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: getApiHeaders(), body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4096, system: systemPrompt, messages: [{ role: "user", content: userContent }] }) });
+      var data = await res.json();
+      if (data.error) { setError("API error: " + (data.error.message || "Unknown")); setLoading(false); return; }
+      var text = (data.content || []).map(function(b) { return b.text || ""; }).join("").trim();
+      var result;
+      try { result = JSON.parse(stripFences(text)); } catch(ex) { setError("Couldn't parse - try again or enter manually."); setLoading(false); return; }
+      if (result.lineItems) {
+        result.lineItems = result.lineItems.map(function(li) {
+          var match = findBestMatch(li.name, knownItems);
+          if (match) return Object.assign({}, li, { name: match.name, unit: li.unit || match.unit || "", _matched: true });
+          return Object.assign({}, li, { _matched: false });
+        });
+      }
+      setParsed(result);
+    } catch(e) { setError("Error: " + (e.message || "unknown")); }
+    setLoading(false);
+  };
+
+  var set = function(k, v) { setParsed(function(p) { var n = Object.assign({}, p); n[k] = v; return n; }); };
+  var updateLine = function(idx, key, val) { setParsed(function(p) { return Object.assign({}, p, { lineItems: p.lineItems.map(function(li, i) { if (i !== idx) return li; var n = Object.assign({}, li); n[key] = val; return n; }) }); }); };
+  var removeLine = function(idx) { setParsed(function(p) { return Object.assign({}, p, { lineItems: p.lineItems.filter(function(_, i) { return i !== idx; }) }); }); };
+  var addLine = function() { setParsed(function(p) { return Object.assign({}, p, { lineItems: (p.lineItems || []).concat([{ name: "", qty: "", unit: "" }]) }); }); };
+  var confirm = function() { if (!parsed) return; onSave(parsed); setParsed(null); setInput(""); clearAllImages(); };
+
+  var typeAccent = { "PO": "#aaaaaa", "Transfer In": "#00e676", "Transfer Out": "#ff3d3d" };
+
+  return (
+    <div style={{ background: "#0a0a0a", borderBottom: "1px solid #2a2a2a", padding: "12px 14px" }}>
+      {images.length > 0 && (
+        <div style={{ marginBottom: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+          {images.map(function(img, idx) {
+            return (
+              <div key={idx} style={{ position: "relative", display: "inline-block" }}>
+                <img src={img.preview} alt="" style={{ height: 80, maxWidth: 100, border: "1px solid #2a2a2a", display: "block", objectFit: "cover" }} />
+                <button onClick={function() { removeImage(idx); }} style={{ position: "absolute", top: 2, right: 2, background: "#0a0a0a", border: "1px solid #2a2a2a", color: "#f5f5f5", cursor: "pointer", fontSize: "0.7rem", padding: "0px 4px", lineHeight: "16px" }}>x</button>
+                <div style={{ position: "absolute", bottom: 2, left: 2, background: "#0a0a0a", color: "#666666", fontSize: "0.6rem", padding: "0 3px", fontWeight: 700 }}>{"P" + (idx + 1)}</div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+      {!parsed && (
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <textarea value={input} onChange={function(e) { setInput(e.target.value); }} onKeyDown={function(e) { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); parse(); } }}
+            placeholder={images.length > 0 ? images.length + " photo" + (images.length > 1 ? "s" : "") + " - add more or hit GO" : "Describe a PO or transfer, or snap a photo"}
+            rows={2} style={Object.assign({}, inp, { flex: 1, resize: "none", background: "#0a0a0a", fontSize: "0.9rem" })} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <button onClick={function() { fileRef.current && fileRef.current.click(); }} style={{ background: images.length > 0 ? "#1a2d5a" : "#141414", border: "1px solid #2a2a2a", color: images.length > 0 ? "#7aa8f0" : "#666666", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer" }}>{images.length > 0 ? "+" + images.length : "photo"}</button>
+            <button onClick={parse} disabled={loading || (!input.trim() && images.length === 0)} style={{ background: loading ? "#141414" : "#ffffff", color: loading ? "#2d4a8a" : "#0a0a0a", border: "none", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", cursor: loading ? "default" : "pointer" }}>{loading ? "..." : "GO"}</button>
+          </div>
+        </div>
+      )}
+      <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleImage} style={{ display: "none" }} />
+      {error && <div style={{ marginTop: 8, color: "#ff4444", fontSize: "0.82rem", padding: "6px 8px", background: "#111111", border: "1px solid #1a0000" }}>{error}</div>}
+      {parsed && (
+        <div style={{ background: "#111111", border: "1px solid #2a2a2a", padding: "14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <span style={{ color: typeAccent[parsed.type] || "#ffffff", fontWeight: 700, fontSize: "0.78rem", letterSpacing: "0.1em" }}>{(parsed.type || "").toUpperCase()}</span>
+            <button onClick={function() { setParsed(null); setInput(""); clearAllImages(); }} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.1rem" }}>x</button>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            <div style={{ flex: "2 1 150px" }}>
+              <label style={lbl}>{parsed.type === "PO" ? "VENDOR" : parsed.type === "Transfer In" ? "FROM STORE" : "TO STORE"}</label>
+              {parsed.type !== "PO" ? (
+                <select value={parsed.party || ""} onChange={function(e) { set("party", e.target.value); }} style={Object.assign({}, inp, { background: "#0a0a0a", padding: "7px 9px" })}>
+                  <option value="">Select store</option>
+                  {STORES.map(function(s) { return <option key={s}>{s}</option>; })}
+                </select>
+              ) : (
+                <input value={parsed.party || ""} onChange={function(e) { set("party", e.target.value); }} style={Object.assign({}, inp, { background: "#0a0a0a" })} />
+              )}
+            </div>
+            <div style={{ flex: "1 1 90px" }}><label style={lbl}>DOC #</label><input value={parsed.docId || ""} onChange={function(e) { set("docId", e.target.value); }} style={Object.assign({}, inp, { background: "#0a0a0a" })} /></div>
+            <div style={{ flex: "1 1 110px" }}><label style={lbl}>DATE</label><input type="date" value={parsed.date || today()} onChange={function(e) { set("date", e.target.value); }} style={Object.assign({}, inp, { background: "#0a0a0a" })} /></div>
+          </div>
+          <label style={Object.assign({}, lbl, { marginBottom: 6 })}>LINE ITEMS</label>
+          {(parsed.lineItems || []).map(function(li, idx) {
+            return (
+              <div key={idx} style={{ marginBottom: 5 }}>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 22px", gap: 5 }}>
+                  <NameInput value={li.name} onChange={function(v) { updateLine(idx, "name", v); }} placeholder="Item name" knownItems={knownItems} />
+                  <input value={li.qty || ""} onChange={function(e) { updateLine(idx, "qty", e.target.value); }} placeholder="Qty" style={Object.assign({}, inp, { background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" })} />
+                  <input value={li.unit || ""} onChange={function(e) { updateLine(idx, "unit", e.target.value); }} placeholder="Unit" style={Object.assign({}, inp, { background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" })} />
+                  <button onClick={function() { removeLine(idx); }} style={{ background: "none", border: "none", color: "#4a0000", cursor: "pointer", fontSize: "0.94rem", padding: 0, alignSelf: "center" }}>x</button>
+                </div>
+                {li._matched && <div style={{ fontSize: "0.66rem", color: "#00c853", letterSpacing: "0.06em", marginTop: 1, paddingLeft: 2 }}>MATCHED</div>}
+              </div>
+            );
+          })}
+          <button onClick={addLine} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginTop: 2, marginBottom: 12 }}>+ LINE</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={confirm} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "8px 20px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.08em", cursor: "pointer" }}>LOG IT</button>
+            <button onClick={function() { setParsed(null); setInput(""); clearAllImages(); }} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "8px 14px", fontFamily: "'Courier New',monospace", fontSize: "0.84rem", cursor: "pointer" }}>CANCEL</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
-function ApiKeyModal({ onClose }) {
-const [val, setVal] = useState(getApiKey());
-return (
-<div onClick={onClose} style={{ position: “fixed”, inset: 0, background: “rgba(8,7,5,0.88)”, display: “flex”, alignItems: “center”, justifyContent: “center”, zIndex: 1000 }}>
-<div onClick={e => e.stopPropagation()} style={{ background: “#141414”, border: “1px solid #2a2a2a”, width: “min(380px,92vw)”, padding: “20px 16px” }}>
-<div style={{ color: “#fff”, fontWeight: 700, fontSize: “0.94rem”, letterSpacing: “0.12em”, marginBottom: 12 }}>API KEY</div>
-<input value={val} onChange={e => setVal(e.target.value)} placeholder=“sk-ant-…” type=“password” style={{…inp, marginBottom: 10}} />
-<button onClick={() => { setApiKeyVal(val); onClose(); }} style={{ width: “100%”, background: “#fff”, color: “#0a0a0a”, border: “none”, padding: “8px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700, cursor: “pointer” }}>SAVE</button>
-</div>
-</div>
-);
+function EntryCard(props) {
+  var entry = props.entry, onDelete = props.onDelete, onEdit = props.onEdit;
+  var _c = useState(false), confirmDel = _c[0], setConfirmDel = _c[1];
+  var isPO = entry.type === "PO";
+  var isIn = entry.type === "Transfer In";
+  var accentColor = isPO ? "#333333" : isIn ? "#00c853" : "#cc0000";
+  var partyLine = isPO ? entry.party : isIn ? "From " + entry.party : "To " + entry.party;
+  var partyColor = isPO ? "#ffffff" : isIn ? "#00e676" : "#ff3d3d";
+
+  return (
+    <div style={{ borderLeft: "3px solid " + accentColor, background: "#111111", padding: "11px 13px", marginBottom: 7, position: "relative" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 7 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ color: partyColor, fontWeight: 700, fontSize: "1rem", letterSpacing: "0.03em" }}>{partyLine}</span>
+          {entry.docId && <span style={{ color: "#555555", fontSize: "0.76rem", marginLeft: 10, letterSpacing: "0.04em" }}>{entry.docId}</span>}
+        </div>
+        <div style={{ flexShrink: 0, marginLeft: 8, display: "flex", gap: 6, alignItems: "center" }}>
+          {confirmDel ? (
+            <div style={{ display: "flex", gap: 5 }}>
+              <button onClick={function() { onDelete(entry.id); }} style={{ background: "#4a0000", color: "#f5f5f5", border: "none", padding: "2px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>DEL</button>
+              <button onClick={function() { setConfirmDel(false); }} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "2px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>NO</button>
+            </div>
+          ) : (
+            <React.Fragment>
+              <button onClick={function() { onEdit(entry); }} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "0.72rem", padding: "2px 4px", fontFamily: "'Courier New',monospace", letterSpacing: "0.06em" }}>EDIT</button>
+              <button onClick={function() { setConfirmDel(true); }} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.9rem", padding: "2px 4px" }}>x</button>
+            </React.Fragment>
+          )}
+        </div>
+      </div>
+      <div>
+        {(entry.lineItems || []).filter(function(li) { return li.name; }).map(function(li, idx) {
+          return (
+            <div key={idx} style={{ display: "flex", gap: 10, padding: "2px 0", alignItems: "baseline" }}>
+              {(li.qty || li.unit) && (
+                <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.84rem", whiteSpace: "nowrap", flexShrink: 0, minWidth: 52 }}>
+                  {li.qty}{li.unit ? " " + li.unit : ""}
+                </span>
+              )}
+              <span style={{ color: "#ffffff", fontSize: "0.94rem", lineHeight: 1.45, wordBreak: "normal", overflowWrap: "anywhere" }}>{li.name}</span>
+            </div>
+          );
+        })}
+      </div>
+      {entry.notes && <div style={{ marginTop: 7, fontSize: "0.78rem", color: "#555555", fontStyle: "italic" }}>{entry.notes}</div>}
+    </div>
+  );
 }
 
-function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown }) {
-const [editIdx, setEditIdx] = useState(null);
-const [editVal, setEditVal] = useState(””);
+function DateHeader(props) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "28px 0 10px" }}>
+      <div style={{ flex: 1, height: 1, background: "#1a1a1a" }} />
+      <span style={{ color: "#ffffff", fontSize: "0.76rem", fontWeight: 700, letterSpacing: "0.2em", whiteSpace: "nowrap" }}>{formatDateHeading(props.dateStr).toUpperCase()}</span>
+      <div style={{ flex: 1, height: 1, background: "#1a1a1a" }} />
+    </div>
+  );
+}
 
-const remove = (idx) => { const n = knownItems.filter((_, i) => i !== idx); setKnownItems(n); persistKnown(n); };
-const startEdit = (item, idx) => { setEditIdx(idx); setEditVal(item.name); };
-const saveEdit = (idx) => { if (!editVal.trim()) return; const n = knownItems.map((k, i) => i === idx ? {…k, name: editVal.trim()} : k); setKnownItems(n); persistKnown(n); setEditIdx(null); };
+function AddModal(props) {
+  var onClose = props.onClose, onSave = props.onSave, defaultType = props.defaultType, editEntry = props.editEntry, knownItems = props.knownItems;
+  var initial = editEntry ? {
+    type: editEntry.type, party: editEntry.party, docId: editEntry.docId,
+    date: editEntry.date, lineItems: editEntry.lineItems.map(function(li) { return Object.assign({}, li); }), notes: editEntry.notes || ""
+  } : { type: defaultType || "PO", party: "", docId: "", date: today(), lineItems: [{ name: "", qty: "", unit: "" }], notes: "" };
 
-return (
-<div onClick={onClose} style={{ position: “fixed”, inset: 0, background: “rgba(8,7,5,0.88)”, display: “flex”, alignItems: “center”, justifyContent: “center”, zIndex: 1000 }}>
-<div onClick={e => e.stopPropagation()} style={{ background: “#141414”, border: “1px solid #2a2a2a”, width: “min(460px,96vw)”, maxHeight: “85vh”, overflowY: “auto”, padding: “18px 16px” }}>
-<div style={{ display: “flex”, justifyContent: “space-between”, alignItems: “center”, marginBottom: 14 }}>
-<span style={{ color: “#fff”, fontWeight: 700, fontSize: “0.94rem”, letterSpacing: “0.12em” }}>ITEM DICTIONARY</span>
-<button onClick={onClose} style={{ background: “none”, border: “none”, color: “#555”, cursor: “pointer”, fontSize: “1.3rem” }}>x</button>
-</div>
-<div style={{ fontSize: “0.72rem”, color: “#555”, marginBottom: 14, lineHeight: 1.5 }}>
-Auto-learned from logged entries. AI matches documents to these names. Tap to edit.
-</div>
-{knownItems.length === 0 && <div style={{ color: “#333”, fontSize: “0.84rem”, padding: “20px 0”, textAlign: “center” }}>No items yet - log entries to build the dictionary.</div>}
-{knownItems.map((item, idx) => (
-<div key={idx} style={{ display: “flex”, alignItems: “center”, gap: 8, padding: “6px 0”, borderBottom: “1px solid #1a1a1a” }}>
-{editIdx === idx ? (
-<React.Fragment>
-<input value={editVal} onChange={e => setEditVal(e.target.value)} onKeyDown={e => { if (e.key === “Enter”) saveEdit(idx); }}
-style={{…inp, flex: 1, fontSize: “0.86rem”, padding: “4px 7px”, background: “#0a0a0a”}} autoFocus />
-<button onClick={() => saveEdit(idx)} style={{ background: “none”, border: “none”, color: “#0c8”, cursor: “pointer”, fontSize: “0.72rem”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700 }}>SAVE</button>
-</React.Fragment>
-) : (
-<React.Fragment>
-<span onClick={() => startEdit(item, idx)} style={{ flex: 1, color: “#ccc”, fontSize: “0.88rem”, cursor: “pointer” }}>
-{item.name} {item.unit && <span style={{ color: “#444”, fontSize: “0.72rem” }}>({item.unit})</span>}
-</span>
-<button onClick={() => remove(idx)} style={{ background: “none”, border: “none”, color: “#3a1010”, cursor: “pointer”, fontSize: “0.82rem” }}>x</button>
-</React.Fragment>
-)}
-</div>
-))}
-</div>
-</div>
-);
+  var _f = useState(initial), form = _f[0], setFormState = _f[1];
+  var set = function(k, v) { setFormState(function(f) { var n = Object.assign({}, f); n[k] = v; return n; }); };
+  var updateLine = function(idx, k, v) { setFormState(function(f) { return Object.assign({}, f, { lineItems: f.lineItems.map(function(li, i) { if (i !== idx) return li; var n = Object.assign({}, li); n[k] = v; return n; }) }); }); };
+  var addLine = function() { setFormState(function(f) { return Object.assign({}, f, { lineItems: f.lineItems.concat([{ name: "", qty: "", unit: "" }]) }); }); };
+  var removeLine = function(idx) { setFormState(function(f) { return Object.assign({}, f, { lineItems: f.lineItems.filter(function(_, i) { return i !== idx; }) }); }); };
+  var isTransfer = form.type !== "PO";
+  var partyLabel = form.type === "PO" ? "VENDOR / SUPPLIER" : form.type === "Transfer In" ? "FROM STORE" : "TO STORE";
+  var save = function() {
+    if (!form.party.trim() || !form.lineItems.some(function(li) { return li.name.trim(); })) return;
+    onSave(form); onClose();
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={function(e) { e.stopPropagation(); }} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(500px,96vw)", maxHeight: "92vh", overflowY: "auto", padding: "18px 16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.1em" }}>{editEntry ? "EDIT ENTRY" : "LOG ENTRY"}</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <label style={lbl}>TYPE</label>
+          <select value={form.type} onChange={function(e) { set("type", e.target.value); }} style={Object.assign({}, inp, { padding: "7px 9px" })}>
+            <option>PO</option><option>Transfer In</option><option>Transfer Out</option>
+          </select>
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
+          <div style={{ flex: "2 1 150px" }}>
+            <label style={lbl}>{partyLabel}</label>
+            {isTransfer ? (
+              <select value={form.party} onChange={function(e) { set("party", e.target.value); }} style={Object.assign({}, inp, { padding: "7px 9px" })}>
+                <option value="">Select</option>
+                {STORES.map(function(s) { return <option key={s}>{s}</option>; })}
+              </select>
+            ) : (
+              <input value={form.party} onChange={function(e) { set("party", e.target.value); }} placeholder="e.g. Pacific Supply Co." style={inp} />
+            )}
+          </div>
+          <div style={{ flex: "1 1 90px" }}><label style={lbl}>DOC #</label><input value={form.docId} onChange={function(e) { set("docId", e.target.value); }} placeholder="optional" style={inp} /></div>
+          <div style={{ flex: "1 1 110px" }}><label style={lbl}>DATE</label><input type="date" value={form.date} onChange={function(e) { set("date", e.target.value); }} style={inp} /></div>
+        </div>
+        <label style={Object.assign({}, lbl, { marginBottom: 7 })}>LINE ITEMS</label>
+        {form.lineItems.map(function(li, idx) {
+          return (
+            <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 22px", gap: 5, marginBottom: 5 }}>
+              <NameInput value={li.name} onChange={function(v) { updateLine(idx, "name", v); }} placeholder="Item name" knownItems={knownItems} />
+              <input value={li.qty} onChange={function(e) { updateLine(idx, "qty", e.target.value); }} placeholder="Qty" style={Object.assign({}, inp, { fontSize: "0.88rem", padding: "5px 7px" })} />
+              <input value={li.unit} onChange={function(e) { updateLine(idx, "unit", e.target.value); }} placeholder="Unit" style={Object.assign({}, inp, { fontSize: "0.88rem", padding: "5px 7px" })} />
+              <button onClick={function() { removeLine(idx); }} style={{ background: "none", border: "none", color: "#4a0000", cursor: "pointer", fontSize: "0.94rem", alignSelf: "center" }}>x</button>
+            </div>
+          );
+        })}
+        <button onClick={addLine} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginBottom: 12 }}>+ LINE</button>
+        <div style={{ marginBottom: 16 }}><label style={lbl}>NOTES (OPTIONAL)</label><input value={form.notes} onChange={function(e) { set("notes", e.target.value); }} style={inp} /></div>
+        <button onClick={save} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.97rem", letterSpacing: "0.1em", cursor: "pointer" }}>{editEntry ? "SAVE CHANGES" : "SAVE"}</button>
+      </div>
+    </div>
+  );
+}
+
+function ApiKeyModal(props) {
+  var onClose = props.onClose;
+  var _v = useState(getApiKey()), val = _v[0], setVal = _v[1];
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={function(e) { e.stopPropagation(); }} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(380px,92vw)", padding: "20px 16px" }}>
+        <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em", marginBottom: 12 }}>API KEY</div>
+        <input value={val} onChange={function(e) { setVal(e.target.value); }} placeholder="sk-ant-..." type="password" style={Object.assign({}, inp, { marginBottom: 10 })} />
+        <button onClick={function() { setApiKeyVal(val); onClose(); }} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", padding: "8px", fontFamily: "'Courier New',monospace", fontWeight: 700, cursor: "pointer" }}>SAVE</button>
+      </div>
+    </div>
+  );
+}
+
+function ItemDictModal(props) {
+  var onClose = props.onClose, knownItems = props.knownItems, setKnownItems = props.setKnownItems, persistKnown = props.persistKnown;
+  var _en = useState(null), editIdx = _en[0], setEditIdx = _en[1];
+  var _ev = useState(""), editVal = _ev[0], setEditVal = _ev[1];
+
+  var remove = function(idx) {
+    var next = knownItems.filter(function(_, i) { return i !== idx; });
+    setKnownItems(next); persistKnown(next);
+  };
+  var startEdit = function(item, idx) { setEditIdx(idx); setEditVal(item.name); };
+  var saveEdit = function(idx) {
+    if (!editVal.trim()) return;
+    var next = knownItems.map(function(k, i) { return i === idx ? Object.assign({}, k, { name: editVal.trim() }) : k; });
+    setKnownItems(next); persistKnown(next); setEditIdx(null);
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={function(e) { e.stopPropagation(); }} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(460px,96vw)", maxHeight: "85vh", overflowY: "auto", padding: "18px 16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em" }}>ITEM DICTIONARY</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
+        </div>
+        <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>
+          Names are auto-learned from every entry you log. The AI matches incoming documents to these names. Tap a name to edit.
+        </div>
+        {knownItems.length === 0 && <div style={{ color: "#333333", fontSize: "0.84rem", padding: "20px 0", textAlign: "center" }}>No items yet. Log your first entry to start building the dictionary.</div>}
+        {knownItems.map(function(item, idx) {
+          return (
+            <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #1a1a1a" }}>
+              {editIdx === idx ? (
+                <React.Fragment>
+                  <input value={editVal} onChange={function(e) { setEditVal(e.target.value); }} onKeyDown={function(e) { if (e.key === "Enter") saveEdit(idx); }}
+                    style={Object.assign({}, inp, { flex: 1, fontSize: "0.86rem", padding: "4px 7px", background: "#0a0a0a" })} autoFocus />
+                  <button onClick={function() { saveEdit(idx); }} style={{ background: "none", border: "none", color: "#00c853", cursor: "pointer", fontSize: "0.72rem", fontFamily: "'Courier New',monospace", fontWeight: 700 }}>SAVE</button>
+                </React.Fragment>
+              ) : (
+                <React.Fragment>
+                  <span onClick={function() { startEdit(item, idx); }} style={{ flex: 1, color: "#cccccc", fontSize: "0.88rem", cursor: "pointer" }}>
+                    {item.name} {item.unit && <span style={{ color: "#444444", fontSize: "0.72rem" }}>{"(" + item.unit + ")"}</span>}
+                  </span>
+                  <button onClick={function() { remove(idx); }} style={{ background: "none", border: "none", color: "#3a1010", cursor: "pointer", fontSize: "0.82rem" }}>x</button>
+                </React.Fragment>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
 }
 
 function App() {
-const [entries, setEntries] = useState([]);
-const [knownItems, setKnownItems] = useState([]);
-const [tab, setTab] = useState(“po”);
-const [showIntake, setShowIntake] = useState(false);
-const [showAdd, setShowAdd] = useState(false);
-const [showApiKey, setShowApiKey] = useState(false);
-const [showDict, setShowDict] = useState(false);
-const [loaded, setLoaded] = useState(false);
-const [editEntry, setEditEntry] = useState(null);
+  var _en = useState([]), entries = _en[0], setEntries = _en[1];
+  var _ki = useState([]), knownItems = _ki[0], setKnownItems = _ki[1];
+  var _t = useState("po"), tab = _t[0], setTab = _t[1];
+  var _si = useState(false), showIntake = _si[0], setShowIntake = _si[1];
+  var _sa = useState(false), showAdd = _sa[0], setShowAdd = _sa[1];
+  var _sk = useState(false), showApiKey = _sk[0], setShowApiKey = _sk[1];
+  var _sd = useState(false), showDict = _sd[0], setShowDict = _sd[1];
+  var _ld = useState(false), loaded = _ld[0], setLoaded = _ld[1];
+  var _ee = useState(null), editEntry = _ee[0], setEditEntry = _ee[1];
 
-useEffect(() => {
-(async () => {
-try { const r = await window.storage.get(“entries”); if (r && r.value) setEntries(JSON.parse(r.value)); } catch(e) {}
-try { const r = await window.storage.get(“known_items”); if (r && r.value) setKnownItems(JSON.parse(r.value)); } catch(e) {}
-setLoaded(true);
-if (!getApiKey()) setTimeout(() => setShowApiKey(true), 300);
-})();
-}, []);
+  useEffect(function() {
+    (async function() {
+      try { var r = await window.storage.get("entries"); if (r && r.value) setEntries(JSON.parse(r.value)); } catch(e) {}
+      try { var r2 = await window.storage.get("known_items"); if (r2 && r2.value) setKnownItems(JSON.parse(r2.value)); } catch(e) {}
+      setLoaded(true);
+      if (!getApiKey()) setTimeout(function() { setShowApiKey(true); }, 300);
+    })();
+  }, []);
 
-const persist = async (next) => { setEntries(next); try { await window.storage.set(“entries”, JSON.stringify(next)); } catch(e) {} };
-const persistKnown = async (next) => { try { await window.storage.set(“known_items”, JSON.stringify(next)); } catch(e) {} };
+  var persist = async function(next) { setEntries(next); try { await window.storage.set("entries", JSON.stringify(next)); } catch(e) {} };
+  var persistKnown = async function(next) { try { await window.storage.set("known_items", JSON.stringify(next)); } catch(e) {} };
 
-const learnItems = (lineItems) => {
-const updated = […knownItems];
-let changed = false;
-for (const li of (lineItems || [])) {
-const name = (li.name || “”).trim();
-if (!name) continue;
-if (!updated.some(k => normalizeForMatch(k.name) === normalizeForMatch(name))) {
-updated.push({ name, unit: (li.unit || “”).trim() });
-changed = true;
-}
-}
-if (changed) {
-updated.sort((a, b) => a.name.localeCompare(b.name));
-setKnownItems(updated);
-persistKnown(updated);
-}
-};
+  var learnItems = function(lineItems) {
+    var updated = knownItems.slice();
+    var changed = false;
+    for (var i = 0; i < (lineItems || []).length; i++) {
+      var name = ((lineItems[i].name) || "").trim();
+      if (!name) continue;
+      var exists = updated.some(function(k) { return normalizeForMatch(k.name) === normalizeForMatch(name); });
+      if (!exists) { updated.push({ name: name, unit: ((lineItems[i].unit) || "").trim() }); changed = true; }
+    }
+    if (changed) {
+      updated.sort(function(a, b) { return a.name.localeCompare(b.name); });
+      setKnownItems(updated);
+      persistKnown(updated);
+    }
+  };
 
-const addEntry = (data) => {
-const entry = {
-id: Date.now().toString() + Math.random().toString(36).slice(2, 5),
-type: data.type, party: (data.party || “”).trim(), docId: (data.docId || “”).trim(),
-date: data.date || today(),
-lineItems: (data.lineItems || []).filter(li => (li.name || “”).trim()),
-notes: (data.notes || “”).trim(), createdAt: Date.now()
-};
-persist([entry, …entries]);
-learnItems(entry.lineItems);
-setShowIntake(false);
-};
+  var addEntry = function(data) {
+    var entry = {
+      id: Date.now().toString() + Math.random().toString(36).slice(2, 5),
+      type: data.type, party: (data.party || "").trim(), docId: (data.docId || "").trim(),
+      date: data.date || today(),
+      lineItems: (data.lineItems || []).filter(function(li) { return (li.name || "").trim(); }),
+      notes: (data.notes || "").trim(), createdAt: Date.now()
+    };
+    persist([entry].concat(entries));
+    learnItems(entry.lineItems);
+    setShowIntake(false);
+  };
 
-const deleteEntry = (id) => persist(entries.filter(e => e.id !== id));
-const handleEdit = (entry) => { setEditEntry(entry); setShowAdd(true); };
-const handleSaveEdit = (data) => {
-const updated = entries.map(e => e.id === editEntry.id ? {
-…e, type: data.type, party: (data.party || “”).trim(), docId: (data.docId || “”).trim(),
-date: data.date || today(), lineItems: (data.lineItems || []).filter(li => (li.name || “”).trim()), notes: (data.notes || “”).trim()
-} : e);
-persist(updated);
-learnItems((data.lineItems || []).filter(li => (li.name || “”).trim()));
-setEditEntry(null);
-setShowAdd(false);
-};
+  var deleteEntry = function(id) { persist(entries.filter(function(e) { return e.id !== id; })); };
+  var handleEdit = function(entry) { setEditEntry(entry); setShowAdd(true); };
+  var handleSaveEdit = function(data) {
+    var updated = entries.map(function(e) {
+      if (e.id !== editEntry.id) return e;
+      return Object.assign({}, e, { type: data.type, party: (data.party || "").trim(), docId: (data.docId || "").trim(), date: data.date || today(), lineItems: (data.lineItems || []).filter(function(li) { return (li.name || "").trim(); }), notes: (data.notes || "").trim() });
+    });
+    persist(updated);
+    learnItems((data.lineItems || []).filter(function(li) { return (li.name || "").trim(); }));
+    setEditEntry(null);
+    setShowAdd(false);
+  };
 
-const visible = tab === “po” ? entries.filter(e => e.type === “PO”) : entries.filter(e => e.type === “Transfer In” || e.type === “Transfer Out”);
-const grouped = (() => {
-const map = {};
-visible.forEach(e => { if (!map[e.date]) map[e.date] = []; map[e.date].push(e); });
-return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
-})();
+  var visible = tab === "po" ? entries.filter(function(e) { return e.type === "PO"; }) : entries.filter(function(e) { return e.type === "Transfer In" || e.type === "Transfer Out"; });
 
-const poCount = entries.filter(e => e.type === “PO”).length;
-const trCount = entries.filter(e => e.type !== “PO”).length;
+  var grouped = (function() {
+    var map = {};
+    visible.forEach(function(e) { if (!map[e.date]) map[e.date] = []; map[e.date].push(e); });
+    return Object.entries(map).sort(function(a, b) { return b[0].localeCompare(a[0]); });
+  })();
 
-const tabBtn = (id, label, count) => (
-<button onClick={() => setTab(id)} style={{
-background: “none”, border: “none”,
-borderBottom: tab === id ? “2px solid #fff” : “2px solid transparent”,
-color: tab === id ? “#fff” : “#555”,
-padding: “9px 16px”, fontFamily: “‘Courier New’,monospace”, fontWeight: 700,
-fontSize: “0.82rem”, letterSpacing: “0.1em”, cursor: “pointer”, whiteSpace: “nowrap”, flex: “1 1 0”, textAlign: “center”
-}}>
-{label}
-{count > 0 && <span style={{ marginLeft: 6, fontSize: “0.68rem”, color: tab === id ? “#fff” : “#444” }}>{count}</span>}
-</button>
-);
+  var poCount = entries.filter(function(e) { return e.type === "PO"; }).length;
+  var trCount = entries.filter(function(e) { return e.type !== "PO"; }).length;
 
-return (
-<div style={{ minHeight: “100vh”, background: “#0a0a0a”, color: “#f5f5f5”, fontFamily: “‘Courier New’, monospace”, maxWidth: 660, margin: “0 auto” }}>
-<div style={{ borderBottom: “2px solid #fff”, padding: “12px 14px”, display: “flex”, justifyContent: “space-between”, alignItems: “center” }}>
-<div>
-<div style={{ fontSize: “0.62rem”, letterSpacing: “0.22em”, color: “#555”, marginBottom: 1 }}>AURORA</div>
-<div style={{ fontSize: “1.25rem”, fontWeight: 700, color: “#fff”, letterSpacing: “0.06em”, lineHeight: 1 }}>RECEIVING LOG</div>
-</div>
-<div style={{ display: “flex”, gap: 6, alignItems: “center” }}>
-<button onClick={() => setShowDict(true)} style={{ background: “none”, border: “1px solid #2a2a2a”, color: knownItems.length ? “#888” : “#444”, padding: “5px 8px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.74rem”, fontWeight: 700, cursor: “pointer” }}>{“DICT” + (knownItems.length ? “ “ + knownItems.length : “”)}</button>
-<button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? “#141414” : “none”, border: “1px solid “ + (showIntake ? “rgba(255,255,255,0.3)” : “#2a2a2a”), color: showIntake ? “#fff” : “#666”, padding: “5px 10px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.74rem”, fontWeight: 700, cursor: “pointer” }}>{showIntake ? “HIDE” : “SCAN”}</button>
-<button onClick={() => setShowAdd(true)} style={{ background: “#fff”, color: “#0a0a0a”, border: “none”, padding: “5px 10px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.74rem”, fontWeight: 700, cursor: “pointer” }}>+ LOG</button>
-<button onClick={() => setShowApiKey(true)} style={{ background: getApiKey() ? “none” : “#1a0000”, border: “1px solid “ + (getApiKey() ? “#2a2a2a” : “#8a2020”), color: getApiKey() ? “#555” : “#c07070”, padding: “5px 8px”, fontFamily: “‘Courier New’,monospace”, fontSize: “0.74rem”, cursor: “pointer” }}>KEY</button>
-</div>
-</div>
+  var tabBtn = function(id, label, count) {
+    return (
+      <button onClick={function() { setTab(id); }} style={{
+        background: "none", border: "none",
+        borderBottom: tab === id ? "2px solid #ffffff" : "2px solid transparent",
+        color: tab === id ? "#ffffff" : "#555555",
+        padding: "9px 16px", fontFamily: "'Courier New',monospace", fontWeight: 700,
+        fontSize: "0.82rem", letterSpacing: "0.1em", cursor: "pointer", whiteSpace: "nowrap", flex: "1 1 0", textAlign: "center"
+      }}>
+        {label}
+        {count > 0 && <span style={{ marginLeft: 6, fontSize: "0.68rem", color: tab === id ? "#ffffff" : "#444444" }}>{count}</span>}
+      </button>
+    );
+  };
 
-```
-  {showIntake && <AIIntake onSave={addEntry} knownItems={knownItems} />}
-
-  <div style={{ borderBottom: "1px solid #1a1a1a", display: "flex" }}>
-    {tabBtn("po", "PURCHASE ORDERS", poCount)}
-    {tabBtn("transfers", "TRANSFERS", trCount)}
-  </div>
-
-  <div style={{ padding: "0 12px 80px" }}>
-    {!loaded ? (
-      <div style={{ padding: 50, textAlign: "center", color: "#555", fontSize: "0.84rem" }}>Loading...</div>
-    ) : grouped.length === 0 ? (
-      <div style={{ padding: 60, textAlign: "center", color: "#2a2a2a", fontSize: "0.9rem" }}>{"No " + (tab === "po" ? "purchase orders" : "transfers") + " logged yet."}</div>
-    ) : (
-      grouped.map(([date, dayEntries]) => (
-        <div key={date}>
-          <DateHeader dateStr={date} />
-          {dayEntries.map(entry => <EntryCard key={entry.id} entry={entry} onDelete={deleteEntry} onEdit={handleEdit} />)}
+  return (
+    <div style={{ minHeight: "100vh", background: "#0a0a0a", color: "#f5f5f5", fontFamily: "'Courier New', monospace", maxWidth: 660, margin: "0 auto" }}>
+      <div style={{ borderBottom: "2px solid #ffffff", padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={{ fontSize: "0.62rem", letterSpacing: "0.22em", color: "#555555", marginBottom: 1 }}>AURORA</div>
+          <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.06em", lineHeight: 1 }}>RECEIVING LOG</div>
         </div>
-      ))
-    )}
-  </div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <button onClick={function() { setShowDict(true); }} style={{ background: "none", border: "1px solid #2a2a2a", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "5px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>
+            {"DICT" + (knownItems.length > 0 ? " " + knownItems.length : "")}
+          </button>
+          <button onClick={function() { setShowIntake(function(s) { return !s; }); }} style={{ background: showIntake ? "#141414" : "none", border: "1px solid " + (showIntake ? "#ffffff55" : "#2a2a2a"), color: showIntake ? "#ffffff" : "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>{showIntake ? "HIDE" : "SCAN"}</button>
+          <button onClick={function() { setShowAdd(true); }} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>+ LOG</button>
+          <button onClick={function() { setShowApiKey(true); }} style={{ background: getApiKey() ? "none" : "#1a0000", border: "1px solid " + (getApiKey() ? "#2a2a2a" : "#8a2020"), color: getApiKey() ? "#555555" : "#c07070", padding: "5px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer" }}>KEY</button>
+        </div>
+      </div>
 
-  {showAdd && <AddModal onClose={() => { setShowAdd(false); setEditEntry(null); }} onSave={editEntry ? handleSaveEdit : addEntry} defaultType={tab === "po" ? "PO" : "Transfer In"} editEntry={editEntry} knownItems={knownItems} />}
-  {showApiKey && <ApiKeyModal onClose={() => setShowApiKey(false)} />}
-  {showDict && <ItemDictModal onClose={() => setShowDict(false)} knownItems={knownItems} setKnownItems={setKnownItems} persistKnown={persistKnown} />}
-</div>
-```
+      {showIntake && <AIIntake onSave={addEntry} knownItems={knownItems} />}
 
-);
+      <div style={{ borderBottom: "1px solid #1a1a1a", display: "flex" }}>
+        {tabBtn("po", "PURCHASE ORDERS", poCount)}
+        {tabBtn("transfers", "TRANSFERS", trCount)}
+      </div>
+
+      <div style={{ padding: "0 12px 80px" }}>
+        {!loaded ? (
+          <div style={{ padding: 50, textAlign: "center", color: "#555555", fontSize: "0.84rem" }}>Loading...</div>
+        ) : grouped.length === 0 ? (
+          <div style={{ padding: 60, textAlign: "center", color: "#2a2a2a", fontSize: "0.9rem" }}>{"No " + (tab === "po" ? "purchase orders" : "transfers") + " logged yet."}</div>
+        ) : (
+          grouped.map(function(pair) {
+            var date = pair[0], dayEntries = pair[1];
+            return (
+              <div key={date}>
+                <DateHeader dateStr={date} />
+                {dayEntries.map(function(entry) { return <EntryCard key={entry.id} entry={entry} onDelete={deleteEntry} onEdit={handleEdit} />; })}
+              </div>
+            );
+          })
+        )}
+      </div>
+
+      {showAdd && <AddModal onClose={function() { setShowAdd(false); setEditEntry(null); }} onSave={editEntry ? handleSaveEdit : addEntry} defaultType={tab === "po" ? "PO" : "Transfer In"} editEntry={editEntry} knownItems={knownItems} />}
+      {showApiKey && <ApiKeyModal onClose={function() { setShowApiKey(false); }} />}
+      {showDict && <ItemDictModal onClose={function() { setShowDict(false); }} knownItems={knownItems} setKnownItems={setKnownItems} persistKnown={persistKnown} />}
+    </div>
+  );
 }
 
-ReactDOM.render(<App />, document.getElementById(“root”));
+ReactDOM.render(<App />, document.getElementById("root"));
 </script>
-
 </body>
 </html>
