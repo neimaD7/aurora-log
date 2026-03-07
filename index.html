@@ -57,6 +57,7 @@
 <div id="root"></div>
 <script>
 /* ====== FAILSAFE SYSTEM ====== */
+window._dataLost = false;
 ["aurora_log_entries", "aurora_log_known_items", "aurora_log_upcoming"].forEach(function(k) {
   try { var v = localStorage.getItem(k); if (v !== null) JSON.parse(v); }
   catch(e) {
@@ -65,7 +66,15 @@
     // Auto-restore from backup
     var backup = localStorage.getItem(k + "_backup");
     if (backup) {
-      try { JSON.parse(backup); localStorage.setItem(k, backup); } catch(e2) {}
+      try { JSON.parse(backup); localStorage.setItem(k, backup); }
+      catch(e2) {
+        // Backup also corrupted — data is lost for this key
+        localStorage.removeItem(k + "_backup");
+        if (k === "aurora_log_entries") window._dataLost = true;
+      }
+    } else {
+      // No backup exists at all
+      if (k === "aurora_log_entries") window._dataLost = true;
     }
   }
 });
@@ -579,6 +588,7 @@ function App() {
   const [showDict, setShowDict] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
+  const [dataLost, setDataLost] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -587,6 +597,7 @@ function App() {
       try { const r = await window.storage.get("known_items"); if (r?.value) setKnownItems(JSON.parse(r.value)); } catch {}
       setLoaded(true);
       window._appMounted = true;
+      if (window._dataLost) setDataLost(true);
       if (!getApiKey()) setTimeout(() => setShowApiKey(true), 300);
     })();
   }, []);
@@ -692,6 +703,14 @@ function App() {
           <button onClick={() => setShowApiKey(true)} style={{ background: getApiKey() ? "none" : "#1a0000", border: "1px solid " + (getApiKey() ? "#2a2a2a" : "#8a2020"), color: getApiKey() ? "#555555" : "#c07070", padding: "5px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer" }}>KEY</button>
         </div>
       </div>
+
+      {dataLost && (
+        <div style={{ background: "#2a1000", border: "1px solid #c9a84c", padding: "10px 14px", margin: "0" }}>
+          <div style={{ color: "#c9a84c", fontWeight: 700, fontSize: "0.82rem", letterSpacing: "0.08em", marginBottom: 4 }}>DATA CORRUPTION DETECTED</div>
+          <div style={{ color: "#999", fontSize: "0.76rem", lineHeight: 1.5, marginBottom: 8 }}>Both main and backup data were corrupted and could not be recovered. Corrupted data was saved to a recovery key in case manual recovery is possible.</div>
+          <button onClick={() => setDataLost(false)} style={{ background: "none", border: "1px solid #3a3020", color: "#c9a84c", padding: "4px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer" }}>DISMISS</button>
+        </div>
+      )}
 
       {showIntake && <AIIntake onSave={addEntry} onSaveUpcoming={addUpcoming} knownItems={knownItems} />}
 
