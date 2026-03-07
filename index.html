@@ -963,6 +963,45 @@ function App() {
   const closeModal = () => { setShowAdd(false); setEditEntry(null); setEditMode(null); };
 
   /* ===== PULL SHEET LOGIC ===== */
+  const loadDemoSOs = () => {
+    const demoSOs = [
+      {
+        id: "demo1", customer: "Martinez Concrete", jobSite: "Lot 14 — Bethany Ridge", soNumber: "SO-40821",
+        lineItems: [
+          { name: '24" Stakes', qty: 50, unit: "pcs" },
+          { name: '18" Stakes', qty: 30, unit: "pcs" },
+          { name: "Bag Ties", qty: 4, unit: "rolls" },
+          { name: "Form Oil", qty: 2, unit: "pails" },
+          { name: "Dobies", qty: 200, unit: "pcs" },
+          { name: "#4 Rebar 20' Grade 60", qty: 25, unit: "pcs" }
+        ], addedAt: Date.now()
+      },
+      {
+        id: "demo2", customer: "Willamette Builders", jobSite: "Block 7 — River Terrace", soNumber: "SO-40835",
+        lineItems: [
+          { name: '24" Stakes', qty: 30, unit: "pcs" },
+          { name: "Dobies", qty: 150, unit: "pcs" },
+          { name: "Anchor Bolts 1/2\" x 10\"", qty: 40, unit: "pcs" },
+          { name: "Form Clips", qty: 100, unit: "pcs" },
+          { name: "Snap Ties 8\"", qty: 75, unit: "pcs" },
+          { name: "Pier Papers 12\"", qty: 20, unit: "pcs" }
+        ], addedAt: Date.now() + 1
+      },
+      {
+        id: "demo3", customer: "JR Foundations", jobSite: "8824 SW Durham Rd", soNumber: "SO-40847",
+        lineItems: [
+          { name: "Bag Ties", qty: 2, unit: "rolls" },
+          { name: "Form Oil", qty: 1, unit: "pails" },
+          { name: '18" Stakes', qty: 20, unit: "pcs" },
+          { name: "Snap Ties 8\"", qty: 50, unit: "pcs" },
+          { name: "Flat Ties", qty: 30, unit: "pcs" }
+        ], addedAt: Date.now() + 2
+      }
+    ];
+    persistPullQueue(demoSOs);
+    setCheckedItems({});
+    setExpandedItems({});
+  };
   const addSO = (so) => { persistPullQueue([...pullQueue, so]); setShowPullIntake(false); };
   const removeSO = (id) => { persistPullQueue(pullQueue.filter(s => s.id !== id)); };
   const clearPull = () => { persistPullQueue([]); setCheckedItems({}); setExpandedItems({}); setShowSOList(false); };
@@ -1078,7 +1117,8 @@ function App() {
           pullQueue.length === 0 ? (
             <div style={{ padding: 60, textAlign: "center" }}>
               <div style={{ color: "#2a2a2a", fontSize: "0.9rem", marginBottom: 12 }}>No sales orders loaded.</div>
-              <div style={{ color: "#333333", fontSize: "0.74rem" }}>Tap + SO to scan or enter a sales order.</div>
+              <div style={{ color: "#333333", fontSize: "0.74rem", marginBottom: 20 }}>Tap + SO to scan or enter a sales order.</div>
+              <button onClick={loadDemoSOs} style={{ background: "none", border: "1px solid #1a1a2a", color: "#5b8fff", padding: "8px 16px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>LOAD DEMO</button>
             </div>
           ) : (
             <div>
