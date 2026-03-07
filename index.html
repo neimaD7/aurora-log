@@ -58,7 +58,7 @@
 <script>
 /* ====== FAILSAFE SYSTEM ====== */
 window._dataLost = false;
-["aurora_log_entries", "aurora_log_known_items", "aurora_log_upcoming"].forEach(function(k) {
+["aurora_log_entries", "aurora_log_known_items", "aurora_log_upcoming", "aurora_log_pull_queue", "aurora_log_pull_priority"].forEach(function(k) {
   try { var v = localStorage.getItem(k); if (v !== null) JSON.parse(v); }
   catch(e) {
     try { localStorage.setItem(k + "_corrupted_backup", localStorage.getItem(k)); } catch(x) {}
@@ -125,6 +125,10 @@ const FENCE_RE = new RegExp(String.fromCharCode(96,96,96) + "json|" + String.fro
 const inp = { width: "100%", background: "#0a0a0a", border: "1px solid #2a2a2a", color: "#f5f5f5", padding: "8px 10px", fontSize: "0.97rem", outline: "none", fontFamily: "'Courier New', monospace", boxSizing: "border-box" };
 const lbl = { display: "block", fontSize: "0.7rem", letterSpacing: "0.14em", color: "#666666", marginBottom: 4 };
 
+const DEFAULT_PULL_PRIORITY = [
+  "stakes", "bag ties", "form oil", "dobies", "bolts", "pier papers", "clips/ties", "snapties", "misc"
+];
+
 function getApiKey() { return localStorage.getItem("aurora_api_key") || ""; }
 function setApiKeyVal(k) { localStorage.setItem("aurora_api_key", k); }
 function getApiHeaders() { return { "Content-Type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }; }
@@ -161,6 +165,18 @@ function findBestMatch(name, knownItems) {
     if (score > bestScore) { bestScore = score; bestItem = item; }
   }
   return bestScore >= 0.5 ? bestItem : null;
+}
+
+function matchPriority(itemName, priorityList) {
+  const norm = normalizeForMatch(itemName);
+  for (let i = 0; i < priorityList.length; i++) {
+    const cat = normalizeForMatch(priorityList[i]);
+    const catTokens = cat.split(" ").filter(t => t.length > 1);
+    if (!catTokens.length) continue;
+    const matched = catTokens.some(ct => norm.includes(ct));
+    if (matched) return i;
+  }
+  return priorityList.length;
 }
 
 /* TOP-LEVEL — never nest inside another component */
@@ -357,6 +373,268 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
             <button onClick={reset} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "8px 14px", fontFamily: "'Courier New',monospace", fontSize: "0.84rem", cursor: "pointer" }}>CANCEL</button>
           </div>
         </div>
+      )}
+    </div>
+  );
+}
+
+function PullIntake({ onAddSO, knownItems }) {
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [parsed, setParsed] = useState(null);
+  const [error, setError] = useState("");
+  const [images, setImages] = useState([]);
+  const fileRef = useRef();
+
+  const knownItemsList = knownItems.length > 0
+    ? "\n\nKNOWN ITEM NAMES (ALWAYS use these exact names when you recognize the same product):\n" + knownItems.map(k => `- "${k.name}"${k.unit ? ` (unit: ${k.unit})` : ""}`).join("\n")
+    : "";
+
+  const systemPrompt = `You are a document parser for Aurora, a construction and building materials supply warehouse in Portland, Oregon.
+
+You are parsing a SALES ORDER (SO) or will-call ticket for the pull sheet. Extract the customer info and all line items.
+
+The user may provide MULTIPLE PHOTOS of the same document. Treat all images as pages of ONE document — combine all line items into a single result.
+
+Return ONLY valid JSON, no markdown:
+{
+  "customer": "customer or company name",
+  "jobSite": "job site, lot number, or address if visible, otherwise empty string",
+  "soNumber": "sales order or ticket number as string, or empty string",
+  "lineItems": [ { "name": "item name", "qty": number, "unit": "bags/pcs/rolls/etc" } ]
+}
+
+CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a known item below, you MUST use the known item's exact name.` + knownItemsList;
+
+  const handleImage = (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { setImages(prev => [...prev, { base64: ev.target.result.split(",")[1], mediaType: file.type, preview: ev.target.result }]); };
+    reader.readAsDataURL(file);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+  const removeImage = (idx) => setImages(prev => prev.filter((_, i) => i !== idx));
+
+  const parse = async () => {
+    if (!input.trim() && images.length === 0) return;
+    if (!getApiKey()) { setError("API key required — tap KEY in the header."); return; }
+    setLoading(true); setError(""); setParsed(null);
+    try {
+      const userContent = [];
+      images.forEach((img) => {
+        userContent.push({ type: "image", source: { type: "base64", media_type: img.mediaType, data: img.base64 } });
+      });
+      const textPart = input.trim() || (images.length > 1 ? "Parse this " + images.length + "-page sales order. Combine all line items into one result." : "Parse this sales order / will-call ticket.");
+      userContent.push({ type: "text", text: textPart });
+      const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: getApiHeaders(), body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4096, system: systemPrompt, messages: [{ role: "user", content: userContent }] }) });
+      const data = await res.json();
+      if (data.error) { setError("API error: " + (data.error.message || "Unknown")); setLoading(false); return; }
+      const text = data.content?.map(b => b.text || "").join("").trim();
+      let result;
+      try { result = JSON.parse(text.replace(FENCE_RE, "").trim()); } catch { setError("Couldn't parse SO — try again or enter manually."); setLoading(false); return; }
+      if (result.lineItems) {
+        result.lineItems = result.lineItems.map(li => {
+          const match = findBestMatch(li.name, knownItems);
+          if (match) return { ...li, name: match.name, unit: li.unit || match.unit || "" };
+          return li;
+        });
+      }
+      setParsed(result);
+    } catch (e) { setError("Error: " + e.message); }
+    setLoading(false);
+  };
+
+  const updateField = (k, v) => setParsed(p => ({ ...p, [k]: v }));
+  const updateLine = (idx, key, val) => setParsed(p => ({ ...p, lineItems: p.lineItems.map((li, i) => i === idx ? { ...li, [key]: val } : li) }));
+  const removeLine = (idx) => setParsed(p => ({ ...p, lineItems: p.lineItems.filter((_, i) => i !== idx) }));
+  const addLine = () => setParsed(p => ({ ...p, lineItems: [...(p.lineItems || []), { name: "", qty: "", unit: "" }] }));
+  const reset = () => { setParsed(null); setInput(""); setImages([]); if (fileRef.current) fileRef.current.value = ""; };
+  const confirm = () => {
+    if (!parsed) return;
+    onAddSO({
+      id: Date.now().toString() + Math.random().toString(36).slice(2, 5),
+      customer: (parsed.customer || "").trim(),
+      jobSite: (parsed.jobSite || "").trim(),
+      soNumber: (parsed.soNumber || "").trim(),
+      lineItems: (parsed.lineItems || []).filter(li => (li.name || "").trim()).map(li => ({
+        name: (li.name || "").trim(), qty: Number(li.qty) || 0, unit: (li.unit || "").trim()
+      })),
+      addedAt: Date.now()
+    });
+    reset();
+  };
+
+  return (
+    <div style={{ background: "#0a0a0a", borderBottom: "1px solid #2a2a2a", padding: "12px 14px" }}>
+      {images.length > 0 && (
+        <div style={{ marginBottom: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+          {images.map((img, idx) => (
+            <div key={idx} style={{ position: "relative", display: "inline-block" }}>
+              <img src={img.preview} alt="" style={{ height: 80, maxWidth: 100, border: "1px solid #2a2a2a", display: "block", objectFit: "cover" }} />
+              <button onClick={() => removeImage(idx)} style={{ position: "absolute", top: 2, right: 2, background: "#0a0a0a", border: "1px solid #2a2a2a", color: "#f5f5f5", cursor: "pointer", fontSize: "0.7rem", padding: "0px 4px", lineHeight: "16px" }}>x</button>
+              <div style={{ position: "absolute", bottom: 2, left: 2, background: "#0a0a0a", color: "#666666", fontSize: "0.6rem", padding: "0 3px", fontWeight: 700 }}>{"P" + (idx + 1)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {!parsed && (
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); parse(); } }}
+            placeholder={images.length > 0 ? images.length + " photo" + (images.length > 1 ? "s" : "") + " — add more or hit GO" : "Snap an SO / will-call, or type items"}
+            rows={2} style={{ ...inp, flex: 1, resize: "none", background: "#0a0a0a", fontSize: "0.9rem" }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <button onClick={() => fileRef.current?.click()} style={{ background: images.length > 0 ? "#1a2d5a" : "#141414", border: "1px solid #2a2a2a", color: images.length > 0 ? "#7aa8f0" : "#666666", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer" }}>{images.length > 0 ? "+" + images.length : "PHOTO"}</button>
+            <button onClick={parse} disabled={loading || (!input.trim() && images.length === 0)} style={{ background: loading ? "#141414" : "#ffffff", color: loading ? "#2d4a8a" : "#0a0a0a", border: "none", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", cursor: loading ? "default" : "pointer" }}>{loading ? "..." : "GO"}</button>
+          </div>
+        </div>
+      )}
+      <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleImage} style={{ display: "none" }} />
+      {error && <div style={{ marginTop: 8, color: "#ff4444", fontSize: "0.82rem", padding: "6px 8px", background: "#111111", border: "1px solid #1a0000" }}>{error}</div>}
+      {parsed && (
+        <div style={{ background: "#111111", border: "1px solid #2a2a2a", padding: "14px" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.78rem", letterSpacing: "0.1em" }}>SALES ORDER</span>
+            <button onClick={reset} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.1rem" }}>x</button>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            <div style={{ flex: "2 1 150px" }}><label style={lbl}>CUSTOMER</label><input value={parsed.customer || ""} onChange={e => updateField("customer", e.target.value)} style={{ ...inp, background: "#0a0a0a" }} /></div>
+            <div style={{ flex: "1 1 90px" }}><label style={lbl}>SO #</label><input value={parsed.soNumber || ""} onChange={e => updateField("soNumber", e.target.value)} style={{ ...inp, background: "#0a0a0a" }} /></div>
+          </div>
+          <div style={{ marginBottom: 10 }}><label style={lbl}>JOB SITE / LOT</label><input value={parsed.jobSite || ""} onChange={e => updateField("jobSite", e.target.value)} style={{ ...inp, background: "#0a0a0a" }} /></div>
+          <label style={{ ...lbl, marginBottom: 6 }}>LINE ITEMS</label>
+          {(parsed.lineItems || []).map((li, idx) => (
+            <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 22px", gap: 5, marginBottom: 5 }}>
+              <NameInput value={li.name} onChange={v => updateLine(idx, "name", v)} placeholder="Item name" knownItems={knownItems} />
+              <input value={li.qty || ""} onChange={e => updateLine(idx, "qty", e.target.value)} placeholder="Qty" style={{ ...inp, background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" }} />
+              <input value={li.unit || ""} onChange={e => updateLine(idx, "unit", e.target.value)} placeholder="Unit" style={{ ...inp, background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" }} />
+              <button onClick={() => removeLine(idx)} style={{ background: "none", border: "none", color: "#4a0000", cursor: "pointer", fontSize: "0.94rem", padding: 0, alignSelf: "center" }}>x</button>
+            </div>
+          ))}
+          <button onClick={addLine} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginTop: 2, marginBottom: 12 }}>+ LINE</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={confirm} style={{ background: "#5b8fff", color: "#0a0a0a", border: "none", padding: "8px 18px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.08em", cursor: "pointer" }}>ADD TO PULL</button>
+            <button onClick={reset} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "8px 14px", fontFamily: "'Courier New',monospace", fontSize: "0.84rem", cursor: "pointer" }}>CANCEL</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PullItemRow({ item, checked, onToggle, expanded, onExpand }) {
+  const pct = checked ? 100 : 0;
+  return (
+    <div style={{ background: checked ? "#0a1a0a" : "#111111", borderLeft: "3px solid " + (checked ? "#00c853" : "#333333"), marginBottom: 5, transition: "background 0.15s" }}>
+      <div onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 13px", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+        <div style={{
+          width: 28, height: 28, border: "2px solid " + (checked ? "#00c853" : "#444444"),
+          background: checked ? "#00c853" : "transparent", display: "flex", alignItems: "center",
+          justifyContent: "center", flexShrink: 0, transition: "all 0.15s"
+        }}>
+          {checked && <span style={{ color: "#0a0a0a", fontWeight: 700, fontSize: "1.1rem", lineHeight: 1 }}>&#10003;</span>}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: checked ? "#557755" : "#ffffff", fontSize: "0.94rem", fontWeight: 700, textDecoration: checked ? "line-through" : "none", overflowWrap: "anywhere" }}>{item.name}</div>
+          <div style={{ color: checked ? "#335533" : "#5b8fff", fontWeight: 700, fontSize: "0.84rem", marginTop: 2 }}>
+            {item.totalQty}{item.unit ? " " + item.unit : ""}
+            {item.sources.length > 1 && <span style={{ color: "#555555", fontWeight: 400, fontSize: "0.72rem", marginLeft: 8 }}>{item.sources.length} orders</span>}
+          </div>
+        </div>
+        {item.sources.length > 1 && (
+          <button onClick={(e) => { e.stopPropagation(); onExpand(); }} style={{
+            background: "none", border: "1px solid #2a2a2a", color: expanded ? "#ffffff" : "#555555",
+            padding: "4px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.68rem", cursor: "pointer", flexShrink: 0
+          }}>{expanded ? "HIDE" : "SPLIT"}</button>
+        )}
+      </div>
+      {expanded && item.sources.length > 1 && (
+        <div style={{ padding: "0 13px 10px 51px", borderTop: "1px solid #1a1a1a" }}>
+          {item.sources.map((src, si) => (
+            <div key={si} style={{ display: "flex", gap: 10, padding: "5px 0", alignItems: "baseline", borderBottom: si < item.sources.length - 1 ? "1px solid #151515" : "none" }}>
+              <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap", minWidth: 44 }}>{src.qty}{item.unit ? " " + item.unit : ""}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ color: "#cccccc", fontSize: "0.8rem" }}>{src.customer}</span>
+                {src.jobSite && <span style={{ color: "#444444", fontSize: "0.7rem", marginLeft: 6 }}>{src.jobSite}</span>}
+                {src.soNumber && <span style={{ color: "#3a3a3a", fontSize: "0.66rem", marginLeft: 6 }}>SO {src.soNumber}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PullPriorityModal({ onClose, priority, onSave }) {
+  const [items, setItems] = useState([...priority]);
+  const [newCat, setNewCat] = useState("");
+
+  const moveUp = (idx) => {
+    if (idx <= 0) return;
+    const next = [...items];
+    [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+    setItems(next);
+  };
+  const moveDown = (idx) => {
+    if (idx >= items.length - 1) return;
+    const next = [...items];
+    [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+    setItems(next);
+  };
+  const remove = (idx) => setItems(items.filter((_, i) => i !== idx));
+  const add = () => {
+    const val = newCat.trim();
+    if (!val) return;
+    setItems([...items, val]);
+    setNewCat("");
+  };
+  const save = () => { onSave(items); onClose(); };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(420px,96vw)", maxHeight: "85vh", overflowY: "auto", padding: "18px 16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em" }}>PULL ORDER</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
+        </div>
+        <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>Items matching earlier categories get pulled first. Use arrows to reorder.</div>
+        {items.map((cat, idx) => (
+          <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 0", borderBottom: "1px solid #1a1a1a" }}>
+            <span style={{ color: "#444444", fontSize: "0.68rem", fontWeight: 700, width: 18, textAlign: "center", flexShrink: 0 }}>{idx + 1}</span>
+            <span style={{ flex: 1, color: "#cccccc", fontSize: "0.88rem" }}>{cat}</span>
+            <button onClick={() => moveUp(idx)} disabled={idx === 0} style={{ background: "none", border: "1px solid " + (idx === 0 ? "#1a1a1a" : "#2a2a2a"), color: idx === 0 ? "#1a1a1a" : "#888888", padding: "3px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", cursor: idx === 0 ? "default" : "pointer" }}>&#9650;</button>
+            <button onClick={() => moveDown(idx)} disabled={idx === items.length - 1} style={{ background: "none", border: "1px solid " + (idx === items.length - 1 ? "#1a1a1a" : "#2a2a2a"), color: idx === items.length - 1 ? "#1a1a1a" : "#888888", padding: "3px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", cursor: idx === items.length - 1 ? "default" : "pointer" }}>&#9660;</button>
+            <button onClick={() => remove(idx)} style={{ background: "none", border: "none", color: "#3a1010", cursor: "pointer", fontSize: "0.82rem", padding: "0 4px" }}>x</button>
+          </div>
+        ))}
+        <div style={{ display: "flex", gap: 6, marginTop: 10, marginBottom: 14 }}>
+          <input value={newCat} onChange={e => setNewCat(e.target.value)} onKeyDown={e => { if (e.key === "Enter") add(); }}
+            placeholder="New category..." style={{ ...inp, flex: 1, fontSize: "0.84rem", padding: "5px 7px", background: "#0a0a0a" }} />
+          <button onClick={add} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer" }}>+ ADD</button>
+        </div>
+        <button onClick={save} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.08em", cursor: "pointer" }}>SAVE ORDER</button>
+      </div>
+    </div>
+  );
+}
+
+function PullSOCard({ so, onRemove }) {
+  const [confirmDel, setConfirmDel] = useState(false);
+  return (
+    <div style={{ background: "#0f1018", border: "1px solid #1a1a2a", padding: "8px 10px", marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.84rem" }}>{so.customer || "Unknown"}</span>
+        {so.soNumber && <span style={{ color: "#444444", fontSize: "0.7rem", marginLeft: 8 }}>SO {so.soNumber}</span>}
+        {so.jobSite && <div style={{ color: "#555555", fontSize: "0.7rem", marginTop: 1 }}>{so.jobSite}</div>}
+        <div style={{ color: "#3a3a3a", fontSize: "0.66rem", marginTop: 1 }}>{(so.lineItems || []).length} items</div>
+      </div>
+      {confirmDel ? (
+        <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+          <button onClick={() => onRemove(so.id)} style={{ background: "#4a0000", color: "#f5f5f5", border: "none", padding: "2px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>DEL</button>
+          <button onClick={() => setConfirmDel(false)} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "2px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>NO</button>
+        </div>
+      ) : (
+        <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.9rem", padding: "2px 4px", flexShrink: 0 }}>x</button>
       )}
     </div>
   );
@@ -581,11 +859,18 @@ function App() {
   const [entries, setEntries] = useState([]);
   const [upcoming, setUpcoming] = useState([]);
   const [knownItems, setKnownItems] = useState([]);
+  const [pullQueue, setPullQueue] = useState([]);
+  const [pullPriority, setPullPriority] = useState([...DEFAULT_PULL_PRIORITY]);
+  const [checkedItems, setCheckedItems] = useState({});
+  const [expandedItems, setExpandedItems] = useState({});
   const [tab, setTab] = useState("po");
   const [showIntake, setShowIntake] = useState(false);
+  const [showPullIntake, setShowPullIntake] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showDict, setShowDict] = useState(false);
+  const [showPriority, setShowPriority] = useState(false);
+  const [showSOList, setShowSOList] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
   const [editMode, setEditMode] = useState(null);
@@ -596,6 +881,8 @@ function App() {
       try { const r = await window.storage.get("entries"); if (r?.value) setEntries(JSON.parse(r.value)); } catch {}
       try { const r = await window.storage.get("upcoming"); if (r?.value) setUpcoming(JSON.parse(r.value)); } catch {}
       try { const r = await window.storage.get("known_items"); if (r?.value) setKnownItems(JSON.parse(r.value)); } catch {}
+      try { const r = await window.storage.get("pull_queue"); if (r?.value) setPullQueue(JSON.parse(r.value)); } catch {}
+      try { const r = await window.storage.get("pull_priority"); if (r?.value) { const v = JSON.parse(r.value); if (Array.isArray(v) && v.length > 0) setPullPriority(v); } } catch {}
       setLoaded(true);
       window._appMounted = true;
       if (window._dataLost) setDataLost(true);
@@ -606,6 +893,8 @@ function App() {
   const persist = async (next) => { setEntries(next); try { await window.storage.set("entries", JSON.stringify(next)); } catch {} };
   const persistUpcoming = async (next) => { setUpcoming(next); try { await window.storage.set("upcoming", JSON.stringify(next)); } catch {} };
   const persistKnown = async (next) => { try { await window.storage.set("known_items", JSON.stringify(next)); } catch {} };
+  const persistPullQueue = async (next) => { setPullQueue(next); try { await window.storage.set("pull_queue", JSON.stringify(next)); } catch {} };
+  const persistPullPriority = async (next) => { setPullPriority(next); try { await window.storage.set("pull_priority", JSON.stringify(next)); } catch {} };
 
   const learnItems = (lineItems) => {
     const updated = [...knownItems];
@@ -673,6 +962,42 @@ function App() {
 
   const closeModal = () => { setShowAdd(false); setEditEntry(null); setEditMode(null); };
 
+  /* ===== PULL SHEET LOGIC ===== */
+  const addSO = (so) => { persistPullQueue([...pullQueue, so]); setShowPullIntake(false); };
+  const removeSO = (id) => { persistPullQueue(pullQueue.filter(s => s.id !== id)); };
+  const clearPull = () => { persistPullQueue([]); setCheckedItems({}); setExpandedItems({}); setShowSOList(false); };
+
+  const mergedPullItems = (() => {
+    const map = {};
+    for (const so of pullQueue) {
+      for (const li of (so.lineItems || [])) {
+        const key = normalizeForMatch(li.name);
+        if (!key) continue;
+        if (!map[key]) {
+          map[key] = { name: li.name, totalQty: 0, unit: li.unit || "", sources: [] };
+        }
+        map[key].totalQty += (Number(li.qty) || 0);
+        if (!map[key].unit && li.unit) map[key].unit = li.unit;
+        map[key].sources.push({ soId: so.id, customer: so.customer, jobSite: so.jobSite, soNumber: so.soNumber, qty: Number(li.qty) || 0 });
+      }
+    }
+    const items = Object.values(map);
+    items.sort((a, b) => {
+      const pa = matchPriority(a.name, pullPriority);
+      const pb = matchPriority(b.name, pullPriority);
+      if (pa !== pb) return pa - pb;
+      return a.name.localeCompare(b.name);
+    });
+    return items;
+  })();
+
+  const pullCheckedCount = mergedPullItems.filter((_, i) => checkedItems[i]).length;
+  const pullTotalCount = mergedPullItems.length;
+
+  const toggleCheck = (idx) => setCheckedItems(prev => ({ ...prev, [idx]: !prev[idx] }));
+  const toggleExpand = (idx) => setExpandedItems(prev => ({ ...prev, [idx]: !prev[idx] }));
+
+  /* ===== VIEW LOGIC ===== */
   const visible = tab === "po" ? entries.filter(e => e.type === "PO") : tab === "transfers" ? entries.filter(e => e.type === "Transfer In" || e.type === "Transfer Out") : [];
   const grouped = (() => {
     const map = {};
@@ -682,19 +1007,22 @@ function App() {
   const poCount = entries.filter(e => e.type === "PO").length;
   const trCount = entries.filter(e => e.type !== "PO").length;
   const upCount = upcoming.length;
+  const plCount = pullQueue.length;
 
   const tabBtn = (id, label, count, highlight) => (
     <button onClick={() => setTab(id)} style={{
       background: "none", border: "none",
       borderBottom: tab === id ? ("2px solid " + (highlight || "#ffffff")) : "2px solid transparent",
       color: tab === id ? (highlight || "#ffffff") : "#555555",
-      padding: "9px 12px", fontFamily: "'Courier New',monospace", fontWeight: 700,
-      fontSize: "0.78rem", letterSpacing: "0.08em", cursor: "pointer", whiteSpace: "nowrap", flex: "1 1 0", textAlign: "center"
+      padding: "9px 6px", fontFamily: "'Courier New',monospace", fontWeight: 700,
+      fontSize: "0.72rem", letterSpacing: "0.06em", cursor: "pointer", whiteSpace: "nowrap", flex: "1 1 0", textAlign: "center"
     }}>
       {label}
-      {count > 0 && <span style={{ marginLeft: 5, fontSize: "0.66rem", color: tab === id ? (highlight || "#ffffff") : "#444444" }}>{count}</span>}
+      {count > 0 && <span style={{ marginLeft: 4, fontSize: "0.62rem", color: tab === id ? (highlight || "#ffffff") : "#444444" }}>{count}</span>}
     </button>
   );
+
+  const isPullTab = tab === "pull";
 
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0a", color: "#f5f5f5", fontFamily: "'Courier New', monospace", maxWidth: 660, margin: "0 auto" }}>
@@ -712,8 +1040,16 @@ function App() {
           </div>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? "#141414" : "none", border: "1px solid " + (showIntake ? "rgba(255,255,255,0.33)" : "#2a2a2a"), color: showIntake ? "#ffffff" : "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>{showIntake ? "HIDE" : "SCAN"}</button>
-          <button onClick={() => { setEditEntry(null); setEditMode(null); setShowAdd(true); }} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>+ LOG</button>
+          {isPullTab ? (
+            <React.Fragment>
+              <button onClick={() => setShowPullIntake(s => !s)} style={{ background: showPullIntake ? "#141414" : "none", border: "1px solid " + (showPullIntake ? "rgba(91,143,255,0.5)" : "#2a2a2a"), color: showPullIntake ? "#5b8fff" : "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>{showPullIntake ? "HIDE" : "+ SO"}</button>
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? "#141414" : "none", border: "1px solid " + (showIntake ? "rgba(255,255,255,0.33)" : "#2a2a2a"), color: showIntake ? "#ffffff" : "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>{showIntake ? "HIDE" : "SCAN"}</button>
+              <button onClick={() => { setEditEntry(null); setEditMode(null); setShowAdd(true); }} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>+ LOG</button>
+            </React.Fragment>
+          )}
         </div>
       </div>
 
@@ -725,17 +1061,68 @@ function App() {
         </div>
       )}
 
-      {showIntake && <AIIntake onSave={addEntry} onSaveUpcoming={addUpcoming} knownItems={knownItems} />}
+      {showIntake && !isPullTab && <AIIntake onSave={addEntry} onSaveUpcoming={addUpcoming} knownItems={knownItems} />}
+      {showPullIntake && isPullTab && <PullIntake onAddSO={addSO} knownItems={knownItems} />}
 
       <div style={{ borderBottom: "1px solid #1a1a1a", display: "flex" }}>
         {tabBtn("po", "POs", poCount)}
-        {tabBtn("transfers", "TRANSFERS", trCount)}
+        {tabBtn("transfers", "XFERS", trCount)}
         {tabBtn("upcoming", "UPCOMING", upCount, "#c9a84c")}
+        {tabBtn("pull", "PULL", plCount, "#5b8fff")}
       </div>
 
       <div style={{ padding: "0 12px 80px" }}>
         {!loaded ? (
           <div style={{ padding: 50, textAlign: "center", color: "#555555", fontSize: "0.84rem" }}>Loading...</div>
+        ) : tab === "pull" ? (
+          pullQueue.length === 0 ? (
+            <div style={{ padding: 60, textAlign: "center" }}>
+              <div style={{ color: "#2a2a2a", fontSize: "0.9rem", marginBottom: 12 }}>No sales orders loaded.</div>
+              <div style={{ color: "#333333", fontSize: "0.74rem" }}>Tap + SO to scan or enter a sales order.</div>
+            </div>
+          ) : (
+            <div>
+              {/* Progress bar */}
+              <div style={{ margin: "16px 0 8px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                  <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.82rem", letterSpacing: "0.06em" }}>
+                    {pullCheckedCount} / {pullTotalCount}
+                  </span>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => setShowSOList(s => !s)} style={{ background: "none", border: "1px solid #1a1a2a", color: "#5b8fff", padding: "3px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", fontWeight: 700, cursor: "pointer" }}>
+                      {pullQueue.length} SO{pullQueue.length !== 1 ? "s" : ""}
+                    </button>
+                    <button onClick={() => setShowPriority(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "3px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", cursor: "pointer" }}>ORDER</button>
+                    <button onClick={() => { if (confirm("Clear all SOs from pull sheet?")) clearPull(); }} style={{ background: "#1a0000", border: "1px solid #3a1010", color: "#aa4444", padding: "3px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", fontWeight: 700, cursor: "pointer" }}>CLEAR</button>
+                  </div>
+                </div>
+                <div style={{ height: 4, background: "#1a1a1a", width: "100%" }}>
+                  <div style={{ height: 4, background: pullCheckedCount === pullTotalCount && pullTotalCount > 0 ? "#00c853" : "#5b8fff", width: pullTotalCount > 0 ? ((pullCheckedCount / pullTotalCount) * 100) + "%" : "0%", transition: "width 0.2s, background 0.2s" }} />
+                </div>
+              </div>
+
+              {/* SO list (collapsible) */}
+              {showSOList && (
+                <div style={{ marginBottom: 12, padding: "8px 0" }}>
+                  <div style={{ fontSize: "0.68rem", color: "#555555", letterSpacing: "0.1em", marginBottom: 6 }}>LOADED ORDERS</div>
+                  {pullQueue.map(so => <PullSOCard key={so.id} so={so} onRemove={removeSO} />)}
+                </div>
+              )}
+
+              {/* Merged items list */}
+              {pullCheckedCount === pullTotalCount && pullTotalCount > 0 && (
+                <div style={{ background: "#0a1a0a", border: "1px solid #1a3a1a", padding: "12px 14px", marginBottom: 10, textAlign: "center" }}>
+                  <div style={{ color: "#00c853", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.08em" }}>ALL ITEMS PULLED</div>
+                  <div style={{ color: "#335533", fontSize: "0.72rem", marginTop: 4 }}>Tap CLEAR when orders are loaded out.</div>
+                </div>
+              )}
+              {mergedPullItems.map((item, idx) => (
+                <PullItemRow key={item.name} item={item} checked={!!checkedItems[idx]}
+                  onToggle={() => toggleCheck(idx)} expanded={!!expandedItems[idx]}
+                  onExpand={() => toggleExpand(idx)} />
+              ))}
+            </div>
+          )
         ) : tab === "upcoming" ? (
           upcoming.length === 0 ? (
             <div style={{ padding: 60, textAlign: "center", color: "#2a2a2a", fontSize: "0.9rem" }}>No upcoming orders staged.</div>
@@ -757,6 +1144,7 @@ function App() {
       {showAdd && <AddModal onClose={closeModal} onSave={editEntry ? handleSaveEdit : addEntry} onSaveUpcoming={addUpcoming} defaultType={tab === "po" ? "PO" : tab === "transfers" ? "Transfer In" : "PO"} editEntry={editEntry} editMode={editMode} knownItems={knownItems} />}
       {showApiKey && <ApiKeyModal onClose={() => setShowApiKey(false)} />}
       {showDict && <ItemDictModal onClose={() => setShowDict(false)} knownItems={knownItems} setKnownItems={setKnownItems} persistKnown={persistKnown} />}
+      {showPriority && <PullPriorityModal onClose={() => setShowPriority(false)} priority={pullPriority} onSave={persistPullPriority} />}
     </div>
   );
 }
