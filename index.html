@@ -63,17 +63,14 @@ window._dataLost = false;
   catch(e) {
     try { localStorage.setItem(k + "_corrupted_backup", localStorage.getItem(k)); } catch(x) {}
     localStorage.removeItem(k);
-    // Auto-restore from backup
     var backup = localStorage.getItem(k + "_backup");
     if (backup) {
       try { JSON.parse(backup); localStorage.setItem(k, backup); }
       catch(e2) {
-        // Backup also corrupted — data is lost for this key
         localStorage.removeItem(k + "_backup");
         if (k === "aurora_log_entries") window._dataLost = true;
       }
     } else {
-      // No backup exists at all
       if (k === "aurora_log_entries") window._dataLost = true;
     }
   }
@@ -407,7 +404,7 @@ function EntryCard({ entry, onDelete, onEdit }) {
   );
 }
 
-function UpcomingCard({ entry, onConfirm, onDelete }) {
+function UpcomingCard({ entry, onConfirm, onDelete, onEdit }) {
   const [confirmDel, setConfirmDel] = useState(false);
   const isPO = entry.type === "PO";
   const isIn = entry.type === "Transfer In";
@@ -421,16 +418,19 @@ function UpcomingCard({ entry, onConfirm, onDelete }) {
           <span style={{ color: "#c9a84c", fontWeight: 700, fontSize: "0.72rem", letterSpacing: "0.08em" }}>{(entry.type || "").toUpperCase()}</span>
           <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "1rem", marginTop: 2 }}>{partyLine}</div>
           {entry.docId && <span style={{ color: "#555555", fontSize: "0.76rem" }}>{entry.docId}</span>}
-          {entry.date && <span style={{ color: "#444444", fontSize: "0.72rem", marginLeft: 8 }}>{entry.date}</span>}
+          <div style={{ color: "#444444", fontSize: "0.68rem", marginTop: 3 }}>{"Staged " + (entry.date || "")}</div>
         </div>
-        <div style={{ flexShrink: 0, marginLeft: 8 }}>
+        <div style={{ flexShrink: 0, marginLeft: 8, display: "flex", gap: 6, alignItems: "center" }}>
           {confirmDel ? (
             <div style={{ display: "flex", gap: 5 }}>
               <button onClick={() => onDelete(entry.id)} style={{ background: "#4a0000", color: "#f5f5f5", border: "none", padding: "2px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>DEL</button>
               <button onClick={() => setConfirmDel(false)} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "2px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>NO</button>
             </div>
           ) : (
-            <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.9rem", padding: "2px 4px" }}>x</button>
+            <React.Fragment>
+              <button onClick={() => onEdit(entry)} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "0.72rem", padding: "2px 4px", fontFamily: "'Courier New',monospace" }}>EDIT</button>
+              <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.9rem", padding: "2px 4px" }}>x</button>
+            </React.Fragment>
           )}
         </div>
       </div>
@@ -458,7 +458,7 @@ function DateHeader({ dateStr }) {
   );
 }
 
-function AddModal({ onClose, onSave, onSaveUpcoming, defaultType, editEntry, knownItems }) {
+function AddModal({ onClose, onSave, onSaveUpcoming, defaultType, editEntry, editMode, knownItems }) {
   const [form, setFormState] = useState(editEntry ? {
     type: editEntry.type, party: editEntry.party, docId: editEntry.docId,
     date: editEntry.date, lineItems: editEntry.lineItems.map(li => ({...li})), notes: editEntry.notes || ""
@@ -588,6 +588,7 @@ function App() {
   const [showDict, setShowDict] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const [editEntry, setEditEntry] = useState(null);
+  const [editMode, setEditMode] = useState(null);
   const [dataLost, setDataLost] = useState(false);
 
   useEffect(() => {
@@ -641,30 +642,38 @@ function App() {
   };
 
   const confirmUpcoming = (upEntry) => {
-    // Move from upcoming to entries
     persistUpcoming(upcoming.filter(u => u.id !== upEntry.id));
-    const entry = { ...upEntry, createdAt: Date.now() };
+    const entry = { ...upEntry, date: today(), createdAt: Date.now() };
     persist([entry, ...entries]);
   };
 
   const deleteUpcoming = (id) => persistUpcoming(upcoming.filter(u => u.id !== id));
   const deleteEntry = (id) => persist(entries.filter(e => e.id !== id));
-  const handleEdit = (entry) => { setEditEntry(entry); setShowAdd(true); };
+
+  const handleEdit = (entry) => { setEditEntry(entry); setEditMode("entry"); setShowAdd(true); };
+  const handleEditUpcoming = (entry) => { setEditEntry(entry); setEditMode("upcoming"); setShowAdd(true); };
+
   const handleSaveEdit = (data) => {
-    const updated = entries.map(e => e.id === editEntry.id ? {
-      ...e, type: data.type, party: (data.party || "").trim(), docId: (data.docId || "").trim(),
-      date: data.date || today(), lineItems: (data.lineItems || []).filter(li => (li.name || "").trim()), notes: (data.notes || "").trim()
-    } : e);
-    persist(updated);
+    if (editMode === "upcoming") {
+      const updated = upcoming.map(e => e.id === editEntry.id ? {
+        ...e, type: data.type, party: (data.party || "").trim(), docId: (data.docId || "").trim(),
+        date: data.date || today(), lineItems: (data.lineItems || []).filter(li => (li.name || "").trim()), notes: (data.notes || "").trim()
+      } : e);
+      persistUpcoming(updated);
+    } else {
+      const updated = entries.map(e => e.id === editEntry.id ? {
+        ...e, type: data.type, party: (data.party || "").trim(), docId: (data.docId || "").trim(),
+        date: data.date || today(), lineItems: (data.lineItems || []).filter(li => (li.name || "").trim()), notes: (data.notes || "").trim()
+      } : e);
+      persist(updated);
+    }
     learnItems((data.lineItems || []).filter(li => (li.name || "").trim()));
-    setEditEntry(null); setShowAdd(false);
+    setEditEntry(null); setEditMode(null); setShowAdd(false);
   };
 
-  const visible = tab === "po"
-    ? entries.filter(e => e.type === "PO")
-    : tab === "transfers"
-    ? entries.filter(e => e.type === "Transfer In" || e.type === "Transfer Out")
-    : [];
+  const closeModal = () => { setShowAdd(false); setEditEntry(null); setEditMode(null); };
+
+  const visible = tab === "po" ? entries.filter(e => e.type === "PO") : tab === "transfers" ? entries.filter(e => e.type === "Transfer In" || e.type === "Transfer Out") : [];
   const grouped = (() => {
     const map = {};
     visible.forEach(e => { if (!map[e.date]) map[e.date] = []; map[e.date].push(e); });
@@ -690,24 +699,28 @@ function App() {
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0a", color: "#f5f5f5", fontFamily: "'Courier New', monospace", maxWidth: 660, margin: "0 auto" }}>
       <div style={{ borderBottom: "2px solid #ffffff", padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <div style={{ fontSize: "0.62rem", letterSpacing: "0.22em", color: "#555555", marginBottom: 1 }}>AURORA</div>
-          <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.06em", lineHeight: 1 }}>RECEIVING LOG</div>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div>
+            <div style={{ fontSize: "0.62rem", letterSpacing: "0.22em", color: "#555555", marginBottom: 1 }}>AURORA</div>
+            <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.06em", lineHeight: 1 }}>RECEIVING LOG</div>
+          </div>
+          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
+            <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "4px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", fontWeight: 700, cursor: "pointer" }}>
+              DICT{knownItems.length > 0 && <span style={{ fontSize: "0.54rem", color: "#666666", marginLeft: 2 }}>{knownItems.length}</span>}
+            </button>
+            <button onClick={() => setShowApiKey(true)} style={{ background: getApiKey() ? "none" : "#1a0000", border: "1px solid " + (getApiKey() ? "#2a2a2a" : "#8a2020"), color: getApiKey() ? "#555555" : "#c07070", padding: "4px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", cursor: "pointer" }}>KEY</button>
+          </div>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "5px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>
-            DICT{knownItems.length > 0 && <span style={{ fontSize: "0.58rem", color: "#666666", marginLeft: 2 }}>{knownItems.length}</span>}
-          </button>
           <button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? "#141414" : "none", border: "1px solid " + (showIntake ? "rgba(255,255,255,0.33)" : "#2a2a2a"), color: showIntake ? "#ffffff" : "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>{showIntake ? "HIDE" : "SCAN"}</button>
-          <button onClick={() => setShowAdd(true)} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>+ LOG</button>
-          <button onClick={() => setShowApiKey(true)} style={{ background: getApiKey() ? "none" : "#1a0000", border: "1px solid " + (getApiKey() ? "#2a2a2a" : "#8a2020"), color: getApiKey() ? "#555555" : "#c07070", padding: "5px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer" }}>KEY</button>
+          <button onClick={() => { setEditEntry(null); setEditMode(null); setShowAdd(true); }} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>+ LOG</button>
         </div>
       </div>
 
       {dataLost && (
-        <div style={{ background: "#2a1000", border: "1px solid #c9a84c", padding: "10px 14px", margin: "0" }}>
+        <div style={{ background: "#2a1000", border: "1px solid #c9a84c", padding: "10px 14px" }}>
           <div style={{ color: "#c9a84c", fontWeight: 700, fontSize: "0.82rem", letterSpacing: "0.08em", marginBottom: 4 }}>DATA CORRUPTION DETECTED</div>
-          <div style={{ color: "#999", fontSize: "0.76rem", lineHeight: 1.5, marginBottom: 8 }}>Both main and backup data were corrupted and could not be recovered. Corrupted data was saved to a recovery key in case manual recovery is possible.</div>
+          <div style={{ color: "#999", fontSize: "0.76rem", lineHeight: 1.5, marginBottom: 8 }}>Both main and backup data were corrupted and could not be recovered. Corrupted data was saved to a recovery key.</div>
           <button onClick={() => setDataLost(false)} style={{ background: "none", border: "1px solid #3a3020", color: "#c9a84c", padding: "4px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer" }}>DISMISS</button>
         </div>
       )}
@@ -727,7 +740,7 @@ function App() {
           upcoming.length === 0 ? (
             <div style={{ padding: 60, textAlign: "center", color: "#2a2a2a", fontSize: "0.9rem" }}>No upcoming orders staged.</div>
           ) : (
-            upcoming.map(entry => <UpcomingCard key={entry.id} entry={entry} onConfirm={confirmUpcoming} onDelete={deleteUpcoming} />)
+            upcoming.map(entry => <UpcomingCard key={entry.id} entry={entry} onConfirm={confirmUpcoming} onDelete={deleteUpcoming} onEdit={handleEditUpcoming} />)
           )
         ) : grouped.length === 0 ? (
           <div style={{ padding: 60, textAlign: "center", color: "#2a2a2a", fontSize: "0.9rem" }}>{"No " + (tab === "po" ? "purchase orders" : "transfers") + " logged yet."}</div>
@@ -741,7 +754,7 @@ function App() {
         )}
       </div>
 
-      {showAdd && <AddModal onClose={() => { setShowAdd(false); setEditEntry(null); }} onSave={editEntry ? handleSaveEdit : addEntry} onSaveUpcoming={addUpcoming} defaultType={tab === "po" ? "PO" : tab === "transfers" ? "Transfer In" : "PO"} editEntry={editEntry} knownItems={knownItems} />}
+      {showAdd && <AddModal onClose={closeModal} onSave={editEntry ? handleSaveEdit : addEntry} onSaveUpcoming={addUpcoming} defaultType={tab === "po" ? "PO" : tab === "transfers" ? "Transfer In" : "PO"} editEntry={editEntry} editMode={editMode} knownItems={knownItems} />}
       {showApiKey && <ApiKeyModal onClose={() => setShowApiKey(false)} />}
       {showDict && <ItemDictModal onClose={() => setShowDict(false)} knownItems={knownItems} setKnownItems={setKnownItems} persistKnown={persistKnown} />}
     </div>
