@@ -882,7 +882,7 @@ function LabelMakerModal({ onClose, knownItems }) {
     html += 'body { font-family: "Courier New", monospace; }';
     html += '.label { width: ' + labelW + 'in; height: ' + labelH + 'in; border: 1px dashed #cccccc; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0.15in 0.25in; page-break-inside: avoid; margin-bottom: 0.08in; overflow: hidden; position: relative; }';
     html += '.item-name { font-weight: 700; line-height: 1.2; color: #000000; white-space: nowrap; }';
-    html += '.overstock { font-size: 10pt; color: #555555; margin-top: 0.06in; }';
+    html += '.overstock { font-weight: 400; color: #555555; margin-top: 0.06in; white-space: nowrap; }';
     html += '</style></head><body>';
     validLabels.forEach((lb) => {
       html += '<div class="label">';
@@ -893,12 +893,18 @@ function LabelMakerModal({ onClose, knownItems }) {
       html += '</div>';
     });
     html += '<script>';
-    html += 'document.querySelectorAll("[data-fit]").forEach(function(el) {';
-    html += '  var parent = el.parentElement;';
-    html += '  var maxW = parent.clientWidth - 36;';
+    html += 'document.querySelectorAll(".label").forEach(function(label) {';
+    html += '  var nameEl = label.querySelector(".item-name");';
+    html += '  var osEl = label.querySelector(".overstock");';
+    html += '  var maxW = label.clientWidth - 36;';
     html += '  var size = 96;';
-    html += '  el.style.fontSize = size + "pt";';
-    html += '  while (el.scrollWidth > maxW && size > 8) { size -= 1; el.style.fontSize = size + "pt"; }';
+    html += '  nameEl.style.fontSize = size + "pt";';
+    html += '  while (nameEl.scrollWidth > maxW && size > 8) { size -= 1; nameEl.style.fontSize = size + "pt"; }';
+    html += '  if (osEl) {';
+    html += '    var osSize = Math.max(Math.round(size * 0.55), 14);';
+    html += '    osEl.style.fontSize = osSize + "pt";';
+    html += '    while (osEl.scrollWidth > maxW && osSize > 8) { osSize -= 1; osEl.style.fontSize = osSize + "pt"; }';
+    html += '  }';
     html += '});';
     html += '<\/script>';
     html += '</body></html>';
