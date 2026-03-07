@@ -62,6 +62,11 @@
   catch(e) {
     try { localStorage.setItem(k + "_corrupted_backup", localStorage.getItem(k)); } catch(x) {}
     localStorage.removeItem(k);
+    // Auto-restore from backup
+    var backup = localStorage.getItem(k + "_backup");
+    if (backup) {
+      try { JSON.parse(backup); localStorage.setItem(k, backup); } catch(e2) {}
+    }
   }
 });
 window.storage = {
