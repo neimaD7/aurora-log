@@ -860,6 +860,80 @@ function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown }) {
   );
 }
 
+function LabelMakerModal({ onClose, knownItems }) {
+  const [labels, setLabels] = useState([{ name: "", overstock: "" }]);
+  const addLabel = () => setLabels(l => [...l, { name: "", overstock: "" }]);
+  const removeLabel = (idx) => setLabels(l => l.filter((_, i) => i !== idx));
+  const updateLabel = (idx, key, val) => setLabels(l => l.map((lb, i) => i === idx ? { ...lb, [key]: val } : lb));
+  const dupLabel = (idx) => setLabels(l => { const copy = { ...l[idx] }; const next = [...l]; next.splice(idx + 1, 0, copy); return next; });
+
+  const validLabels = labels.filter(lb => (lb.name || "").trim());
+
+  const printLabels = () => {
+    if (validLabels.length === 0) return;
+    const labelW = 5.75;
+    const labelH = 1.75;
+    const cols = 1;
+    const perPage = 5;
+    let html = '<!DOCTYPE html><html><head><style>';
+    html += '@page { size: 8.5in 11in; margin: 0.5in; }';
+    html += '* { margin: 0; padding: 0; box-sizing: border-box; }';
+    html += 'body { font-family: "Courier New", monospace; }';
+    html += '.label { width: ' + labelW + 'in; height: ' + labelH + 'in; border: 1px dashed #cccccc; display: flex; flex-direction: column; justify-content: center; padding: 0.15in 0.25in; page-break-inside: avoid; margin-bottom: 0.08in; overflow: hidden; }';
+    html += '.item-name { font-size: 16pt; font-weight: 700; line-height: 1.3; color: #000000; }';
+    html += '.overstock { font-size: 10pt; color: #555555; margin-top: 0.08in; }';
+    html += '@media print { .label { border: 1px dashed #cccccc; } }';
+    html += '</style></head><body>';
+    validLabels.forEach((lb) => {
+      html += '<div class="label">';
+      html += '<div class="item-name">' + lb.name.replace(/</g, "&lt;") + '</div>';
+      if ((lb.overstock || "").trim()) {
+        html += '<div class="overstock">Overstock in ' + lb.overstock.replace(/</g, "&lt;") + '</div>';
+      }
+      html += '</div>';
+    });
+    html += '</body></html>';
+    const win = window.open('', '_blank');
+    if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 400); }
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(500px,96vw)", maxHeight: "90vh", overflowY: "auto", padding: "18px 16px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em" }}>LABEL MAKER</span>
+          <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
+        </div>
+        <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>Item labels for 2" x 6" C-channel holders. Print on cardstock, cut along dashed lines.</div>
+        {labels.map((lb, idx) => (
+          <div key={idx} style={{ marginBottom: 8, background: "#0d0d0d", border: "1px solid #1a1a1a", padding: "10px" }}>
+            <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>ITEM NAME</label>
+                <NameInput value={lb.name} onChange={v => updateLabel(idx, "name", v)} placeholder="e.g. #4 Rebar 20' Grade 60" knownItems={knownItems} inputStyle={{ ...inp, background: "#0a0a0a", fontSize: "0.86rem", padding: "6px 8px" }} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "flex-end", flexShrink: 0 }}>
+                <button onClick={() => dupLabel(idx)} title="Duplicate" style={{ background: "none", border: "1px solid #2a2a2a", color: "#555555", padding: "2px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.68rem", cursor: "pointer" }}>DUP</button>
+                {labels.length > 1 && <button onClick={() => removeLabel(idx)} style={{ background: "none", border: "none", color: "#3a1010", cursor: "pointer", fontSize: "0.82rem", padding: "0 4px" }}>x</button>}
+              </div>
+            </div>
+            <div>
+              <label style={lbl}>OVERSTOCK LOCATION (OPTIONAL)</label>
+              <input value={lb.overstock} onChange={e => updateLabel(idx, "overstock", e.target.value)} placeholder="e.g. Bin 5" style={{ ...inp, background: "#0a0a0a", fontSize: "0.84rem", padding: "5px 8px" }} />
+            </div>
+          </div>
+        ))}
+        <button onClick={addLabel} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "5px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer", marginBottom: 14, width: "100%" }}>+ ADD LABEL</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={printLabels} disabled={validLabels.length === 0} style={{ flex: 1, background: validLabels.length > 0 ? "#ffffff" : "#222222", color: validLabels.length > 0 ? "#0a0a0a" : "#555555", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.08em", cursor: validLabels.length > 0 ? "pointer" : "default" }}>
+            PRINT {validLabels.length > 0 ? "(" + validLabels.length + ")" : ""}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function App() {
   const [entries, setEntries] = useState([]);
   const [upcoming, setUpcoming] = useState([]);
@@ -874,6 +948,7 @@ function App() {
   const [showAdd, setShowAdd] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
   const [showDict, setShowDict] = useState(false);
+  const [showLabels, setShowLabels] = useState(false);
   const [showPriority, setShowPriority] = useState(false);
   const [showSOList, setShowSOList] = useState(false);
   const [loaded, setLoaded] = useState(false);
@@ -1080,6 +1155,7 @@ function App() {
             <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "4px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", fontWeight: 700, cursor: "pointer" }}>
               DICT{knownItems.length > 0 && <span style={{ fontSize: "0.54rem", color: "#666666", marginLeft: 2 }}>{knownItems.length}</span>}
             </button>
+            <button onClick={() => setShowLabels(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: "#555555", padding: "4px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", cursor: "pointer" }}>LBL</button>
             <button onClick={() => setShowApiKey(true)} style={{ background: getApiKey() ? "none" : "#1a0000", border: "1px solid " + (getApiKey() ? "#2a2a2a" : "#8a2020"), color: getApiKey() ? "#555555" : "#c07070", padding: "4px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", cursor: "pointer" }}>KEY</button>
           </div>
         </div>
@@ -1189,6 +1265,7 @@ function App() {
       {showAdd && <AddModal onClose={closeModal} onSave={editEntry ? handleSaveEdit : addEntry} onSaveUpcoming={addUpcoming} defaultType={tab === "po" ? "PO" : tab === "transfers" ? "Transfer In" : "PO"} editEntry={editEntry} editMode={editMode} knownItems={knownItems} />}
       {showApiKey && <ApiKeyModal onClose={() => setShowApiKey(false)} />}
       {showDict && <ItemDictModal onClose={() => setShowDict(false)} knownItems={knownItems} setKnownItems={setKnownItems} persistKnown={persistKnown} />}
+      {showLabels && <LabelMakerModal onClose={() => setShowLabels(false)} knownItems={knownItems} />}
       {showPriority && <PullPriorityModal onClose={() => setShowPriority(false)} priority={pullPriority} onSave={persistPullPriority} />}
     </div>
   );
