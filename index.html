@@ -861,11 +861,12 @@ function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown }) {
 }
 
 function LabelMakerModal({ onClose, knownItems }) {
-  const [labels, setLabels] = useState([{ name: "", overstock: "" }]);
-  const addLabel = () => setLabels(l => [...l, { name: "", overstock: "" }]);
+  const [labels, setLabels] = useState([{ id: "l1", name: "", overstock: "" }]);
+  const nextId = useRef(2);
+  const addLabel = () => { setLabels(l => [...l, { id: "l" + (nextId.current++), name: "", overstock: "" }]); };
   const removeLabel = (idx) => setLabels(l => l.filter((_, i) => i !== idx));
   const updateLabel = (idx, key, val) => setLabels(l => l.map((lb, i) => i === idx ? { ...lb, [key]: val } : lb));
-  const dupLabel = (idx) => setLabels(l => { const copy = { ...l[idx] }; const next = [...l]; next.splice(idx + 1, 0, copy); return next; });
+  const dupLabel = (idx) => setLabels(l => { const copy = { ...l[idx], id: "l" + (nextId.current++) }; const next = [...l]; next.splice(idx + 1, 0, copy); return next; });
 
   const validLabels = labels.filter(lb => (lb.name || "").trim());
 
@@ -914,11 +915,11 @@ function LabelMakerModal({ onClose, knownItems }) {
         </div>
         <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>Item labels for 2" x 6" C-channel holders. Print on cardstock, cut along dashed lines.</div>
         {labels.map((lb, idx) => (
-          <div key={idx} style={{ marginBottom: 8, background: "#0d0d0d", border: "1px solid #1a1a1a", padding: "10px" }}>
+          <div key={lb.id} style={{ marginBottom: 8, background: "#0d0d0d", border: "1px solid #1a1a1a", padding: "10px" }}>
             <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
               <div style={{ flex: 1 }}>
                 <label style={lbl}>ITEM NAME</label>
-                <NameInput value={lb.name} onChange={v => updateLabel(idx, "name", v)} placeholder="e.g. #4 Rebar 20' Grade 60" knownItems={knownItems} inputStyle={{ ...inp, background: "#0a0a0a", fontSize: "0.86rem", padding: "6px 8px" }} />
+                <input value={lb.name} onChange={e => updateLabel(idx, "name", e.target.value)} placeholder="e.g. #4 Rebar 20' Grade 60" style={{ ...inp, background: "#0a0a0a", fontSize: "0.86rem", padding: "6px 8px" }} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "flex-end", flexShrink: 0 }}>
                 <button onClick={() => dupLabel(idx)} title="Duplicate" style={{ background: "none", border: "1px solid #2a2a2a", color: "#555555", padding: "2px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.68rem", cursor: "pointer" }}>DUP</button>
