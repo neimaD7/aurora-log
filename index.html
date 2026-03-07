@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -57,72 +56,56 @@
 <body>
 <div id="root"></div>
 <script>
-/* ====== FAILSAFE SYSTEM (plain JS, no React/Babel needed) ====== */
-
-// Validate stored JSON on load
-[“aurora_log_entries”, “aurora_log_known_items”].forEach(function(k) {
-try { var v = localStorage.getItem(k); if (v !== null) JSON.parse(v); }
-catch(e) {
-try { localStorage.setItem(k + “_corrupted_backup”, localStorage.getItem(k)); } catch(x) {}
-localStorage.removeItem(k);
-}
+/* ====== FAILSAFE SYSTEM ====== */
+["aurora_log_entries", "aurora_log_known_items", "aurora_log_upcoming"].forEach(function(k) {
+  try { var v = localStorage.getItem(k); if (v !== null) JSON.parse(v); }
+  catch(e) {
+    try { localStorage.setItem(k + "_corrupted_backup", localStorage.getItem(k)); } catch(x) {}
+    localStorage.removeItem(k);
+  }
 });
-
-// Storage with auto-backup
 window.storage = {
-async get(k) {
-var v = localStorage.getItem(“aurora_log_” + k);
-if (v === null) throw new Error(“Not found”);
-return { key: k, value: v };
-},
-async set(k, v) {
-localStorage.setItem(“aurora_log_” + k, v);
-try { localStorage.setItem(“aurora_log_” + k + “_backup”, v); } catch(e) {}
-return { key: k, value: v };
-}
+  async get(k) { var v = localStorage.getItem("aurora_log_" + k); if (v === null) throw new Error("Not found"); return { key: k, value: v }; },
+  async set(k, v) { localStorage.setItem("aurora_log_" + k, v); try { localStorage.setItem("aurora_log_" + k + "_backup", v); } catch(e) {} return { key: k, value: v }; }
 };
-
-// Recovery UI
 function showRecoveryUI(reason) {
-var root = document.getElementById(“root”);
-if (!root) return;
-var entries = [], known = [];
-try { var r = localStorage.getItem(“aurora_log_entries”) || localStorage.getItem(“aurora_log_entries_backup”); if (r) entries = JSON.parse(r); } catch(e) {}
-try { var r2 = localStorage.getItem(“aurora_log_known_items”) || localStorage.getItem(“aurora_log_known_items_backup”); if (r2) known = JSON.parse(r2); } catch(e) {}
-var hasData = entries.length > 0 || known.length > 0;
-var exportData = JSON.stringify({ entries: entries, knownItems: known, exportedAt: new Date().toISOString() }, null, 2);
-var h = ‘<div style="padding:24px 16px;font-family:Courier New,monospace;background:#0a0a0a;color:#f5f5f5;min-height:100vh"><div style="max-width:500px;margin:0 auto">’;
-h += ‘<div style="color:#ff4444;font-weight:700;font-size:1rem;letter-spacing:0.1em;margin-bottom:6px">RECOVERY MODE</div>’;
-h += ‘<div style="color:#666;font-size:0.78rem;margin-bottom:20px">’ + (reason || “App failed to load.”) + ‘</div>’;
-if (hasData) {
-h += ‘<div style="color:#00c853;font-size:0.82rem;margin-bottom:12px;font-weight:700">DATA SAFE: ’ + entries.length + ’ entries, ’ + known.length + ’ dict items</div>’;
-h += ‘<button id="copyBtn" style="background:#1a2d5a;color:#7aa8f0;border:1px solid #2a2a2a;padding:10px 16px;font-family:Courier New,monospace;font-weight:700;font-size:0.84rem;cursor:pointer;width:100%;margin-bottom:8px">COPY DATA BACKUP</button>’;
-h += ‘<textarea id="exportArea" readonly style="width:100%;height:60px;background:#111;border:1px solid #2a2a2a;color:#555;font-size:0.68rem;padding:6px;font-family:Courier New,monospace;resize:vertical;margin-bottom:12px">’ + exportData.replace(/</g, “<”) + ‘</textarea>’;
+  var root = document.getElementById("root"); if (!root) return;
+  var entries = [], known = [], upcoming = [];
+  try { var r = localStorage.getItem("aurora_log_entries") || localStorage.getItem("aurora_log_entries_backup"); if (r) entries = JSON.parse(r); } catch(e) {}
+  try { var r2 = localStorage.getItem("aurora_log_known_items") || localStorage.getItem("aurora_log_known_items_backup"); if (r2) known = JSON.parse(r2); } catch(e) {}
+  try { var r3 = localStorage.getItem("aurora_log_upcoming") || localStorage.getItem("aurora_log_upcoming_backup"); if (r3) upcoming = JSON.parse(r3); } catch(e) {}
+  var hasData = entries.length > 0 || known.length > 0 || upcoming.length > 0;
+  var exportData = JSON.stringify({ entries: entries, knownItems: known, upcoming: upcoming, exportedAt: new Date().toISOString() }, null, 2);
+  var h = '<div style="padding:24px 16px;font-family:Courier New,monospace;background:#0a0a0a;color:#f5f5f5;min-height:100vh"><div style="max-width:500px;margin:0 auto">';
+  h += '<div style="color:#ff4444;font-weight:700;font-size:1rem;letter-spacing:0.1em;margin-bottom:6px">RECOVERY MODE</div>';
+  h += '<div style="color:#666;font-size:0.78rem;margin-bottom:20px">' + (reason || "App failed to load.") + '</div>';
+  if (hasData) {
+    h += '<div style="color:#00c853;font-size:0.82rem;margin-bottom:12px;font-weight:700">DATA SAFE: ' + entries.length + ' entries, ' + upcoming.length + ' upcoming, ' + known.length + ' dict</div>';
+    h += '<button id="copyBtn" style="background:#1a2d5a;color:#7aa8f0;border:1px solid #2a2a2a;padding:10px 16px;font-family:Courier New,monospace;font-weight:700;font-size:0.84rem;cursor:pointer;width:100%;margin-bottom:8px">COPY DATA BACKUP</button>';
+    h += '<textarea id="exportArea" readonly style="width:100%;height:60px;background:#111;border:1px solid #2a2a2a;color:#555;font-size:0.68rem;padding:6px;font-family:Courier New,monospace;resize:vertical;margin-bottom:12px">' + exportData.replace(/</g, "&lt;") + '</textarea>';
+  }
+  h += '<div style="display:flex;gap:8px">';
+  h += '<button id="retryBtn" style="background:#fff;color:#0a0a0a;border:none;padding:10px 20px;font-family:Courier New,monospace;font-weight:700;font-size:0.88rem;cursor:pointer;flex:1">RETRY</button>';
+  h += '<button id="clearBtn" style="background:#2a0000;color:#ff4444;border:1px solid #4a0000;padding:10px 20px;font-family:Courier New,monospace;font-weight:700;font-size:0.88rem;cursor:pointer;flex:1">CLEAR + RELOAD</button>';
+  h += '</div>';
+  if (hasData) h += '<button id="restoreBtn" style="background:none;border:1px solid #2a2a2a;color:#888;padding:8px 16px;font-family:Courier New,monospace;font-size:0.76rem;cursor:pointer;width:100%;margin-top:8px">RESTORE FROM BACKUP</button>';
+  h += '</div></div>';
+  root.innerHTML = h;
+  setTimeout(function() {
+    var cb = document.getElementById("copyBtn");
+    if (cb) cb.onclick = function() { if (navigator.clipboard) navigator.clipboard.writeText(exportData).then(function() { cb.textContent = "COPIED!"; cb.style.background = "#0a3a1a"; cb.style.color = "#00c853"; }); };
+    var rb = document.getElementById("retryBtn"); if (rb) rb.onclick = function() { location.reload(); };
+    var clb = document.getElementById("clearBtn"); if (clb) clb.onclick = function() { if (confirm("Erase all data? Copy backup first!")) { localStorage.clear(); location.reload(); } };
+    var rsb = document.getElementById("restoreBtn"); if (rsb) rsb.onclick = function() {
+      ["aurora_log_entries","aurora_log_known_items","aurora_log_upcoming"].forEach(function(k) { var b = localStorage.getItem(k + "_backup"); if (b) { try { JSON.parse(b); localStorage.setItem(k, b); } catch(e) {} } });
+      location.reload();
+    };
+  }, 50);
 }
-h += ‘<div style="display:flex;gap:8px">’;
-h += ‘<button id="retryBtn" style="background:#fff;color:#0a0a0a;border:none;padding:10px 20px;font-family:Courier New,monospace;font-weight:700;font-size:0.88rem;cursor:pointer;flex:1">RETRY</button>’;
-h += ‘<button id="clearBtn" style="background:#2a0000;color:#ff4444;border:1px solid #4a0000;padding:10px 20px;font-family:Courier New,monospace;font-weight:700;font-size:0.88rem;cursor:pointer;flex:1">CLEAR + RELOAD</button>’;
-h += ‘</div>’;
-if (hasData) h += ‘<button id="restoreBtn" style="background:none;border:1px solid #2a2a2a;color:#888;padding:8px 16px;font-family:Courier New,monospace;font-size:0.76rem;cursor:pointer;width:100%;margin-top:8px">RESTORE FROM BACKUP</button>’;
-h += ‘</div></div>’;
-root.innerHTML = h;
-setTimeout(function() {
-var cb = document.getElementById(“copyBtn”);
-if (cb) cb.onclick = function() { if (navigator.clipboard) navigator.clipboard.writeText(exportData).then(function() { cb.textContent = “COPIED!”; cb.style.background = “#0a3a1a”; cb.style.color = “#00c853”; }); };
-var rb = document.getElementById(“retryBtn”); if (rb) rb.onclick = function() { location.reload(); };
-var clb = document.getElementById(“clearBtn”); if (clb) clb.onclick = function() { if (confirm(“Erase all data? Copy backup first!”)) { localStorage.clear(); location.reload(); } };
-var rsb = document.getElementById(“restoreBtn”); if (rsb) rsb.onclick = function() {
-[“aurora_log_entries”,“aurora_log_known_items”].forEach(function(k) { var b = localStorage.getItem(k + “_backup”); if (b) { try { JSON.parse(b); localStorage.setItem(k, b); } catch(e) {} } });
-location.reload();
-};
-}, 50);
-}
-
-window.onerror = function(msg, src, line) { showRecoveryUI(“Error: “ + msg + “ (line “ + line + “)”); return true; };
+window.onerror = function(msg, src, line) { showRecoveryUI("Error: " + msg + " (line " + line + ")"); return true; };
 window._appMounted = false;
-setTimeout(function() { if (!window._appMounted) showRecoveryUI(“App failed to initialize. Your data is preserved.”); }, 8000);
+setTimeout(function() { if (!window._appMounted) showRecoveryUI("App failed to initialize. Your data is preserved."); }, 8000);
 </script>
-
 <script type="text/babel" data-type="module">
 const { useState, useEffect, useRef } = React;
 
@@ -169,12 +152,7 @@ function findBestMatch(name, knownItems) {
   return bestScore >= 0.5 ? bestItem : null;
 }
 
-/*
- * NameInput — TOP LEVEL COMPONENT
- * NEVER move this inside another component.
- * If defined inside AIIntake or AddModal, React will remount it on every
- * parent re-render, which kills input focus and freezes mobile.
- */
+/* TOP-LEVEL — never nest inside another component */
 function NameInput({ value, onChange, placeholder, knownItems, inputStyle }) {
   const [showSugg, setShowSugg] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
@@ -191,18 +169,10 @@ function NameInput({ value, onChange, placeholder, knownItems, inputStyle }) {
       }).slice(0, 5);
       setSuggestions(matches);
       setShowSugg(matches.length > 0);
-    } else {
-      setSuggestions([]);
-      setShowSugg(false);
-    }
+    } else { setSuggestions([]); setShowSugg(false); }
   };
 
-  const pick = (item) => {
-    onChange(item.name);
-    setSuggestions([]);
-    setShowSugg(false);
-  };
-
+  const pick = (item) => { onChange(item.name); setSuggestions([]); setShowSugg(false); };
   const style = inputStyle || { ...inp, background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" };
 
   return (
@@ -226,9 +196,8 @@ function NameInput({ value, onChange, placeholder, knownItems, inputStyle }) {
     </div>
   );
 }
-/* END NameInput */
 
-function AIIntake({ onSave, knownItems }) {
+function AIIntake({ onSave, onSaveUpcoming, knownItems }) {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [parsed, setParsed] = useState(null);
@@ -274,7 +243,7 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
 
   const parse = async () => {
     if (!input.trim() && images.length === 0) return;
-    if (!getApiKey()) { setError("API key required — tap key icon in the header."); return; }
+    if (!getApiKey()) { setError("API key required — tap KEY in the header."); return; }
     setLoading(true); setError(""); setParsed(null);
     try {
       const userContent = [];
@@ -289,7 +258,6 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
       const text = data.content?.map(b => b.text || "").join("").trim();
       let result;
       try { result = JSON.parse(text.replace(FENCE_RE, "").trim()); } catch { setError("Couldn't parse — try again or enter manually."); setLoading(false); return; }
-
       if (result.lineItems) {
         result.lineItems = result.lineItems.map(li => {
           const match = findBestMatch(li.name, knownItems);
@@ -306,7 +274,9 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
   const updateLine = (idx, key, val) => setParsed(p => ({ ...p, lineItems: p.lineItems.map((li, i) => i === idx ? { ...li, [key]: val } : li) }));
   const removeLine = (idx) => setParsed(p => ({ ...p, lineItems: p.lineItems.filter((_, i) => i !== idx) }));
   const addLine = () => setParsed(p => ({ ...p, lineItems: [...(p.lineItems || []), { name: "", qty: "", unit: "" }] }));
-  const confirm = () => { if (!parsed) return; onSave(parsed); setParsed(null); setInput(""); clearAllImages(); };
+  const reset = () => { setParsed(null); setInput(""); clearAllImages(); };
+  const confirm = () => { if (!parsed) return; onSave(parsed); reset(); };
+  const stageUpcoming = () => { if (!parsed) return; onSaveUpcoming(parsed); reset(); };
 
   const typeAccent = { "PO": "#aaaaaa", "Transfer In": "#00e676", "Transfer Out": "#ff3d3d" };
 
@@ -340,7 +310,7 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
         <div style={{ background: "#111111", border: "1px solid #2a2a2a", padding: "14px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <span style={{ color: typeAccent[parsed.type] || "#ffffff", fontWeight: 700, fontSize: "0.78rem", letterSpacing: "0.1em" }}>{(parsed.type || "").toUpperCase()}</span>
-            <button onClick={() => { setParsed(null); setInput(""); clearAllImages(); }} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.1rem" }}>x</button>
+            <button onClick={reset} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.1rem" }}>x</button>
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
             <div style={{ flex: "2 1 150px" }}>
@@ -370,9 +340,10 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
             </div>
           ))}
           <button onClick={addLine} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginTop: 2, marginBottom: 12 }}>+ LINE</button>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={confirm} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "8px 20px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.08em", cursor: "pointer" }}>LOG IT</button>
-            <button onClick={() => { setParsed(null); setInput(""); clearAllImages(); }} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "8px 14px", fontFamily: "'Courier New',monospace", fontSize: "0.84rem", cursor: "pointer" }}>CANCEL</button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={confirm} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "8px 18px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.08em", cursor: "pointer" }}>LOG IT</button>
+            <button onClick={stageUpcoming} style={{ background: "#0a0a0a", color: "#c9a84c", border: "1px solid #3a3020", padding: "8px 18px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.08em", cursor: "pointer" }}>UPCOMING</button>
+            <button onClick={reset} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "8px 14px", fontFamily: "'Courier New',monospace", fontSize: "0.84rem", cursor: "pointer" }}>CANCEL</button>
           </div>
         </div>
       )}
@@ -389,11 +360,11 @@ function EntryCard({ entry, onDelete, onEdit }) {
   const partyColor = isPO ? "#ffffff" : isIn ? "#00e676" : "#ff3d3d";
 
   return (
-    <div style={{ borderLeft: "3px solid " + accentColor, background: "#111111", padding: "11px 13px", marginBottom: 7, position: "relative" }}>
+    <div style={{ borderLeft: "3px solid " + accentColor, background: "#111111", padding: "11px 13px", marginBottom: 7 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 7 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <span style={{ color: partyColor, fontWeight: 700, fontSize: "1rem", letterSpacing: "0.03em" }}>{partyLine}</span>
-          {entry.docId && <span style={{ color: "#555555", fontSize: "0.76rem", marginLeft: 10, letterSpacing: "0.04em" }}>{entry.docId}</span>}
+          {entry.docId && <span style={{ color: "#555555", fontSize: "0.76rem", marginLeft: 10 }}>{entry.docId}</span>}
         </div>
         <div style={{ flexShrink: 0, marginLeft: 8, display: "flex", gap: 6, alignItems: "center" }}>
           {confirmDel ? (
@@ -403,7 +374,7 @@ function EntryCard({ entry, onDelete, onEdit }) {
             </div>
           ) : (
             <React.Fragment>
-              <button onClick={() => onEdit(entry)} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "0.72rem", padding: "2px 4px", fontFamily: "'Courier New',monospace", letterSpacing: "0.06em" }}>EDIT</button>
+              <button onClick={() => onEdit(entry)} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "0.72rem", padding: "2px 4px", fontFamily: "'Courier New',monospace" }}>EDIT</button>
               <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.9rem", padding: "2px 4px" }}>x</button>
             </React.Fragment>
           )}
@@ -412,16 +383,53 @@ function EntryCard({ entry, onDelete, onEdit }) {
       <div>
         {(entry.lineItems || []).filter(li => li.name).map((li, idx) => (
           <div key={idx} style={{ display: "flex", gap: 10, padding: "2px 0", alignItems: "baseline" }}>
-            {(li.qty || li.unit) && (
-              <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.84rem", whiteSpace: "nowrap", flexShrink: 0, minWidth: 52 }}>
-                {li.qty}{li.unit ? " " + li.unit : ""}
-              </span>
-            )}
-            <span style={{ color: "#ffffff", fontSize: "0.94rem", lineHeight: 1.45, wordBreak: "normal", overflowWrap: "anywhere" }}>{li.name}</span>
+            {(li.qty || li.unit) && <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.84rem", whiteSpace: "nowrap", flexShrink: 0, minWidth: 52 }}>{li.qty}{li.unit ? " " + li.unit : ""}</span>}
+            <span style={{ color: "#ffffff", fontSize: "0.94rem", lineHeight: 1.45, overflowWrap: "anywhere" }}>{li.name}</span>
           </div>
         ))}
       </div>
       {entry.notes && <div style={{ marginTop: 7, fontSize: "0.78rem", color: "#555555", fontStyle: "italic" }}>{entry.notes}</div>}
+    </div>
+  );
+}
+
+function UpcomingCard({ entry, onConfirm, onDelete }) {
+  const [confirmDel, setConfirmDel] = useState(false);
+  const isPO = entry.type === "PO";
+  const isIn = entry.type === "Transfer In";
+  const partyLine = isPO ? entry.party : isIn ? "From " + entry.party : "To " + entry.party;
+  const confirmLabel = entry.type === "Transfer Out" ? "SENT" : "RECEIVED";
+
+  return (
+    <div style={{ borderLeft: "3px solid #c9a84c", background: "#141410", padding: "11px 13px", marginBottom: 7 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 7 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ color: "#c9a84c", fontWeight: 700, fontSize: "0.72rem", letterSpacing: "0.08em" }}>{(entry.type || "").toUpperCase()}</span>
+          <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "1rem", marginTop: 2 }}>{partyLine}</div>
+          {entry.docId && <span style={{ color: "#555555", fontSize: "0.76rem" }}>{entry.docId}</span>}
+          {entry.date && <span style={{ color: "#444444", fontSize: "0.72rem", marginLeft: 8 }}>{entry.date}</span>}
+        </div>
+        <div style={{ flexShrink: 0, marginLeft: 8 }}>
+          {confirmDel ? (
+            <div style={{ display: "flex", gap: 5 }}>
+              <button onClick={() => onDelete(entry.id)} style={{ background: "#4a0000", color: "#f5f5f5", border: "none", padding: "2px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>DEL</button>
+              <button onClick={() => setConfirmDel(false)} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "2px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>NO</button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.9rem", padding: "2px 4px" }}>x</button>
+          )}
+        </div>
+      </div>
+      <div style={{ marginBottom: 10 }}>
+        {(entry.lineItems || []).filter(li => li.name).map((li, idx) => (
+          <div key={idx} style={{ display: "flex", gap: 10, padding: "2px 0", alignItems: "baseline" }}>
+            {(li.qty || li.unit) && <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.84rem", whiteSpace: "nowrap", flexShrink: 0, minWidth: 52 }}>{li.qty}{li.unit ? " " + li.unit : ""}</span>}
+            <span style={{ color: "#dddddd", fontSize: "0.94rem", lineHeight: 1.45, overflowWrap: "anywhere" }}>{li.name}</span>
+          </div>
+        ))}
+      </div>
+      {entry.notes && <div style={{ marginBottom: 8, fontSize: "0.78rem", color: "#555555", fontStyle: "italic" }}>{entry.notes}</div>}
+      <button onClick={() => onConfirm(entry)} style={{ background: "#c9a84c", color: "#0a0a0a", border: "none", padding: "8px 20px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.08em", cursor: "pointer", width: "100%" }}>{confirmLabel}</button>
     </div>
   );
 }
@@ -436,7 +444,7 @@ function DateHeader({ dateStr }) {
   );
 }
 
-function AddModal({ onClose, onSave, defaultType, editEntry, knownItems }) {
+function AddModal({ onClose, onSave, onSaveUpcoming, defaultType, editEntry, knownItems }) {
   const [form, setFormState] = useState(editEntry ? {
     type: editEntry.type, party: editEntry.party, docId: editEntry.docId,
     date: editEntry.date, lineItems: editEntry.lineItems.map(li => ({...li})), notes: editEntry.notes || ""
@@ -447,10 +455,9 @@ function AddModal({ onClose, onSave, defaultType, editEntry, knownItems }) {
   const removeLine = (idx) => setFormState(f => ({ ...f, lineItems: f.lineItems.filter((_, i) => i !== idx) }));
   const isTransfer = form.type !== "PO";
   const partyLabel = form.type === "PO" ? "VENDOR / SUPPLIER" : form.type === "Transfer In" ? "FROM STORE" : "TO STORE";
-  const save = () => {
-    if (!form.party.trim() || !form.lineItems.some(li => li.name.trim())) return;
-    onSave(form); onClose();
-  };
+  const isValid = form.party.trim() && form.lineItems.some(li => (li.name || "").trim());
+  const save = () => { if (!isValid) return; onSave(form); onClose(); };
+  const saveUpcoming = () => { if (!isValid) return; onSaveUpcoming(form); onClose(); };
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
@@ -491,7 +498,14 @@ function AddModal({ onClose, onSave, defaultType, editEntry, knownItems }) {
         ))}
         <button onClick={addLine} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginBottom: 12 }}>+ LINE</button>
         <div style={{ marginBottom: 16 }}><label style={lbl}>NOTES (OPTIONAL)</label><input value={form.notes} onChange={e => set("notes", e.target.value)} style={inp} /></div>
-        <button onClick={save} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.97rem", letterSpacing: "0.1em", cursor: "pointer" }}>{editEntry ? "SAVE CHANGES" : "SAVE"}</button>
+        {editEntry ? (
+          <button onClick={save} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.97rem", letterSpacing: "0.1em", cursor: "pointer" }}>SAVE CHANGES</button>
+        ) : (
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={save} style={{ flex: 1, background: "#ffffff", color: "#0a0a0a", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.08em", cursor: "pointer" }}>SAVE</button>
+            <button onClick={saveUpcoming} style={{ flex: 1, background: "#0a0a0a", color: "#c9a84c", border: "1px solid #3a3020", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.08em", cursor: "pointer" }}>UPCOMING</button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -524,9 +538,7 @@ function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown }) {
           <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em" }}>ITEM DICTIONARY</span>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
         </div>
-        <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>
-          Auto-learned from entries. AI matches documents to these names. Tap to edit.
-        </div>
+        <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>Auto-learned from entries. AI matches documents to these names. Tap to edit.</div>
         {knownItems.length === 0 && <div style={{ color: "#333333", fontSize: "0.84rem", padding: "20px 0", textAlign: "center" }}>No items yet — log your first entry to start building the dictionary.</div>}
         {knownItems.map((item, idx) => (
           <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #1a1a1a" }}>
@@ -553,6 +565,7 @@ function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown }) {
 
 function App() {
   const [entries, setEntries] = useState([]);
+  const [upcoming, setUpcoming] = useState([]);
   const [knownItems, setKnownItems] = useState([]);
   const [tab, setTab] = useState("po");
   const [showIntake, setShowIntake] = useState(false);
@@ -565,6 +578,7 @@ function App() {
   useEffect(() => {
     (async () => {
       try { const r = await window.storage.get("entries"); if (r?.value) setEntries(JSON.parse(r.value)); } catch {}
+      try { const r = await window.storage.get("upcoming"); if (r?.value) setUpcoming(JSON.parse(r.value)); } catch {}
       try { const r = await window.storage.get("known_items"); if (r?.value) setKnownItems(JSON.parse(r.value)); } catch {}
       setLoaded(true);
       window._appMounted = true;
@@ -573,6 +587,7 @@ function App() {
   }, []);
 
   const persist = async (next) => { setEntries(next); try { await window.storage.set("entries", JSON.stringify(next)); } catch {} };
+  const persistUpcoming = async (next) => { setUpcoming(next); try { await window.storage.set("upcoming", JSON.stringify(next)); } catch {} };
   const persistKnown = async (next) => { try { await window.storage.set("known_items", JSON.stringify(next)); } catch {} };
 
   const learnItems = (lineItems) => {
@@ -587,19 +602,36 @@ function App() {
     if (changed) { updated.sort((a, b) => a.name.localeCompare(b.name)); setKnownItems(updated); persistKnown(updated); }
   };
 
+  const makeEntry = (data) => ({
+    id: Date.now().toString() + Math.random().toString(36).slice(2, 5),
+    type: data.type, party: (data.party || "").trim(), docId: (data.docId || "").trim(),
+    date: data.date || today(),
+    lineItems: (data.lineItems || []).filter(li => (li.name || "").trim()),
+    notes: (data.notes || "").trim(), createdAt: Date.now()
+  });
+
   const addEntry = (data) => {
-    const entry = {
-      id: Date.now().toString() + Math.random().toString(36).slice(2, 5),
-      type: data.type, party: (data.party || "").trim(), docId: (data.docId || "").trim(),
-      date: data.date || today(),
-      lineItems: (data.lineItems || []).filter(li => (li.name || "").trim()),
-      notes: (data.notes || "").trim(), createdAt: Date.now()
-    };
+    const entry = makeEntry(data);
     persist([entry, ...entries]);
     learnItems(entry.lineItems);
     setShowIntake(false);
   };
 
+  const addUpcoming = (data) => {
+    const entry = makeEntry(data);
+    persistUpcoming([entry, ...upcoming]);
+    learnItems(entry.lineItems);
+    setShowIntake(false);
+  };
+
+  const confirmUpcoming = (upEntry) => {
+    // Move from upcoming to entries
+    persistUpcoming(upcoming.filter(u => u.id !== upEntry.id));
+    const entry = { ...upEntry, createdAt: Date.now() };
+    persist([entry, ...entries]);
+  };
+
+  const deleteUpcoming = (id) => persistUpcoming(upcoming.filter(u => u.id !== id));
   const deleteEntry = (id) => persist(entries.filter(e => e.id !== id));
   const handleEdit = (entry) => { setEditEntry(entry); setShowAdd(true); };
   const handleSaveEdit = (data) => {
@@ -612,7 +644,11 @@ function App() {
     setEditEntry(null); setShowAdd(false);
   };
 
-  const visible = tab === "po" ? entries.filter(e => e.type === "PO") : entries.filter(e => e.type === "Transfer In" || e.type === "Transfer Out");
+  const visible = tab === "po"
+    ? entries.filter(e => e.type === "PO")
+    : tab === "transfers"
+    ? entries.filter(e => e.type === "Transfer In" || e.type === "Transfer Out")
+    : [];
   const grouped = (() => {
     const map = {};
     visible.forEach(e => { if (!map[e.date]) map[e.date] = []; map[e.date].push(e); });
@@ -620,17 +656,18 @@ function App() {
   })();
   const poCount = entries.filter(e => e.type === "PO").length;
   const trCount = entries.filter(e => e.type !== "PO").length;
+  const upCount = upcoming.length;
 
-  const tabBtn = (id, label, count) => (
+  const tabBtn = (id, label, count, highlight) => (
     <button onClick={() => setTab(id)} style={{
       background: "none", border: "none",
-      borderBottom: tab === id ? "2px solid #ffffff" : "2px solid transparent",
-      color: tab === id ? "#ffffff" : "#555555",
-      padding: "9px 16px", fontFamily: "'Courier New',monospace", fontWeight: 700,
-      fontSize: "0.82rem", letterSpacing: "0.1em", cursor: "pointer", whiteSpace: "nowrap", flex: "1 1 0", textAlign: "center"
+      borderBottom: tab === id ? ("2px solid " + (highlight || "#ffffff")) : "2px solid transparent",
+      color: tab === id ? (highlight || "#ffffff") : "#555555",
+      padding: "9px 12px", fontFamily: "'Courier New',monospace", fontWeight: 700,
+      fontSize: "0.78rem", letterSpacing: "0.08em", cursor: "pointer", whiteSpace: "nowrap", flex: "1 1 0", textAlign: "center"
     }}>
       {label}
-      {count > 0 && <span style={{ marginLeft: 6, fontSize: "0.68rem", color: tab === id ? "#ffffff" : "#444444" }}>{count}</span>}
+      {count > 0 && <span style={{ marginLeft: 5, fontSize: "0.66rem", color: tab === id ? (highlight || "#ffffff") : "#444444" }}>{count}</span>}
     </button>
   );
 
@@ -642,25 +679,32 @@ function App() {
           <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.06em", lineHeight: 1 }}>RECEIVING LOG</div>
         </div>
         <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
-          <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "5px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>
+          <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "5px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>
             DICT{knownItems.length > 0 && <span style={{ fontSize: "0.58rem", color: "#666666", marginLeft: 2 }}>{knownItems.length}</span>}
           </button>
-          <button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? "#141414" : "none", border: "1px solid " + (showIntake ? "rgba(255,255,255,0.33)" : "#2a2a2a"), color: showIntake ? "#ffffff" : "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>{showIntake ? "HIDE" : "SCAN"}</button>
-          <button onClick={() => setShowAdd(true)} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>+ LOG</button>
+          <button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? "#141414" : "none", border: "1px solid " + (showIntake ? "rgba(255,255,255,0.33)" : "#2a2a2a"), color: showIntake ? "#ffffff" : "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>{showIntake ? "HIDE" : "SCAN"}</button>
+          <button onClick={() => setShowAdd(true)} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>+ LOG</button>
           <button onClick={() => setShowApiKey(true)} style={{ background: getApiKey() ? "none" : "#1a0000", border: "1px solid " + (getApiKey() ? "#2a2a2a" : "#8a2020"), color: getApiKey() ? "#555555" : "#c07070", padding: "5px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer" }}>KEY</button>
         </div>
       </div>
 
-      {showIntake && <AIIntake onSave={addEntry} knownItems={knownItems} />}
+      {showIntake && <AIIntake onSave={addEntry} onSaveUpcoming={addUpcoming} knownItems={knownItems} />}
 
       <div style={{ borderBottom: "1px solid #1a1a1a", display: "flex" }}>
-        {tabBtn("po", "PURCHASE ORDERS", poCount)}
+        {tabBtn("po", "POs", poCount)}
         {tabBtn("transfers", "TRANSFERS", trCount)}
+        {tabBtn("upcoming", "UPCOMING", upCount, "#c9a84c")}
       </div>
 
       <div style={{ padding: "0 12px 80px" }}>
         {!loaded ? (
           <div style={{ padding: 50, textAlign: "center", color: "#555555", fontSize: "0.84rem" }}>Loading...</div>
+        ) : tab === "upcoming" ? (
+          upcoming.length === 0 ? (
+            <div style={{ padding: 60, textAlign: "center", color: "#2a2a2a", fontSize: "0.9rem" }}>No upcoming orders staged.</div>
+          ) : (
+            upcoming.map(entry => <UpcomingCard key={entry.id} entry={entry} onConfirm={confirmUpcoming} onDelete={deleteUpcoming} />)
+          )
         ) : grouped.length === 0 ? (
           <div style={{ padding: 60, textAlign: "center", color: "#2a2a2a", fontSize: "0.9rem" }}>{"No " + (tab === "po" ? "purchase orders" : "transfers") + " logged yet."}</div>
         ) : (
@@ -673,7 +717,7 @@ function App() {
         )}
       </div>
 
-      {showAdd && <AddModal onClose={() => { setShowAdd(false); setEditEntry(null); }} onSave={editEntry ? handleSaveEdit : addEntry} defaultType={tab === "po" ? "PO" : "Transfer In"} editEntry={editEntry} knownItems={knownItems} />}
+      {showAdd && <AddModal onClose={() => { setShowAdd(false); setEditEntry(null); }} onSave={editEntry ? handleSaveEdit : addEntry} onSaveUpcoming={addUpcoming} defaultType={tab === "po" ? "PO" : tab === "transfers" ? "Transfer In" : "PO"} editEntry={editEntry} knownItems={knownItems} />}
       {showApiKey && <ApiKeyModal onClose={() => setShowApiKey(false)} />}
       {showDict && <ItemDictModal onClose={() => setShowDict(false)} knownItems={knownItems} setKnownItems={setKnownItems} persistKnown={persistKnown} />}
     </div>
@@ -682,6 +726,5 @@ function App() {
 
 ReactDOM.render(<App />, document.getElementById("root"));
 </script>
-
 </body>
 </html>
