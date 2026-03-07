@@ -126,7 +126,7 @@ const inp = { width: "100%", background: "#0a0a0a", border: "1px solid #2a2a2a",
 const lbl = { display: "block", fontSize: "0.7rem", letterSpacing: "0.14em", color: "#666666", marginBottom: 4 };
 
 const DEFAULT_PULL_PRIORITY = [
-  "stakes", "bag ties", "form oil", "dobies", "bolts", "pier papers", "clips/ties", "snapties", "misc"
+  "stakes", "bag ties", "form oil", "dobies", "bolts", "pier papers", "form clips/flat ties", "snap ties", "misc"
 ];
 
 function getApiKey() { return localStorage.getItem("aurora_api_key") || ""; }
@@ -170,10 +170,15 @@ function findBestMatch(name, knownItems) {
 function matchPriority(itemName, priorityList) {
   const norm = normalizeForMatch(itemName);
   for (let i = 0; i < priorityList.length; i++) {
-    const cat = normalizeForMatch(priorityList[i]);
-    const catTokens = cat.split(" ").filter(t => t.length > 1);
-    if (!catTokens.length) continue;
-    const matched = catTokens.some(ct => norm.includes(ct));
+    const raw = priorityList[i];
+    // "/" means OR — match if ANY sub-category matches
+    const alternatives = raw.split("/").map(s => s.trim()).filter(Boolean);
+    const matched = alternatives.some(alt => {
+      const catTokens = normalizeForMatch(alt).split(" ").filter(t => t.length > 1);
+      if (!catTokens.length) return false;
+      // ALL tokens must appear in the item name
+      return catTokens.every(ct => norm.includes(ct));
+    });
     if (matched) return i;
   }
   return priorityList.length;
