@@ -352,8 +352,8 @@ const GitHubSync = {
       for (const t of types) {
         try {
           const remoteData = await this.pull(t.key);
+          const localData = getLocal(t.storageKey);
           if (remoteData) {
-            const localData = getLocal(t.storageKey);
             let merged;
             if (t.key === "known_items") {
               merged = this._mergeKnownItems(localData, remoteData);
@@ -361,6 +361,11 @@ const GitHubSync = {
               merged = this._mergeEntries(localData, remoteData);
             }
             setLocal(t.storageKey, merged);
+            // Push merged result back
+            await this.push(t.key, merged);
+          } else if (localData && localData.length > 0) {
+            // Remote file doesn't exist yet — push local data up
+            await this.push(t.key, localData);
           }
         } catch(e) { console.error("fullSync error for " + t.key + ":", e); }
       }
