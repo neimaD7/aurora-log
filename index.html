@@ -647,12 +647,13 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
       });
       const textPart = input.trim() || (images.length > 1 ? "Parse this " + images.length + "-page sales order. Combine all line items into one result." : "Parse this sales order / will-call ticket.");
       userContent.push({ type: "text", text: textPart });
-      const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: getApiHeaders(), body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4096, system: systemPrompt, messages: [{ role: "user", content: userContent }] }) });
+      const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: getApiHeaders(), body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 8192, system: systemPrompt, messages: [{ role: "user", content: userContent }] }) });
       const data = await res.json();
       if (data.error) { setError("API error: " + (data.error.message || "Unknown")); setLoading(false); return; }
+      if (data.stop_reason === "max_tokens") { setError("Response was cut off (too many items). Try fewer pages."); setLoading(false); return; }
       const text = data.content?.map(b => b.text || "").join("").trim();
       let result = extractJSON(text);
-      if (!result) { setError("Couldn't parse SO. API returned: " + text.slice(0, 300)); setLoading(false); return; }
+      if (!result) { setError("Couldn't parse SO. Start: " + text.slice(0, 200) + " ...END: " + text.slice(-100)); setLoading(false); return; }
       if (result.lineItems) {
         result.lineItems = result.lineItems.map(li => {
           const match = findBestMatch(li.name, knownItems);
