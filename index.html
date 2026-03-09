@@ -343,36 +343,37 @@ const GitHubSync = {
   async fullSync(getLocal, setLocal) {
     if (!this.isConfigured()) return;
     this._setStatus("syncing");
-    try {
-      const types = [
-        { key: "entries", storageKey: "entries" },
-        { key: "upcoming", storageKey: "upcoming" },
-        { key: "known_items", storageKey: "known_items" }
-      ];
-      for (const t of types) {
-        try {
-          const remoteData = await this.pull(t.key);
+    const types = [
+      { key: "entries", storageKey: "entries" },
+      { key: "upcoming", storageKey: "upcoming" },
+      { key: "known_items", storageKey: "known_items" }
+    ];
+    // Phase 1: Pull and merge only
+    for (const t of types) {
+      try {
+        const remoteData = await this.pull(t.key);
+        if (remoteData) {
           const localData = getLocal(t.storageKey);
-          if (remoteData) {
-            let merged;
-            if (t.key === "known_items") {
-              merged = this._mergeKnownItems(localData, remoteData);
-            } else {
-              merged = this._mergeEntries(localData, remoteData);
-            }
-            setLocal(t.storageKey, merged);
-            // Push merged result back
-            await this.push(t.key, merged);
-          } else if (localData && localData.length > 0) {
-            // Remote file doesn't exist yet — push local data up
-            await this.push(t.key, localData);
+          let merged;
+          if (t.key === "known_items") {
+            merged = this._mergeKnownItems(localData, remoteData);
+          } else {
+            merged = this._mergeEntries(localData, remoteData);
           }
-        } catch(e) { console.error("fullSync error for " + t.key + ":", e); }
-      }
-      this._setStatus("synced");
-    } catch(e) {
-      this._setStatus("error", e.message);
+          setLocal(t.storageKey, merged);
+        }
+      } catch(e) { console.error("fullSync pull error for " + t.key + ":", e); }
     }
+    // Phase 2: Push all local data back (creates missing files, syncs merged results)
+    for (const t of types) {
+      try {
+        const data = getLocal(t.storageKey);
+        if (data && data.length > 0) {
+          await this.push(t.key, data);
+        }
+      } catch(e) { console.error("fullSync push error for " + t.key + ":", e); }
+    }
+    this._setStatus("synced");
   }
 };
 
@@ -1362,17 +1363,21 @@ function App() {
   const handleSyncSaved = () => {
     // Trigger a full sync after saving the token
     if (GitHubSync.isConfigured()) {
+      // Use a local snapshot that gets updated by setLocal callbacks
+      let snapEntries = [...entriesRef.current];
+      let snapUpcoming = [...upcomingRef.current];
+      let snapKnown = [...knownItemsRef.current];
       GitHubSync.fullSync(
         (key) => {
-          if (key === "entries") return entriesRef.current;
-          if (key === "upcoming") return upcomingRef.current;
-          if (key === "known_items") return knownItemsRef.current;
+          if (key === "entries") return snapEntries;
+          if (key === "upcoming") return snapUpcoming;
+          if (key === "known_items") return snapKnown;
           return [];
         },
         (key, merged) => {
-          if (key === "entries") { setEntries(merged); window.storage.set("entries", JSON.stringify(merged)); }
-          if (key === "upcoming") { setUpcoming(merged); window.storage.set("upcoming", JSON.stringify(merged)); }
-          if (key === "known_items") { setKnownItems(merged); window.storage.set("known_items", JSON.stringify(merged)); }
+          if (key === "entries") { snapEntries = merged; setEntries(merged); window.storage.set("entries", JSON.stringify(merged)); }
+          if (key === "upcoming") { snapUpcoming = merged; setUpcoming(merged); window.storage.set("upcoming", JSON.stringify(merged)); }
+          if (key === "known_items") { snapKnown = merged; setKnownItems(merged); window.storage.set("known_items", JSON.stringify(merged)); }
         }
       ).catch(e => console.error("Sync after token save failed:", e));
     }
