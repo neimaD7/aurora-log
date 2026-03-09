@@ -1161,12 +1161,12 @@ function App() {
   return (
     <div style={{ minHeight: "100vh", background: "#0a0a0a", color: "#f5f5f5", fontFamily: "'Courier New', monospace", maxWidth: 660, margin: "0 auto" }}>
       <div style={{ borderBottom: "2px solid #ffffff", padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 auto", minWidth: 0 }}>
+          <div style={{ flexShrink: 0 }}>
             <div style={{ fontSize: "0.62rem", letterSpacing: "0.22em", color: "#555555", marginBottom: 1 }}>AURORA</div>
             <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.06em", lineHeight: 1 }}>RECEIVING LOG</div>
           </div>
-          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
             <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "6px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>
               DICT{knownItems.length > 0 && <span style={{ fontSize: "0.6rem", color: "#666666", marginLeft: 2 }}>{knownItems.length}</span>}
             </button>
@@ -1174,7 +1174,7 @@ function App() {
             <button onClick={() => setShowApiKey(true)} style={{ background: getApiKey() ? "none" : "#1a0000", border: "1px solid " + (getApiKey() ? "#2a2a2a" : "#8a2020"), color: getApiKey() ? "#555555" : "#c07070", padding: "6px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", cursor: "pointer" }}>KEY</button>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
           {isPullTab ? (
             <React.Fragment>
               <button onClick={() => setShowPullIntake(s => !s)} style={{ background: showPullIntake ? "#141414" : "none", border: "1px solid " + (showPullIntake ? "rgba(91,143,255,0.5)" : "#2a2a2a"), color: showPullIntake ? "#5b8fff" : "#666666", padding: "6px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>{showPullIntake ? "HIDE" : "+ SO"}</button>
