@@ -167,6 +167,25 @@ function findBestMatch(name, knownItems) {
   return bestScore >= 0.5 ? bestItem : null;
 }
 
+function extractJSON(text) {
+  // Try direct parse first
+  const cleaned = text.replace(FENCE_RE, "").trim();
+  try { return JSON.parse(cleaned); } catch(e) {}
+  // Try to find JSON object in the text
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start !== -1 && end > start) {
+    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch(e) {}
+  }
+  // Try to find JSON array
+  const aStart = cleaned.indexOf("[");
+  const aEnd = cleaned.lastIndexOf("]");
+  if (aStart !== -1 && aEnd > aStart) {
+    try { return JSON.parse(cleaned.slice(aStart, aEnd + 1)); } catch(e) {}
+  }
+  return null;
+}
+
 function matchPriority(itemName, priorityList) {
   const norm = normalizeForMatch(itemName);
   for (let i = 0; i < priorityList.length; i++) {
@@ -481,8 +500,8 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
       const data = await res.json();
       if (data.error) { setError("API error: " + (data.error.message || "Unknown")); setLoading(false); return; }
       const text = data.content?.map(b => b.text || "").join("").trim();
-      let result;
-      try { result = JSON.parse(text.replace(FENCE_RE, "").trim()); } catch { setError("Couldn't parse — try again or enter manually."); setLoading(false); return; }
+      let result = extractJSON(text);
+      if (!result) { setError("Couldn't parse response. API returned: " + text.slice(0, 120)); setLoading(false); return; }
       if (result.lineItems) {
         result.lineItems = result.lineItems.map(li => {
           const match = findBestMatch(li.name, knownItems);
@@ -628,8 +647,8 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
       const data = await res.json();
       if (data.error) { setError("API error: " + (data.error.message || "Unknown")); setLoading(false); return; }
       const text = data.content?.map(b => b.text || "").join("").trim();
-      let result;
-      try { result = JSON.parse(text.replace(FENCE_RE, "").trim()); } catch { setError("Couldn't parse SO — try again or enter manually."); setLoading(false); return; }
+      let result = extractJSON(text);
+      if (!result) { setError("Couldn't parse SO. API returned: " + text.slice(0, 120)); setLoading(false); return; }
       if (result.lineItems) {
         result.lineItems = result.lineItems.map(li => {
           const match = findBestMatch(li.name, knownItems);
