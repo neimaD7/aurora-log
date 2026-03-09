@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Bob — Dashboard</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤙</text></svg>">
+<meta name="theme-color" content="#0a0a0a">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: #0a0a0a; color: #f5f5f5; font-family: 'Courier New', monospace; min-height: 100vh; }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: #0a0a0a; }
+  ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+
+  .container { max-width: 660px; margin: 0 auto; padding: 0; }
+
+  .header {
+    border-bottom: 2px solid #ffffff;
+    padding: 12px 14px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .header-title .sub { font-size: 0.62rem; letter-spacing: 0.22em; color: #555555; margin-bottom: 1px; }
+  .header-title .main { font-size: 1.25rem; font-weight: 700; color: #ffffff; letter-spacing: 0.06em; line-height: 1; }
+  .header-right { display: flex; gap: 8px; align-items: center; }
+  .header-btn {
+    background: none; border: 1px solid #2a2a2a; color: #666666;
+    padding: 6px 12px; font-family: 'Courier New', monospace;
+    font-size: 0.78rem; font-weight: 700; cursor: pointer;
+  }
+  .header-btn:hover { border-color: #444444; color: #888888; }
+  .header-btn.active { border-color: rgba(91,143,255,0.5); color: #5b8fff; background: #141414; }
+
+  .status-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    display: inline-block; margin-right: 6px; flex-shrink: 0;
+  }
+  .status-dot.idle { background: #333333; }
+  .status-dot.running { background: #5b8fff; animation: pulse 1.5s infinite; }
+  .status-dot.done { background: #00c853; }
+  .status-dot.failed { background: #ff4444; }
+  .status-dot.killed { background: #c9a84c; }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  .task-card {
+    border-left: 3px solid #333333;
+    background: #111111;
+    padding: 14px 16px;
+    margin: 8px 12px;
+  }
+  .task-card.running { border-left-color: #5b8fff; }
+  .task-card.done { border-left-color: #00c853; }
+  .task-card.failed { border-left-color: #ff4444; }
+  .task-card.killed { border-left-color: #c9a84c; }
+
+  .task-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
+  .task-name { color: #ffffff; font-weight: 700; font-size: 0.94rem; }
+  .task-status {
+    font-size: 0.68rem; letter-spacing: 0.1em; font-weight: 700;
+    padding: 2px 8px; flex-shrink: 0;
+  }
+  .task-status.running { color: #5b8fff; }
+  .task-status.done { color: #00c853; }
+  .task-status.failed { color: #ff4444; }
+  .task-status.killed { color: #c9a84c; }
+
+  .task-meta { font-size: 0.72rem; color: #555555; margin-bottom: 6px; }
+  .task-progress { font-size: 0.82rem; color: #999999; line-height: 1.5; }
+  .task-progress .timestamp { color: #444444; font-size: 0.68rem; margin-right: 6px; }
+  .task-elapsed { color: #444444; font-size: 0.68rem; margin-top: 6px; }
+
+  .empty-state {
+    padding: 80px 20px; text-align: center;
+  }
+  .empty-state .emoji { font-size: 2rem; margin-bottom: 12px; }
+  .empty-state .msg { color: #333333; font-size: 0.88rem; margin-bottom: 6px; }
+  .empty-state .sub { color: #222222; font-size: 0.74rem; }
+
+  .refresh-bar {
+    text-align: center; padding: 8px;
+    font-size: 0.58rem; letter-spacing: 0.12em; color: #333333;
+  }
+  .refresh-bar.error { color: #ff4444; }
+  .refresh-bar.connected { color: #2a4a2a; }
+
+  .setup-modal {
+    position: fixed; inset: 0; background: rgba(8,7,5,0.88);
+    display: flex; align-items: center; justify-content: center; z-index: 1000;
+  }
+  .setup-box {
+    background: #141414; border: 1px solid #2a2a2a;
+    width: min(380px, 92vw); padding: 20px 16px;
+  }
+  .setup-title { color: #ffffff; font-weight: 700; font-size: 0.94rem; letter-spacing: 0.12em; margin-bottom: 12px; }
+  .setup-input {
+    width: 100%; background: #0a0a0a; border: 1px solid #2a2a2a;
+    color: #f5f5f5; padding: 8px 10px; font-size: 0.97rem;
+    font-family: 'Courier New', monospace; outline: none; margin-bottom: 10px;
+  }
+  .setup-btn {
+    width: 100%; background: #ffffff; color: #0a0a0a; border: none;
+    padding: 8px; font-family: 'Courier New', monospace; font-weight: 700; cursor: pointer;
+  }
+
+  .summary-bar {
+    display: flex; gap: 16px; padding: 12px 14px;
+    border-bottom: 1px solid #1a1a1a;
+  }
+  .summary-item { font-size: 0.72rem; color: #555555; }
+  .summary-item .count { color: #ffffff; font-weight: 700; margin-right: 4px; }
+  .summary-item .count.running { color: #5b8fff; }
+  .summary-item .count.zero { color: #333333; }
+
+  .log-entry { padding: 3px 0; border-bottom: 1px solid #0d0d0d; }
+</style>
+</head>
+<body>
+<div class="container" id="app">
+  <div class="header">
+    <div class="header-title">
+      <div class="sub">BOB</div>
+      <div class="main">DASHBOARD</div>
+    </div>
+    <div class="header-right">
+      <button class="header-btn" id="refreshBtn" onclick="refresh()">REFRESH</button>
+      <button class="header-btn" id="setupBtn" onclick="toggleSetup()">TOKEN</button>
+    </div>
+  </div>
+
+  <div class="summary-bar" id="summaryBar">
+    <div class="summary-item"><span class="count zero" id="runningCount">0</span>RUNNING</div>
+    <div class="summary-item"><span class="count zero" id="doneCount">0</span>DONE</div>
+    <div class="summary-item"><span class="count zero" id="failedCount">0</span>FAILED</div>
+  </div>
+
+  <div id="taskList"></div>
+  <div class="refresh-bar" id="refreshBar">WAITING FOR TOKEN...</div>
+</div>
+
+<div class="setup-modal" id="setupModal" style="display:none">
+  <div class="setup-box">
+    <div class="setup-title">SYNC TOKEN</div>
+    <input class="setup-input" id="tokenInput" type="password" placeholder="github_pat_..." />
+    <button class="setup-btn" onclick="saveToken()">SAVE</button>
+  </div>
+</div>
+
+<script>
+const OWNER = "neimaD7";
+const REPO = "aurora-log-data";
+const STATUS_FILE = "status.json";
+let autoRefreshTimer = null;
+let lastData = null;
+
+function getToken() { return localStorage.getItem("aurora_sync_token") || ""; }
+function saveToken() {
+  const val = document.getElementById("tokenInput").value.trim();
+  if (val) {
+    localStorage.setItem("aurora_sync_token", val);
+    document.getElementById("setupModal").style.display = "none";
+    refresh();
+    startAutoRefresh();
+  }
+}
+function toggleSetup() {
+  const modal = document.getElementById("setupModal");
+  const visible = modal.style.display !== "none";
+  modal.style.display = visible ? "none" : "flex";
+  if (!visible) document.getElementById("tokenInput").value = getToken();
+}
+
+function formatElapsed(ms) {
+  if (ms < 0) ms = 0;
+  var s = Math.floor(ms / 1000);
+  if (s < 60) return s + "s";
+  if (s < 3600) return Math.floor(s / 60) + "m " + (s % 60) + "s";
+  return Math.floor(s / 3600) + "h " + Math.floor((s % 3600) / 60) + "m";
+}
+
+function formatTime(ts) {
+  if (!ts) return "";
+  var d = new Date(ts);
+  var h = d.getHours();
+  var m = String(d.getMinutes()).padStart(2, "0");
+  var ampm = h >= 12 ? "PM" : "AM";
+  h = h % 12 || 12;
+  return h + ":" + m + " " + ampm;
+}
+
+function formatAgo(ts) {
+  if (!ts) return "";
+  var ago = Math.round((Date.now() - ts) / 1000);
+  if (ago < 60) return ago + "s ago";
+  if (ago < 3600) return Math.round(ago / 60) + "m ago";
+  if (ago < 86400) return Math.round(ago / 3600) + "h ago";
+  return Math.round(ago / 86400) + "d ago";
+}
+
+async function fetchStatus() {
+  var token = getToken();
+  if (!token) return null;
+  var res = await fetch("https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + STATUS_FILE, {
+    headers: { "Authorization": "Bearer " + token, "Accept": "application/vnd.github.v3+json" },
+    cache: "no-store"
+  });
+  if (res.status === 404) return { tasks: [], lastUpdated: null };
+  if (!res.ok) throw new Error("API error: " + res.status);
+  var data = await res.json();
+  var decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ""))));
+  return JSON.parse(decoded);
+}
+
+function renderTasks(data) {
+  var list = document.getElementById("taskList");
+  var bar = document.getElementById("refreshBar");
+
+  if (!data || !data.tasks) {
+    list.innerHTML = '<div class="empty-state"><div class="emoji">🤙</div><div class="msg">No tasks tracked yet.</div><div class="sub">Bob will update this when work starts.</div></div>';
+    bar.className = "refresh-bar connected";
+    bar.textContent = "CONNECTED — NO ACTIVE TASKS";
+    updateSummary(data);
+    return;
+  }
+
+  // Sort: running first, then by most recent
+  var tasks = data.tasks.slice().sort(function(a, b) {
+    var order = { running: 0, failed: 1, killed: 2, done: 3 };
+    var oa = order[a.status] !== undefined ? order[a.status] : 4;
+    var ob = order[b.status] !== undefined ? order[b.status] : 4;
+    if (oa !== ob) return oa - ob;
+    return (b.updated || b.started || 0) - (a.updated || a.started || 0);
+  });
+
+  var html = "";
+  for (var i = 0; i < tasks.length; i++) {
+    var t = tasks[i];
+    var status = t.status || "idle";
+    var now = Date.now();
+    var elapsed = t.started ? (t.completed || now) - t.started : 0;
+
+    html += '<div class="task-card ' + status + '">';
+    html += '<div class="task-header">';
+    html += '<div class="task-name"><span class="status-dot ' + status + '"></span>' + escHtml(t.name || "Unnamed Task") + '</div>';
+    html += '<div class="task-status ' + status + '">' + status.toUpperCase() + '</div>';
+    html += '</div>';
+
+    // Meta line
+    var meta = [];
+    if (t.started) meta.push("Started " + formatTime(t.started));
+    if (t.completed) meta.push("Finished " + formatTime(t.completed));
+    if (t.sessionId) meta.push("Session: " + t.sessionId);
+    if (meta.length) html += '<div class="task-meta">' + meta.join(" &middot; ") + '</div>';
+
+    // Progress log
+    if (t.log && t.log.length) {
+      html += '<div class="task-progress">';
+      var logSlice = t.log.slice(-5); // Show last 5 entries
+      for (var j = 0; j < logSlice.length; j++) {
+        var entry = logSlice[j];
+        html += '<div class="log-entry">';
+        if (entry.time) html += '<span class="timestamp">' + formatTime(entry.time) + '</span>';
+        html += escHtml(entry.msg || "");
+        html += '</div>';
+      }
+      html += '</div>';
+    } else if (t.progress) {
+      html += '<div class="task-progress">' + escHtml(t.progress) + '</div>';
+    }
+
+    // Elapsed
+    if (elapsed > 0) {
+      html += '<div class="task-elapsed">' + formatElapsed(elapsed);
+      if (status === "running") html += ' (running)';
+      html += '</div>';
+    }
+
+    html += '</div>';
+  }
+
+  list.innerHTML = html;
+  bar.className = "refresh-bar connected";
+  bar.textContent = "UPDATED " + formatAgo(data.lastUpdated || Date.now());
+  updateSummary(data);
+}
+
+function updateSummary(data) {
+  var running = 0, done = 0, failed = 0;
+  if (data && data.tasks) {
+    for (var i = 0; i < data.tasks.length; i++) {
+      var s = data.tasks[i].status;
+      if (s === "running") running++;
+      else if (s === "done") done++;
+      else if (s === "failed" || s === "killed") failed++;
+    }
+  }
+  var rc = document.getElementById("runningCount");
+  var dc = document.getElementById("doneCount");
+  var fc = document.getElementById("failedCount");
+  rc.textContent = running + " ";
+  rc.className = "count" + (running > 0 ? " running" : " zero");
+  dc.textContent = done + " ";
+  dc.className = "count" + (done > 0 ? "" : " zero");
+  fc.textContent = failed + " ";
+  fc.className = "count" + (failed > 0 ? "" : " zero");
+}
+
+function escHtml(s) {
+  return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+async function refresh() {
+  var bar = document.getElementById("refreshBar");
+  var btn = document.getElementById("refreshBtn");
+  if (!getToken()) {
+    bar.className = "refresh-bar";
+    bar.textContent = "WAITING FOR TOKEN...";
+    toggleSetup();
+    return;
+  }
+  btn.textContent = "...";
+  try {
+    var data = await fetchStatus();
+    lastData = data;
+    renderTasks(data);
+  } catch (e) {
+    bar.className = "refresh-bar error";
+    bar.textContent = "ERROR: " + e.message;
+  }
+  btn.textContent = "REFRESH";
+}
+
+function startAutoRefresh() {
+  if (autoRefreshTimer) clearInterval(autoRefreshTimer);
+  autoRefreshTimer = setInterval(function() {
+    if (getToken()) refresh();
+  }, 30000);
+}
+
+// Init
+if (getToken()) {
+  refresh();
+  startAutoRefresh();
+} else {
+  document.getElementById("taskList").innerHTML = '<div class="empty-state"><div class="emoji">🔑</div><div class="msg">Enter your sync token to connect.</div><div class="sub">Same token as Aurora Log sync.</div></div>';
+  toggleSetup();
+}
+
+// Refresh elapsed times every second for running tasks
+setInterval(function() {
+  if (!lastData || !lastData.tasks) return;
+  var hasRunning = lastData.tasks.some(function(t) { return t.status === "running"; });
+  if (hasRunning) renderTasks(lastData);
+}, 1000);
+</script>
+</body>
+</html>
