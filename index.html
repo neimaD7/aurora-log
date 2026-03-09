@@ -821,7 +821,7 @@ function ApiKeyModal({ onClose }) {
   );
 }
 
-function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown }) {
+function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown, onOpenLabels, onOpenApiKey }) {
   const [editName, setEditName] = useState(null);
   const [editVal, setEditVal] = useState("");
   const remove = (idx) => { const next = knownItems.filter((_, i) => i !== idx); setKnownItems(next); persistKnown(next); };
@@ -855,6 +855,10 @@ function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown }) {
             )}
           </div>
         ))}
+        <div style={{ display: "flex", gap: 8, marginTop: 16, paddingTop: 14, borderTop: "1px solid #1a1a1a" }}>
+          <button onClick={() => { onClose(); onOpenLabels(); }} style={{ flex: 1, background: "none", border: "1px solid #2a2a2a", color: "#888888", padding: "8px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>LABELS</button>
+          <button onClick={() => { onClose(); onOpenApiKey(); }} style={{ flex: 1, background: "none", border: "1px solid #2a2a2a", color: "#555555", padding: "8px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", cursor: "pointer", letterSpacing: "0.06em" }}>API KEY</button>
+        </div>
       </div>
     </div>
   );
@@ -1166,13 +1170,9 @@ function App() {
             <div style={{ fontSize: "0.62rem", letterSpacing: "0.22em", color: "#555555", marginBottom: 1 }}>AURORA</div>
             <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.06em", lineHeight: 1 }}>RECEIVING LOG</div>
           </div>
-          <div style={{ display: "flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>
-            <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "6px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>
+          <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "6px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>
               DICT{knownItems.length > 0 && <span style={{ fontSize: "0.6rem", color: "#666666", marginLeft: 2 }}>{knownItems.length}</span>}
-            </button>
-            <button onClick={() => setShowLabels(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: "#555555", padding: "6px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", cursor: "pointer" }}>LBL</button>
-            <button onClick={() => setShowApiKey(true)} style={{ background: getApiKey() ? "none" : "#1a0000", border: "1px solid " + (getApiKey() ? "#2a2a2a" : "#8a2020"), color: getApiKey() ? "#555555" : "#c07070", padding: "6px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", cursor: "pointer" }}>KEY</button>
-          </div>
+          </button>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
           {isPullTab ? (
@@ -1279,7 +1279,7 @@ function App() {
 
       {showAdd && <AddModal onClose={closeModal} onSave={editEntry ? handleSaveEdit : addEntry} onSaveUpcoming={addUpcoming} defaultType={tab === "po" ? "PO" : tab === "transfers" ? "Transfer In" : "PO"} editEntry={editEntry} editMode={editMode} knownItems={knownItems} />}
       {showApiKey && <ApiKeyModal onClose={() => setShowApiKey(false)} />}
-      {showDict && <ItemDictModal onClose={() => setShowDict(false)} knownItems={knownItems} setKnownItems={setKnownItems} persistKnown={persistKnown} />}
+      {showDict && <ItemDictModal onClose={() => setShowDict(false)} knownItems={knownItems} setKnownItems={setKnownItems} persistKnown={persistKnown} onOpenLabels={() => setShowLabels(true)} onOpenApiKey={() => setShowApiKey(true)} />}
       {showLabels && <LabelMakerModal onClose={() => setShowLabels(false)} knownItems={knownItems} />}
       {showPriority && <PullPriorityModal onClose={() => setShowPriority(false)} priority={pullPriority} onSave={persistPullPriority} />}
     </div>
