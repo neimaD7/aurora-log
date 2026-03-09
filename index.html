@@ -145,6 +145,8 @@ function normalizeForMatch(str) {
   return (str || "").toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function hasDigit(s) { return /\d/.test(s); }
+
 function findBestMatch(name, knownItems) {
   if (!name || !knownItems.length) return null;
   const norm = normalizeForMatch(name);
@@ -157,14 +159,22 @@ function findBestMatch(name, knownItems) {
   for (const item of knownItems) {
     const kTokens = normalizeForMatch(item.name).split(" ").filter(t => t.length > 1);
     if (!kTokens.length) continue;
+    // Check that numeric tokens match exactly — sizes/dimensions matter
+    const inputNums = tokens.filter(hasDigit);
+    const knownNums = kTokens.filter(hasDigit);
+    // If both have numbers, ALL numbers in the input must appear exactly in the known item
+    if (inputNums.length > 0 && knownNums.length > 0) {
+      const numMismatch = inputNums.some(n => !knownNums.includes(n)) || knownNums.some(n => !inputNums.includes(n));
+      if (numMismatch) continue; // Different size/dimension — skip entirely
+    }
     let overlap = 0;
     for (const t of tokens) {
-      if (kTokens.some(kt => kt.includes(t) || t.includes(kt))) overlap++;
+      if (kTokens.some(kt => kt === t)) overlap++; // Exact token match only
     }
     const score = overlap / Math.max(tokens.length, kTokens.length);
     if (score > bestScore) { bestScore = score; bestItem = item; }
   }
-  return bestScore >= 0.5 ? bestItem : null;
+  return bestScore >= 0.6 ? bestItem : null;
 }
 
 function extractJSON(text) {
@@ -477,7 +487,7 @@ Return ONLY valid JSON, no markdown:
   "notes": ""
 }
 
-CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a known item below, you MUST use the known item's exact name — even if the document abbreviates it, shortens it, or describes it differently.` + knownItemsList;
+CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (same size, same dimensions, same grade) as a known item below, use the known item's exact name. But if the size or dimensions differ (e.g. 1/2" vs 5/8", 18" vs 24", Grade 40 vs Grade 60), treat it as a DIFFERENT item and use the name as written on the document. Do NOT substitute a different size from the known items list.` + knownItemsList;
 
   const handleImage = (e) => {
     const file = e.target.files[0]; if (!file) return;
@@ -625,7 +635,7 @@ Return ONLY valid JSON, no markdown:
   "lineItems": [ { "name": "item name", "qty": number, "unit": "bags/pcs/rolls/etc" } ]
 }
 
-CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a known item below, you MUST use the known item's exact name.` + knownItemsList;
+CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (same size, same dimensions, same grade) as a known item below, use the known item's exact name. But if the size or dimensions differ (e.g. 1/2" vs 5/8", 18" vs 24", Grade 40 vs Grade 60), treat it as a DIFFERENT item and use the name as written on the document. Do NOT substitute a different size from the known items list.` + knownItemsList;
 
   const handleImage = (e) => {
     const file = e.target.files[0]; if (!file) return;
