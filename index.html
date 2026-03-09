@@ -1166,23 +1166,23 @@ function App() {
             <div style={{ fontSize: "0.62rem", letterSpacing: "0.22em", color: "#555555", marginBottom: 1 }}>AURORA</div>
             <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.06em", lineHeight: 1 }}>RECEIVING LOG</div>
           </div>
-          <div style={{ display: "flex", gap: 4, alignItems: "center" }}>
-            <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "4px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", fontWeight: 700, cursor: "pointer" }}>
-              DICT{knownItems.length > 0 && <span style={{ fontSize: "0.54rem", color: "#666666", marginLeft: 2 }}>{knownItems.length}</span>}
+          <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+            <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "6px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>
+              DICT{knownItems.length > 0 && <span style={{ fontSize: "0.6rem", color: "#666666", marginLeft: 2 }}>{knownItems.length}</span>}
             </button>
-            <button onClick={() => setShowLabels(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: "#555555", padding: "4px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", cursor: "pointer" }}>LBL</button>
-            <button onClick={() => setShowApiKey(true)} style={{ background: getApiKey() ? "none" : "#1a0000", border: "1px solid " + (getApiKey() ? "#2a2a2a" : "#8a2020"), color: getApiKey() ? "#555555" : "#c07070", padding: "4px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", cursor: "pointer" }}>KEY</button>
+            <button onClick={() => setShowLabels(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: "#555555", padding: "6px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", cursor: "pointer" }}>LBL</button>
+            <button onClick={() => setShowApiKey(true)} style={{ background: getApiKey() ? "none" : "#1a0000", border: "1px solid " + (getApiKey() ? "#2a2a2a" : "#8a2020"), color: getApiKey() ? "#555555" : "#c07070", padding: "6px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", cursor: "pointer" }}>KEY</button>
           </div>
         </div>
-        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
           {isPullTab ? (
             <React.Fragment>
-              <button onClick={() => setShowPullIntake(s => !s)} style={{ background: showPullIntake ? "#141414" : "none", border: "1px solid " + (showPullIntake ? "rgba(91,143,255,0.5)" : "#2a2a2a"), color: showPullIntake ? "#5b8fff" : "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>{showPullIntake ? "HIDE" : "+ SO"}</button>
+              <button onClick={() => setShowPullIntake(s => !s)} style={{ background: showPullIntake ? "#141414" : "none", border: "1px solid " + (showPullIntake ? "rgba(91,143,255,0.5)" : "#2a2a2a"), color: showPullIntake ? "#5b8fff" : "#666666", padding: "6px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>{showPullIntake ? "HIDE" : "+ SO"}</button>
             </React.Fragment>
           ) : (
             <React.Fragment>
-              <button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? "#141414" : "none", border: "1px solid " + (showIntake ? "rgba(255,255,255,0.33)" : "#2a2a2a"), color: showIntake ? "#ffffff" : "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>{showIntake ? "HIDE" : "SCAN"}</button>
-              <button onClick={() => { setEditEntry(null); setEditMode(null); setShowAdd(true); }} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>+ LOG</button>
+              <button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? "#141414" : "none", border: "1px solid " + (showIntake ? "rgba(255,255,255,0.33)" : "#2a2a2a"), color: showIntake ? "#ffffff" : "#666666", padding: "6px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>{showIntake ? "HIDE" : "SCAN"}</button>
+              <button onClick={() => { setEditEntry(null); setEditMode(null); setShowAdd(true); }} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "6px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>+ LOG</button>
             </React.Fragment>
           )}
         </div>
