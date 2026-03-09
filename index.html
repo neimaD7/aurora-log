@@ -168,14 +168,17 @@ function findBestMatch(name, knownItems) {
 }
 
 function extractJSON(text) {
-  // Try direct parse first
-  const cleaned = text.replace(FENCE_RE, "").trim();
-  try { return JSON.parse(cleaned); } catch(e) {}
+  // Strip any markdown fences aggressively (handles newlines, spaces, variants)
+  let cleaned = text.replace(FENCE_RE, "");
+  // Also strip any remaining lines that are just whitespace or "json"
+  cleaned = cleaned.replace(/^\s*json\s*$/gm, "").trim();
+  // Try direct parse
+  try { return JSON.parse(cleaned); } catch(e) { console.log("extractJSON direct parse failed:", e.message); }
   // Try to find JSON object in the text
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start !== -1 && end > start) {
-    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch(e) {}
+    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch(e) { console.log("extractJSON object extract failed:", e.message, "slice:", cleaned.slice(Math.max(end - 30, start), end + 1)); }
   }
   // Try to find JSON array
   const aStart = cleaned.indexOf("[");
@@ -183,6 +186,7 @@ function extractJSON(text) {
   if (aStart !== -1 && aEnd > aStart) {
     try { return JSON.parse(cleaned.slice(aStart, aEnd + 1)); } catch(e) {}
   }
+  console.log("extractJSON failed. Full cleaned text:", cleaned);
   return null;
 }
 
@@ -501,7 +505,7 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
       if (data.error) { setError("API error: " + (data.error.message || "Unknown")); setLoading(false); return; }
       const text = data.content?.map(b => b.text || "").join("").trim();
       let result = extractJSON(text);
-      if (!result) { setError("Couldn't parse response. API returned: " + text.slice(0, 120)); setLoading(false); return; }
+      if (!result) { setError("Couldn't parse response. API returned: " + text.slice(0, 300)); setLoading(false); return; }
       if (result.lineItems) {
         result.lineItems = result.lineItems.map(li => {
           const match = findBestMatch(li.name, knownItems);
@@ -648,7 +652,7 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the same product as a kn
       if (data.error) { setError("API error: " + (data.error.message || "Unknown")); setLoading(false); return; }
       const text = data.content?.map(b => b.text || "").join("").trim();
       let result = extractJSON(text);
-      if (!result) { setError("Couldn't parse SO. API returned: " + text.slice(0, 120)); setLoading(false); return; }
+      if (!result) { setError("Couldn't parse SO. API returned: " + text.slice(0, 300)); setLoading(false); return; }
       if (result.lineItems) {
         result.lineItems = result.lineItems.map(li => {
           const match = findBestMatch(li.name, knownItems);
