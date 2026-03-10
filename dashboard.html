@@ -3,9 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Bob — Dashboard</title>
+<title>Bob — Dashboard V2</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤙</text></svg>">
 <meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body { background: #0a0a0a; color: #f5f5f5; font-family: 'Courier New', monospace; min-height: 100vh; }
@@ -31,6 +33,58 @@
   .header-btn:hover { border-color: #444444; color: #888888; }
   .header-btn.active { border-color: rgba(91,143,255,0.5); color: #5b8fff; background: #141414; }
 
+  /* Weather Widget */
+  .weather-widget {
+    padding: 10px 14px;
+    border-bottom: 1px solid #1a1a1a;
+    background: #0d0d0d;
+  }
+  .weather-row {
+    display: flex; align-items: center; gap: 10px;
+    flex-wrap: wrap;
+  }
+  .weather-location {
+    font-size: 0.62rem; letter-spacing: 0.15em; color: #444444;
+    text-transform: uppercase; margin-bottom: 4px;
+  }
+  .weather-current {
+    display: flex; align-items: baseline; gap: 6px;
+  }
+  .weather-emoji { font-size: 1.1rem; line-height: 1; }
+  .weather-temp {
+    font-size: 1.3rem; font-weight: 700; color: #ffffff; line-height: 1;
+  }
+  .weather-condition {
+    font-size: 0.72rem; color: #888888;
+  }
+  .weather-details {
+    display: flex; gap: 12px; align-items: center;
+    font-size: 0.68rem; color: #555555;
+    margin-left: auto;
+  }
+  .weather-details .hi { color: #c9a84c; }
+  .weather-details .lo { color: #5b8fff; }
+  .weather-details .precip { color: #5b8fff; }
+  .weather-tomorrow {
+    display: flex; align-items: center; gap: 8px;
+    font-size: 0.64rem; color: #444444;
+    margin-top: 4px;
+    padding-top: 4px;
+    border-top: 1px solid #141414;
+  }
+  .weather-tomorrow .label { color: #333333; letter-spacing: 0.1em; }
+  .weather-tomorrow .hi { color: #6b5a2a; }
+  .weather-tomorrow .lo { color: #3a5a8f; }
+  .weather-loading {
+    font-size: 0.68rem; color: #333333; letter-spacing: 0.1em;
+    padding: 4px 0;
+  }
+  .weather-error {
+    font-size: 0.68rem; color: #ff4444; letter-spacing: 0.1em;
+    padding: 4px 0;
+  }
+
+  /* Status dots */
   .status-dot {
     width: 8px; height: 8px; border-radius: 50%;
     display: inline-block; margin-right: 6px; flex-shrink: 0;
@@ -131,6 +185,10 @@
     </div>
   </div>
 
+  <div class="weather-widget" id="weatherWidget">
+    <div class="weather-loading">LOADING WEATHER...</div>
+  </div>
+
   <div class="summary-bar" id="summaryBar">
     <div class="summary-item"><span class="count zero" id="runningCount">0</span>RUNNING</div>
     <div class="summary-item"><span class="count zero" id="doneCount">0</span>DONE</div>
@@ -150,15 +208,131 @@
 </div>
 
 <script>
-const OWNER = "neimaD7";
-const REPO = "aurora-log-data";
-const STATUS_FILE = "status.json";
-let autoRefreshTimer = null;
-let lastData = null;
+// ===== WEATHER WIDGET =====
+var WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=45.23&longitude=-122.75&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&hourly=temperature_2m,precipitation,weathercode&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=America/Los_Angeles&forecast_days=2";
+
+var WEATHER_CODES = {
+  0: { label: "Clear", emoji: "\u2600\uFE0F" },
+  1: { label: "Clear", emoji: "\uD83C\uDF24\uFE0F" },
+  2: { label: "Partly Cloudy", emoji: "\u26C5" },
+  3: { label: "Overcast", emoji: "\u2601\uFE0F" },
+  45: { label: "Fog", emoji: "\uD83C\uDF2B\uFE0F" },
+  48: { label: "Fog", emoji: "\uD83C\uDF2B\uFE0F" },
+  51: { label: "Light Drizzle", emoji: "\uD83C\uDF26\uFE0F" },
+  53: { label: "Drizzle", emoji: "\uD83C\uDF26\uFE0F" },
+  55: { label: "Heavy Drizzle", emoji: "\uD83C\uDF26\uFE0F" },
+  61: { label: "Light Rain", emoji: "\uD83C\uDF27\uFE0F" },
+  63: { label: "Rain", emoji: "\uD83C\uDF27\uFE0F" },
+  65: { label: "Heavy Rain", emoji: "\uD83C\uDF27\uFE0F" },
+  71: { label: "Light Snow", emoji: "\uD83C\uDF28\uFE0F" },
+  73: { label: "Snow", emoji: "\u2744\uFE0F" },
+  75: { label: "Heavy Snow", emoji: "\u2744\uFE0F" },
+  80: { label: "Rain Showers", emoji: "\uD83C\uDF27\uFE0F" },
+  81: { label: "Rain Showers", emoji: "\uD83C\uDF27\uFE0F" },
+  82: { label: "Heavy Showers", emoji: "\u26C8\uFE0F" },
+  95: { label: "Thunderstorm", emoji: "\u26A1" },
+  96: { label: "Thunderstorm", emoji: "\u26A1" },
+  99: { label: "Thunderstorm", emoji: "\u26A1" }
+};
+
+function getWeatherInfo(code) {
+  if (WEATHER_CODES[code]) return WEATHER_CODES[code];
+  // Fallback ranges
+  if (code <= 1) return { label: "Clear", emoji: "\u2600\uFE0F" };
+  if (code <= 3) return { label: "Cloudy", emoji: "\u2601\uFE0F" };
+  if (code <= 48) return { label: "Fog", emoji: "\uD83C\uDF2B\uFE0F" };
+  if (code <= 55) return { label: "Drizzle", emoji: "\uD83C\uDF26\uFE0F" };
+  if (code <= 65) return { label: "Rain", emoji: "\uD83C\uDF27\uFE0F" };
+  if (code <= 75) return { label: "Snow", emoji: "\u2744\uFE0F" };
+  if (code <= 82) return { label: "Showers", emoji: "\uD83C\uDF27\uFE0F" };
+  return { label: "Storm", emoji: "\u26A1" };
+}
+
+function getCurrentHourIndex(hourlyTimes) {
+  var now = new Date();
+  var best = 0;
+  var bestDiff = Infinity;
+  for (var i = 0; i < hourlyTimes.length; i++) {
+    var diff = Math.abs(new Date(hourlyTimes[i]).getTime() - now.getTime());
+    if (diff < bestDiff) { bestDiff = diff; best = i; }
+  }
+  return best;
+}
+
+async function fetchWeather() {
+  var widget = document.getElementById("weatherWidget");
+  try {
+    var res = await fetch(WEATHER_URL);
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    var data = await res.json();
+
+    var hourIdx = getCurrentHourIndex(data.hourly.time);
+    var currentTemp = Math.round(data.hourly.temperature_2m[hourIdx]);
+    var currentCode = data.hourly.weathercode[hourIdx];
+    var currentPrecip = data.hourly.precipitation[hourIdx];
+    var currentInfo = getWeatherInfo(currentCode);
+
+    // Today (index 0)
+    var todayHi = Math.round(data.daily.temperature_2m_max[0]);
+    var todayLo = Math.round(data.daily.temperature_2m_min[0]);
+    var todayPrecip = data.daily.precipitation_sum[0];
+
+    // Tomorrow (index 1)
+    var tmrwHi = Math.round(data.daily.temperature_2m_max[1]);
+    var tmrwLo = Math.round(data.daily.temperature_2m_min[1]);
+    var tmrwCode = data.daily.weathercode[1];
+    var tmrwPrecip = data.daily.precipitation_sum[1];
+    var tmrwInfo = getWeatherInfo(tmrwCode);
+
+    var h = '<div class="weather-location">AURORA, OR</div>';
+    h += '<div class="weather-row">';
+    h += '<div class="weather-current">';
+    h += '<span class="weather-emoji">' + currentInfo.emoji + '</span>';
+    h += '<span class="weather-temp">' + currentTemp + '\u00B0</span>';
+    h += '<span class="weather-condition">' + currentInfo.label + '</span>';
+    h += '</div>';
+    h += '<div class="weather-details">';
+    h += '<span><span class="hi">\u25B2' + todayHi + '\u00B0</span> <span class="lo">\u25BC' + todayLo + '\u00B0</span></span>';
+    if (todayPrecip > 0) {
+      h += '<span class="precip">\uD83D\uDCA7' + todayPrecip.toFixed(2) + '"</span>';
+    }
+    if (currentPrecip > 0) {
+      h += '<span class="precip">now: ' + currentPrecip.toFixed(2) + '"/hr</span>';
+    }
+    h += '</div>';
+    h += '</div>';
+
+    // Tomorrow row
+    h += '<div class="weather-tomorrow">';
+    h += '<span class="label">TMR</span>';
+    h += '<span>' + tmrwInfo.emoji + '</span>';
+    h += '<span>' + tmrwInfo.label + '</span>';
+    h += '<span><span class="hi">\u25B2' + tmrwHi + '\u00B0</span> <span class="lo">\u25BC' + tmrwLo + '\u00B0</span></span>';
+    if (tmrwPrecip > 0) {
+      h += '<span class="precip">\uD83D\uDCA7' + tmrwPrecip.toFixed(2) + '"</span>';
+    }
+    h += '</div>';
+
+    widget.innerHTML = h;
+  } catch (e) {
+    widget.innerHTML = '<div class="weather-error">WEATHER: ' + e.message + '</div>';
+  }
+}
+
+// Fetch weather on load and refresh every 15 minutes
+fetchWeather();
+setInterval(fetchWeather, 900000);
+
+// ===== TASK MONITORING (existing) =====
+var OWNER = "neimaD7";
+var REPO = "aurora-log-data";
+var STATUS_FILE = "status.json";
+var autoRefreshTimer = null;
+var lastData = null;
 
 function getToken() { return localStorage.getItem("aurora_sync_token") || ""; }
 function saveToken() {
-  const val = document.getElementById("tokenInput").value.trim();
+  var val = document.getElementById("tokenInput").value.trim();
   if (val) {
     localStorage.setItem("aurora_sync_token", val);
     document.getElementById("setupModal").style.display = "none";
@@ -167,8 +341,8 @@ function saveToken() {
   }
 }
 function toggleSetup() {
-  const modal = document.getElementById("setupModal");
-  const visible = modal.style.display !== "none";
+  var modal = document.getElementById("setupModal");
+  var visible = modal.style.display !== "none";
   modal.style.display = visible ? "none" : "flex";
   if (!visible) document.getElementById("tokenInput").value = getToken();
 }
@@ -221,12 +395,11 @@ function renderTasks(data) {
   if (!data || !data.tasks) {
     list.innerHTML = '<div class="empty-state"><div class="emoji">🤙</div><div class="msg">No tasks tracked yet.</div><div class="sub">Bob will update this when work starts.</div></div>';
     bar.className = "refresh-bar connected";
-    bar.textContent = "CONNECTED — NO ACTIVE TASKS";
+    bar.textContent = "CONNECTED \u2014 NO ACTIVE TASKS";
     updateSummary(data);
     return;
   }
 
-  // Sort: running first, then by most recent
   var tasks = data.tasks.slice().sort(function(a, b) {
     var order = { running: 0, failed: 1, killed: 2, done: 3 };
     var oa = order[a.status] !== undefined ? order[a.status] : 4;
@@ -248,17 +421,15 @@ function renderTasks(data) {
     html += '<div class="task-status ' + status + '">' + status.toUpperCase() + '</div>';
     html += '</div>';
 
-    // Meta line
     var meta = [];
     if (t.started) meta.push("Started " + formatTime(t.started));
     if (t.completed) meta.push("Finished " + formatTime(t.completed));
     if (t.sessionId) meta.push("Session: " + t.sessionId);
     if (meta.length) html += '<div class="task-meta">' + meta.join(" &middot; ") + '</div>';
 
-    // Progress log
     if (t.log && t.log.length) {
       html += '<div class="task-progress">';
-      var logSlice = t.log.slice(-5); // Show last 5 entries
+      var logSlice = t.log.slice(-5);
       for (var j = 0; j < logSlice.length; j++) {
         var entry = logSlice[j];
         html += '<div class="log-entry">';
@@ -271,7 +442,6 @@ function renderTasks(data) {
       html += '<div class="task-progress">' + escHtml(t.progress) + '</div>';
     }
 
-    // Elapsed
     if (elapsed > 0) {
       html += '<div class="task-elapsed">' + formatElapsed(elapsed);
       if (status === "running") html += ' (running)';
