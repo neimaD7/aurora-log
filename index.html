@@ -1657,8 +1657,8 @@ ReactDOM.render(<App />, document.getElementById("root"));
 </script>
 <script>
 if ('serviceWorker' in navigator) {
-  window.addEventListener('load', function() {
-    navigator.serviceWorker.register('sw.js').catch(function() {});
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(r) { r.unregister(); });
   });
 }
 </script>
