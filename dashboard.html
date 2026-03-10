@@ -170,6 +170,73 @@
   .summary-item .count.zero { color: #333333; }
 
   .log-entry { padding: 3px 0; border-bottom: 1px solid #0d0d0d; }
+
+  /* Quick Stats Widget */
+  .quick-stats {
+    padding: 10px 14px;
+    border-bottom: 1px solid #1a1a1a;
+    background: #0d0d0d;
+  }
+  .quick-stats-label {
+    font-size: 0.58rem; letter-spacing: 0.18em; color: #333333;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .quick-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+  }
+  .qs-item {
+    text-align: center;
+    padding: 6px 4px;
+    background: #111111;
+    border: 1px solid #1a1a1a;
+  }
+  .qs-number {
+    font-size: 1.2rem; font-weight: 700; color: #ffffff;
+    line-height: 1.2;
+  }
+  .qs-number.accent { color: #5b8fff; }
+  .qs-desc {
+    font-size: 0.56rem; color: #555555;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    margin-top: 2px;
+  }
+  .qs-loading {
+    font-size: 0.68rem; color: #333333; letter-spacing: 0.1em;
+    padding: 4px 0;
+  }
+
+  /* Todo Widget */
+  .todo-widget {
+    padding: 10px 14px;
+    border-top: 1px solid #1a1a1a;
+  }
+  .todo-label {
+    font-size: 0.58rem; letter-spacing: 0.18em; color: #333333;
+    text-transform: uppercase; margin-bottom: 8px;
+  }
+  .todo-item {
+    display: flex; align-items: flex-start; gap: 8px;
+    padding: 4px 0;
+    font-size: 0.82rem;
+    line-height: 1.4;
+  }
+  .todo-check {
+    color: #333333; flex-shrink: 0; font-size: 0.78rem;
+    margin-top: 1px;
+  }
+  .todo-check.done { color: #2a4a2a; }
+  .todo-text { color: #f5f5f5; }
+  .todo-text.done { color: #333333; text-decoration: line-through; }
+  .todo-empty {
+    font-size: 0.72rem; color: #333333; font-style: italic;
+    padding: 4px 0;
+  }
+
+  @media (max-width: 400px) {
+    .quick-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  }
 </style>
 </head>
 <body>
@@ -189,6 +256,10 @@
     <div class="weather-loading">LOADING WEATHER...</div>
   </div>
 
+  <div class="quick-stats" id="quickStats">
+    <div class="qs-loading">LOADING STATS...</div>
+  </div>
+
   <div class="summary-bar" id="summaryBar">
     <div class="summary-item"><span class="count zero" id="runningCount">0</span>RUNNING</div>
     <div class="summary-item"><span class="count zero" id="doneCount">0</span>DONE</div>
@@ -196,6 +267,11 @@
   </div>
 
   <div id="taskList"></div>
+  <div class="todo-widget" id="todoWidget">
+    <div class="todo-label">BOB'S TO-DO</div>
+    <div class="todo-empty">Loading...</div>
+  </div>
+
   <div class="refresh-bar" id="refreshBar">WAITING FOR TOKEN...</div>
 </div>
 
@@ -322,6 +398,97 @@ async function fetchWeather() {
 // Fetch weather on load and refresh every 15 minutes
 fetchWeather();
 setInterval(fetchWeather, 900000);
+
+// ===== QUICK STATS WIDGET =====
+async function fetchQuickStats() {
+  var token = getToken();
+  if (!token) return;
+  var widget = document.getElementById("quickStats");
+  var base = "https://api.github.com/repos/neimaD7/aurora-log-data/contents/";
+  var headers = { "Authorization": "Bearer " + token, "Accept": "application/vnd.github.v3+json" };
+
+  var results = { entries: 0, today: 0, upcoming: 0, dictionary: 0 };
+  var errors = [];
+
+  // Fetch all three in parallel
+  var fetches = [
+    fetch(base + "entries.json", { headers: headers, cache: "no-store" }).then(function(r) {
+      if (!r.ok) throw new Error("entries " + r.status);
+      return r.json();
+    }).then(function(d) {
+      var arr = JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g, "")))));
+      var now = new Date();
+      var todayStr = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
+      var total = 0;
+      var todayCount = 0;
+      for (var i = 0; i < arr.length; i++) {
+        if (arr[i]._deleted) continue;
+        total++;
+        if (arr[i].date === todayStr) todayCount++;
+      }
+      results.entries = total;
+      results.today = todayCount;
+    }).catch(function(e) { errors.push(e.message); }),
+
+    fetch(base + "upcoming.json", { headers: headers, cache: "no-store" }).then(function(r) {
+      if (!r.ok) throw new Error("upcoming " + r.status);
+      return r.json();
+    }).then(function(d) {
+      var arr = JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g, "")))));
+      var count = 0;
+      for (var i = 0; i < arr.length; i++) {
+        if (!arr[i]._deleted) count++;
+      }
+      results.upcoming = count;
+    }).catch(function(e) { errors.push(e.message); }),
+
+    fetch(base + "known_items.json", { headers: headers, cache: "no-store" }).then(function(r) {
+      if (!r.ok) throw new Error("known_items " + r.status);
+      return r.json();
+    }).then(function(d) {
+      var arr = JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g, "")))));
+      results.dictionary = arr.length;
+    }).catch(function(e) { errors.push(e.message); })
+  ];
+
+  try {
+    await Promise.all(fetches);
+  } catch (e) {
+    // individual catches handle errors
+  }
+
+  var h = '<div class="quick-stats-label">AURORA LOG</div>';
+  h += '<div class="quick-stats-grid">';
+  h += '<div class="qs-item"><div class="qs-number">' + results.entries + '</div><div class="qs-desc">Entries</div></div>';
+  h += '<div class="qs-item"><div class="qs-number' + (results.today > 0 ? ' accent' : '') + '">' + results.today + '</div><div class="qs-desc">Today</div></div>';
+  h += '<div class="qs-item"><div class="qs-number">' + results.upcoming + '</div><div class="qs-desc">Upcoming</div></div>';
+  h += '<div class="qs-item"><div class="qs-number">' + results.dictionary + '</div><div class="qs-desc">Dictionary</div></div>';
+  h += '</div>';
+  widget.innerHTML = h;
+}
+
+// ===== TODO WIDGET =====
+function renderTodo(data) {
+  var widget = document.getElementById("todoWidget");
+  var h = '<div class="todo-label">BOB\'S TO-DO</div>';
+
+  if (!data || !data.todo || data.todo.length === 0) {
+    h += '<div class="todo-empty">Nothing</div>';
+    widget.innerHTML = h;
+    return;
+  }
+
+  for (var i = 0; i < data.todo.length; i++) {
+    var item = data.todo[i];
+    var isDone = item.done;
+    h += '<div class="todo-item">';
+    h += '<span class="todo-check' + (isDone ? ' done' : '') + '">' + (isDone ? '[x]' : '[ ]') + '</span>';
+    h += '<span class="todo-text' + (isDone ? ' done' : '') + '">' + escHtml(item.text || '') + '</span>';
+    h += '</div>';
+  }
+
+  widget.innerHTML = h;
+}
 
 // ===== TASK MONITORING (existing) =====
 var OWNER = "neimaD7";
@@ -496,10 +663,12 @@ async function refresh() {
     var data = await fetchStatus();
     lastData = data;
     renderTasks(data);
+    renderTodo(data);
   } catch (e) {
     bar.className = "refresh-bar error";
     bar.textContent = "ERROR: " + e.message;
   }
+  fetchQuickStats();
   btn.textContent = "REFRESH";
 }
 
