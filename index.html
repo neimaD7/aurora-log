@@ -578,20 +578,20 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (
             <span style={{ color: typeAccent[parsed.type] || "#ffffff", fontWeight: 700, fontSize: "0.76rem", letterSpacing: "0.1em" }}>{(parsed.type || "").toUpperCase()}</span>
             <button onClick={reset} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: 26, height: 26, color: "#555555", cursor: "pointer", fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
           </div>
-          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-            <div style={{ flex: "2 1 150px" }}>
-              <label style={lbl}>{parsed.type === "PO" ? "VENDOR" : parsed.type === "Transfer In" ? "FROM STORE" : "TO STORE"}</label>
-              {parsed.type !== "PO" ? (
-                <select value={parsed.party || ""} onChange={e => set("party", e.target.value)} style={{ ...inp, background: "#000000", padding: "7px 9px" }}>
-                  <option value="">Select store</option>
-                  {STORES.map(s => <option key={s}>{s}</option>)}
-                </select>
-              ) : (
-                <input value={parsed.party || ""} onChange={e => set("party", e.target.value)} style={{ ...inp, background: "#000000" }} />
-              )}
-            </div>
-            <div style={{ flex: "1 1 90px" }}><label style={lbl}>DOC #</label><input value={parsed.docId || ""} onChange={e => set("docId", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
-            <div style={{ flex: "1 1 110px" }}><label style={lbl}>DATE</label><input type="date" value={parsed.date || today()} onChange={e => set("date", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={lbl}>{parsed.type === "PO" ? "VENDOR" : parsed.type === "Transfer In" ? "FROM STORE" : "TO STORE"}</label>
+            {parsed.type !== "PO" ? (
+              <select value={parsed.party || ""} onChange={e => set("party", e.target.value)} style={{ ...inp, background: "#000000", padding: "7px 9px" }}>
+                <option value="">Select store</option>
+                {STORES.map(s => <option key={s}>{s}</option>)}
+              </select>
+            ) : (
+              <input value={parsed.party || ""} onChange={e => set("party", e.target.value)} style={{ ...inp, background: "#000000" }} />
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <div style={{ flex: 1 }}><label style={lbl}>DOC #</label><input value={parsed.docId || ""} onChange={e => set("docId", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
+            <div style={{ flex: 1 }}><label style={lbl}>DATE</label><input type="date" value={parsed.date || today()} onChange={e => set("date", e.target.value)} style={{ ...inp, background: "#000000", maxWidth: "100%" }} /></div>
           </div>
           <label style={{ ...lbl, marginBottom: 6 }}>LINE ITEMS</label>
           {(parsed.lineItems || []).map((li, idx) => (
@@ -1007,20 +1007,20 @@ function AddModal({ onClose, onSave, onSaveUpcoming, defaultType, editEntry, edi
             <option>PO</option><option>Transfer In</option><option>Transfer Out</option>
           </select>
         </div>
-        <div style={{ display: "flex", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-          <div style={{ flex: "2 1 150px" }}>
-            <label style={lbl}>{partyLabel}</label>
-            {isTransfer ? (
-              <select value={form.party} onChange={e => set("party", e.target.value)} style={{ ...inp, padding: "7px 9px" }}>
-                <option value="">Select</option>
-                {STORES.map(s => <option key={s}>{s}</option>)}
-              </select>
-            ) : (
-              <input value={form.party} onChange={e => set("party", e.target.value)} placeholder="e.g. Pacific Supply Co." style={inp} />
-            )}
-          </div>
-          <div style={{ flex: "1 1 90px" }}><label style={lbl}>DOC #</label><input value={form.docId} onChange={e => set("docId", e.target.value)} placeholder="optional" style={inp} /></div>
-          <div style={{ flex: "1 1 110px" }}><label style={lbl}>DATE</label><input type="date" value={form.date} onChange={e => set("date", e.target.value)} style={inp} /></div>
+        <div style={{ marginBottom: 12 }}>
+          <label style={lbl}>{partyLabel}</label>
+          {isTransfer ? (
+            <select value={form.party} onChange={e => set("party", e.target.value)} style={{ ...inp, padding: "7px 9px" }}>
+              <option value="">Select</option>
+              {STORES.map(s => <option key={s}>{s}</option>)}
+            </select>
+          ) : (
+            <input value={form.party} onChange={e => set("party", e.target.value)} placeholder="e.g. Pacific Supply Co." style={inp} />
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <div style={{ flex: 1 }}><label style={lbl}>DOC #</label><input value={form.docId} onChange={e => set("docId", e.target.value)} placeholder="optional" style={inp} /></div>
+          <div style={{ flex: 1 }}><label style={lbl}>DATE</label><input type="date" value={form.date} onChange={e => set("date", e.target.value)} style={{ ...inp, maxWidth: "100%" }} /></div>
         </div>
         <label style={{ ...lbl, marginBottom: 7 }}>LINE ITEMS</label>
         {form.lineItems.map((li, idx) => (
