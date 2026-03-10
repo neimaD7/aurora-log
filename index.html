@@ -442,6 +442,7 @@ const GitHubSync = {
 function NameInput({ value, onChange, placeholder, knownItems, inputStyle }) {
   const [showSugg, setShowSugg] = useState(false);
   const [suggestions, setSuggestions] = useState([]);
+  const touchRef = useRef({ y: 0, moved: false });
   const items = knownItems || [];
 
   const handleChange = (e) => {
@@ -468,9 +469,12 @@ function NameInput({ value, onChange, placeholder, knownItems, inputStyle }) {
         onBlur={() => setTimeout(() => setShowSugg(false), 200)}
         placeholder={placeholder} style={style} />
       {showSugg && (
-        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1c1c1e", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, zIndex: 100, maxHeight: 160, overflowY: "auto", boxShadow: "0 4px 16px rgba(0,0,0,0.6)" }}>
+        <div onTouchStart={(e) => { touchRef.current = { y: e.touches[0].clientY, moved: false }; }}
+          onTouchMove={() => { touchRef.current.moved = true; }}
+          style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1c1c1e", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, zIndex: 100, maxHeight: 160, overflowY: "auto", WebkitOverflowScrolling: "touch", boxShadow: "0 4px 16px rgba(0,0,0,0.6)" }}>
           {suggestions.map((s, i) => (
-            <div key={i} onMouseDown={(e) => { e.preventDefault(); pick(s); }} onTouchEnd={(e) => { e.preventDefault(); pick(s); }}
+            <div key={i} onMouseDown={(e) => { e.preventDefault(); pick(s); }}
+              onTouchEnd={(e) => { if (touchRef.current.moved) return; e.preventDefault(); pick(s); }}
               style={{ padding: "10px 12px", fontSize: "0.84rem", color: "#e5e5e7", cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
               {s.name} <span style={{ color: "#666666", fontSize: "0.72rem", marginLeft: 6 }}>{s.unit}</span>
             </div>
