@@ -263,7 +263,7 @@ function fetchStats() {
       { val: active.length, label: "ENTRIES", accent: false },
       { val: todayCount, label: "TODAY", accent: todayCount > 0 },
       { val: upcomingActive, label: "UPCOMING", accent: false },
-      { val: known.length, label: "DICT", accent: false }
+      { val: known.filter(function(k) { return !k._deleted; }).length, label: "DICT", accent: false }
     ];
     var h = "";
     for (var i = 0; i < tiles.length; i++) {
