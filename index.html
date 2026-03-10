@@ -1535,25 +1535,25 @@ function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#000000", color: "#e5e5e7", fontFamily: "'Courier New', monospace", maxWidth: 660, margin: "0 auto" }}>
-      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "18px 18px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "1 1 auto", minWidth: 0 }}>
+      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "18px 16px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 1, minWidth: 0 }}>
           <div style={{ flexShrink: 0 }}>
             <div style={{ fontSize: "0.6rem", letterSpacing: "0.22em", color: "#444444", marginBottom: 2 }}>AURORA</div>
-            <div style={{ fontSize: "1.3rem", fontWeight: 700, color: "#ffffff", letterSpacing: "-0.01em", lineHeight: 1 }}>Receiving Log</div>
+            <div style={{ fontSize: "1.2rem", fontWeight: 700, color: "#ffffff", letterSpacing: "-0.01em", lineHeight: 1 }}>Receiving Log</div>
           </div>
-          <button onClick={() => setShowDict(true)} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, color: knownItems.length > 0 ? "#888888" : "#444444", padding: "7px 12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", fontWeight: 600, cursor: "pointer" }}>
-              DICT{knownItems.length > 0 && <span style={{ fontSize: "0.58rem", color: "#555555", marginLeft: 3 }}>{knownItems.length}</span>}
-          </button>
         </div>
-        <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
+          <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: knownItems.length > 0 ? "#777777" : "#444444", padding: "7px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}>
+              DICT{knownItems.length > 0 && <span style={{ fontSize: "0.56rem", color: "#555555", marginLeft: 3 }}>{knownItems.length}</span>}
+          </button>
           {isPullTab ? (
             <React.Fragment>
-              <button onClick={() => setShowPullIntake(s => !s)} style={{ background: showPullIntake ? "rgba(91,143,255,0.12)" : "rgba(255,255,255,0.06)", border: "1px solid " + (showPullIntake ? "rgba(91,143,255,0.3)" : "rgba(255,255,255,0.06)"), borderRadius: 10, color: showPullIntake ? "#5b8fff" : "#666666", padding: "7px 14px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.76rem", fontWeight: 600, cursor: "pointer" }}>{showPullIntake ? "HIDE" : "+ SO"}</button>
+              <button onClick={() => setShowPullIntake(s => !s)} style={{ background: showPullIntake ? "rgba(91,143,255,0.12)" : "rgba(255,255,255,0.06)", border: "1px solid " + (showPullIntake ? "rgba(91,143,255,0.3)" : "rgba(255,255,255,0.06)"), borderRadius: 10, color: showPullIntake ? "#5b8fff" : "#666666", padding: "7px 12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", fontWeight: 600, cursor: "pointer" }}>{showPullIntake ? "HIDE" : "+ SO"}</button>
             </React.Fragment>
           ) : (
             <React.Fragment>
-              <button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.06)", border: "1px solid " + (showIntake ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.06)"), borderRadius: 10, color: showIntake ? "#ffffff" : "#666666", padding: "7px 14px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.76rem", fontWeight: 600, cursor: "pointer" }}>{showIntake ? "HIDE" : "SCAN"}</button>
-              <button onClick={() => { setEditEntry(null); setEditMode(null); setShowAdd(true); }} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 10, padding: "7px 14px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.76rem", fontWeight: 700, cursor: "pointer" }}>+ LOG</button>
+              <button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.06)", border: "1px solid " + (showIntake ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.06)"), borderRadius: 10, color: showIntake ? "#ffffff" : "#666666", padding: "7px 12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", fontWeight: 600, cursor: "pointer" }}>{showIntake ? "HIDE" : "SCAN"}</button>
+              <button onClick={() => { setEditEntry(null); setEditMode(null); setShowAdd(true); }} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 10, padding: "7px 12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>+ LOG</button>
             </React.Fragment>
           )}
         </div>
