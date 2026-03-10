@@ -573,10 +573,10 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (
       <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleImage} style={{ display: "none" }} />
       {error && <div style={{ marginTop: 8, color: "#ff4444", fontSize: "0.82rem", padding: "6px 8px", background: "rgba(255,255,255,0.04)", border: "1px solid #1a0000" }}>{error}</div>}
       {parsed && (
-        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", padding: "14px" }}>
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: "16px", marginTop: 8 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <span style={{ color: typeAccent[parsed.type] || "#ffffff", fontWeight: 700, fontSize: "0.78rem", letterSpacing: "0.1em" }}>{(parsed.type || "").toUpperCase()}</span>
-            <button onClick={reset} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.1rem" }}>x</button>
+            <span style={{ color: typeAccent[parsed.type] || "#ffffff", fontWeight: 700, fontSize: "0.76rem", letterSpacing: "0.1em" }}>{(parsed.type || "").toUpperCase()}</span>
+            <button onClick={reset} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: 26, height: 26, color: "#555555", cursor: "pointer", fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
             <div style={{ flex: "2 1 150px" }}>
@@ -607,9 +607,9 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (
           ))}
           <button onClick={addLine} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginTop: 2, marginBottom: 12 }}>+ LINE</button>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button onClick={confirm} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "8px 18px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.08em", cursor: "pointer" }}>LOG IT</button>
-            <button onClick={stageUpcoming} style={{ background: "#000000", color: "#c9a84c", border: "1px solid #3a3020", padding: "8px 18px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.08em", cursor: "pointer" }}>UPCOMING</button>
-            <button onClick={reset} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "8px 14px", fontFamily: "'Courier New',monospace", fontSize: "0.84rem", cursor: "pointer" }}>CANCEL</button>
+            <button onClick={confirm} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 10, padding: "9px 18px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.86rem", letterSpacing: "0.06em", cursor: "pointer" }}>LOG IT</button>
+            <button onClick={stageUpcoming} style={{ background: "rgba(201,168,76,0.1)", color: "#c9a84c", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 10, padding: "9px 18px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.86rem", letterSpacing: "0.06em", cursor: "pointer" }}>UPCOMING</button>
+            <button onClick={reset} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: "#666666", padding: "9px 14px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.82rem", cursor: "pointer" }}>CANCEL</button>
           </div>
         </div>
       )}
@@ -731,10 +731,10 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (
       <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleImage} style={{ display: "none" }} />
       {error && <div style={{ marginTop: 8, color: "#ff4444", fontSize: "0.82rem", padding: "6px 8px", background: "rgba(255,255,255,0.04)", border: "1px solid #1a0000" }}>{error}</div>}
       {parsed && (
-        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", padding: "14px" }}>
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: "16px", marginTop: 8 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.78rem", letterSpacing: "0.1em" }}>SALES ORDER</span>
-            <button onClick={reset} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.1rem" }}>x</button>
+            <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.76rem", letterSpacing: "0.1em" }}>SALES ORDER</span>
+            <button onClick={reset} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: 26, height: 26, color: "#555555", cursor: "pointer", fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
             <div style={{ flex: "2 1 150px" }}><label style={lbl}>CUSTOMER</label><input value={parsed.customer || ""} onChange={e => updateField("customer", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
@@ -752,8 +752,8 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (
           ))}
           <button onClick={addLine} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginTop: 2, marginBottom: 12 }}>+ LINE</button>
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={confirm} style={{ background: "#5b8fff", color: "#0a0a0a", border: "none", padding: "8px 18px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.08em", cursor: "pointer" }}>ADD TO PULL</button>
-            <button onClick={reset} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "8px 14px", fontFamily: "'Courier New',monospace", fontSize: "0.84rem", cursor: "pointer" }}>CANCEL</button>
+            <button onClick={confirm} style={{ background: "#5b8fff", color: "#0a0a0a", border: "none", borderRadius: 10, padding: "9px 18px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.86rem", letterSpacing: "0.06em", cursor: "pointer" }}>ADD TO PULL</button>
+            <button onClick={reset} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: "#666666", padding: "9px 14px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.82rem", cursor: "pointer" }}>CANCEL</button>
           </div>
         </div>
       )}
@@ -764,26 +764,26 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (
 function PullItemRow({ item, checked, onToggle, expanded, onExpand }) {
   const pct = checked ? 100 : 0;
   return (
-    <div style={{ background: checked ? "#0a1a0a" : "#111111", borderLeft: "3px solid " + (checked ? "#00c853" : "#333333"), marginBottom: 5, transition: "background 0.15s" }}>
-      <div onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 13px", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+    <div style={{ background: checked ? "rgba(0,200,83,0.06)" : "rgba(255,255,255,0.04)", border: "1px solid " + (checked ? "rgba(0,200,83,0.12)" : "rgba(255,255,255,0.06)"), borderRadius: 14, marginBottom: 8, transition: "all 0.15s ease" }}>
+      <div onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
         <div style={{
-          width: 28, height: 28, border: "2px solid " + (checked ? "#00c853" : "#444444"),
+          width: 26, height: 26, borderRadius: 8, border: "2px solid " + (checked ? "#00c853" : "rgba(255,255,255,0.15)"),
           background: checked ? "#00c853" : "transparent", display: "flex", alignItems: "center",
           justifyContent: "center", flexShrink: 0, transition: "all 0.15s"
         }}>
-          {checked && <span style={{ color: "#0a0a0a", fontWeight: 700, fontSize: "1.1rem", lineHeight: 1 }}>&#10003;</span>}
+          {checked && <span style={{ color: "#0a0a0a", fontWeight: 700, fontSize: "1rem", lineHeight: 1 }}>✓</span>}
         </div>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ color: checked ? "#557755" : "#ffffff", fontSize: "0.94rem", fontWeight: 700, textDecoration: checked ? "line-through" : "none", overflowWrap: "anywhere" }}>{item.name}</div>
-          <div style={{ color: checked ? "#335533" : "#5b8fff", fontWeight: 700, fontSize: "0.84rem", marginTop: 2 }}>
+          <div style={{ color: checked ? "#557755" : "#e5e5e7", fontSize: "0.92rem", fontWeight: 700, textDecoration: checked ? "line-through" : "none", overflowWrap: "anywhere" }}>{item.name}</div>
+          <div style={{ color: checked ? "#335533" : "#5b8fff", fontWeight: 600, fontSize: "0.82rem", marginTop: 3 }}>
             {item.totalQty}{item.unit ? " " + item.unit : ""}
-            {item.sources.length > 1 && <span style={{ color: "#555555", fontWeight: 400, fontSize: "0.72rem", marginLeft: 8 }}>{item.sources.length} orders</span>}
+            {item.sources.length > 1 && <span style={{ color: "#444444", fontWeight: 400, fontSize: "0.7rem", marginLeft: 8 }}>{item.sources.length} orders</span>}
           </div>
         </div>
         {item.sources.length > 1 && (
           <button onClick={(e) => { e.stopPropagation(); onExpand(); }} style={{
-            background: "none", border: "1px solid rgba(255,255,255,0.06)", color: expanded ? "#ffffff" : "#555555",
-            padding: "4px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.68rem", cursor: "pointer", flexShrink: 0
+            background: expanded ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, color: expanded ? "#ffffff" : "#555555",
+            padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.66rem", cursor: "pointer", flexShrink: 0
           }}>{expanded ? "HIDE" : "SPLIT"}</button>
         )}
       </div>
@@ -832,10 +832,10 @@ function PullPriorityModal({ onClose, priority, onSave }) {
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", width: "min(420px,96vw)", maxHeight: "85vh", overflowY: "auto", padding: "18px 16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em" }}>PULL ORDER</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(28,28,30,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, width: "min(420px,96vw)", maxHeight: "85vh", overflowY: "auto", padding: "22px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.1em" }}>PULL ORDER</span>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: 30, height: 30, color: "#555555", cursor: "pointer", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
         </div>
         <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>Items matching earlier categories get pulled first. Use arrows to reorder.</div>
         {items.map((cat, idx) => (
@@ -852,7 +852,7 @@ function PullPriorityModal({ onClose, priority, onSave }) {
             placeholder="New category..." style={{ ...inp, flex: 1, fontSize: "0.84rem", padding: "5px 7px", background: "#000000" }} />
           <button onClick={add} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer" }}>+ ADD</button>
         </div>
-        <button onClick={save} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.08em", cursor: "pointer" }}>SAVE ORDER</button>
+        <button onClick={save} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 12, padding: "12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.06em", cursor: "pointer" }}>SAVE ORDER</button>
       </div>
     </div>
   );
@@ -861,20 +861,20 @@ function PullPriorityModal({ onClose, priority, onSave }) {
 function PullSOCard({ so, onRemove }) {
   const [confirmDel, setConfirmDel] = useState(false);
   return (
-    <div style={{ background: "#0f1018", border: "1px solid #1a1a2a", padding: "8px 10px", marginBottom: 4, display: "flex", alignItems: "center", gap: 8 }}>
+    <div style={{ background: "rgba(91,143,255,0.04)", border: "1px solid rgba(91,143,255,0.1)", borderRadius: 12, padding: "10px 14px", marginBottom: 6, display: "flex", alignItems: "center", gap: 10 }}>
       <div style={{ flex: 1, minWidth: 0 }}>
-        <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.84rem" }}>{so.customer || "Unknown"}</span>
-        {so.soNumber && <span style={{ color: "#444444", fontSize: "0.7rem", marginLeft: 8 }}>SO {so.soNumber}</span>}
-        {so.jobSite && <div style={{ color: "#555555", fontSize: "0.7rem", marginTop: 1 }}>{so.jobSite}</div>}
-        <div style={{ color: "#3a3a3a", fontSize: "0.66rem", marginTop: 1 }}>{(so.lineItems || []).length} items</div>
+        <span style={{ color: "#e5e5e7", fontWeight: 700, fontSize: "0.82rem" }}>{so.customer || "Unknown"}</span>
+        {so.soNumber && <span style={{ color: "#3a3a3a", fontSize: "0.68rem", marginLeft: 8 }}>SO {so.soNumber}</span>}
+        {so.jobSite && <div style={{ color: "#444444", fontSize: "0.68rem", marginTop: 2 }}>{so.jobSite}</div>}
+        <div style={{ color: "#333333", fontSize: "0.64rem", marginTop: 2 }}>{(so.lineItems || []).length} items</div>
       </div>
       {confirmDel ? (
         <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-          <button onClick={() => onRemove(so.id)} style={{ background: "#4a0000", color: "#e5e5e7", border: "none", padding: "2px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>DEL</button>
-          <button onClick={() => setConfirmDel(false)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "2px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>NO</button>
+          <button onClick={() => onRemove(so.id)} style={{ background: "rgba(255,68,68,0.15)", color: "#ff4444", border: "none", borderRadius: 8, padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}>DEL</button>
+          <button onClick={() => setConfirmDel(false)} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, color: "#666666", padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.68rem", cursor: "pointer" }}>NO</button>
         </div>
       ) : (
-        <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.9rem", padding: "2px 4px", flexShrink: 0 }}>x</button>
+        <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.88rem", padding: "2px 4px", flexShrink: 0 }}>×</button>
       )}
     </div>
   );
@@ -889,35 +889,38 @@ function EntryCard({ entry, onDelete, onEdit }) {
   const partyColor = isPO ? "#ffffff" : isIn ? "#00e676" : "#ff3d3d";
 
   return (
-    <div style={{ borderLeft: "3px solid " + accentColor, background: "rgba(255,255,255,0.04)", padding: "11px 13px", marginBottom: 7 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 7 }}>
+    <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: "14px 16px", marginBottom: 10, animation: "fadeIn 0.3s ease" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ color: partyColor, fontWeight: 700, fontSize: "1rem", letterSpacing: "0.03em" }}>{partyLine}</span>
-          {entry.docId && <span style={{ color: "#555555", fontSize: "0.76rem", marginLeft: 10 }}>{entry.docId}</span>}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: accentColor, flexShrink: 0 }} />
+            <span style={{ color: partyColor, fontWeight: 700, fontSize: "1rem", letterSpacing: "-0.01em" }}>{partyLine}</span>
+          </div>
+          {entry.docId && <span style={{ color: "#444444", fontSize: "0.72rem", marginLeft: 16 }}>{entry.docId}</span>}
         </div>
         <div style={{ flexShrink: 0, marginLeft: 8, display: "flex", gap: 6, alignItems: "center" }}>
           {confirmDel ? (
             <div style={{ display: "flex", gap: 5 }}>
-              <button onClick={() => onDelete(entry.id)} style={{ background: "#4a0000", color: "#e5e5e7", border: "none", padding: "2px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>DEL</button>
-              <button onClick={() => setConfirmDel(false)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "2px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>NO</button>
+              <button onClick={() => onDelete(entry.id)} style={{ background: "rgba(255,68,68,0.15)", color: "#ff4444", border: "none", borderRadius: 8, padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}>DEL</button>
+              <button onClick={() => setConfirmDel(false)} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, color: "#666666", padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.68rem", cursor: "pointer" }}>NO</button>
             </div>
           ) : (
             <React.Fragment>
-              <button onClick={() => onEdit(entry)} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "0.72rem", padding: "2px 4px", fontFamily: "'Courier New',monospace" }}>EDIT</button>
-              <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.9rem", padding: "2px 4px" }}>x</button>
+              <button onClick={() => onEdit(entry)} style={{ background: "none", border: "none", color: "#444444", cursor: "pointer", fontSize: "0.7rem", padding: "2px 4px", fontFamily: "'SF Mono','Menlo','Courier New',monospace" }}>EDIT</button>
+              <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.88rem", padding: "2px 4px" }}>×</button>
             </React.Fragment>
           )}
         </div>
       </div>
-      <div>
+      <div style={{ paddingLeft: 16 }}>
         {(entry.lineItems || []).filter(li => li.name).map((li, idx) => (
-          <div key={idx} style={{ display: "flex", gap: 10, padding: "2px 0", alignItems: "baseline" }}>
-            {(li.qty || li.unit) && <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.84rem", whiteSpace: "nowrap", flexShrink: 0, minWidth: 52 }}>{li.qty}{li.unit ? " " + li.unit : ""}</span>}
-            <span style={{ color: "#ffffff", fontSize: "0.94rem", lineHeight: 1.45, overflowWrap: "anywhere" }}>{li.name}</span>
+          <div key={idx} style={{ display: "flex", gap: 10, padding: "3px 0", alignItems: "baseline" }}>
+            {(li.qty || li.unit) && <span style={{ color: "#5b8fff", fontWeight: 600, fontSize: "0.82rem", whiteSpace: "nowrap", flexShrink: 0, minWidth: 52 }}>{li.qty}{li.unit ? " " + li.unit : ""}</span>}
+            <span style={{ color: "#e5e5e7", fontSize: "0.92rem", lineHeight: 1.45, overflowWrap: "anywhere" }}>{li.name}</span>
           </div>
         ))}
       </div>
-      {entry.notes && <div style={{ marginTop: 7, fontSize: "0.78rem", color: "#555555", fontStyle: "italic" }}>{entry.notes}</div>}
+      {entry.notes && <div style={{ marginTop: 8, fontSize: "0.76rem", color: "#555555", fontStyle: "italic", paddingLeft: 16 }}>{entry.notes}</div>}
     </div>
   );
 }
@@ -930,48 +933,48 @@ function UpcomingCard({ entry, onConfirm, onDelete, onEdit }) {
   const confirmLabel = entry.type === "Transfer Out" ? "SENT" : "RECEIVED";
 
   return (
-    <div style={{ borderLeft: "3px solid #c9a84c", background: "#141410", padding: "11px 13px", marginBottom: 7 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 7 }}>
+    <div style={{ background: "rgba(201,168,76,0.06)", border: "1px solid rgba(201,168,76,0.15)", borderRadius: 16, padding: "14px 16px", marginBottom: 10, animation: "fadeIn 0.3s ease" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <span style={{ color: "#c9a84c", fontWeight: 700, fontSize: "0.72rem", letterSpacing: "0.08em" }}>{(entry.type || "").toUpperCase()}</span>
-          <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "1rem", marginTop: 2 }}>{partyLine}</div>
-          {entry.docId && <span style={{ color: "#555555", fontSize: "0.76rem" }}>{entry.docId}</span>}
-          <div style={{ color: "#444444", fontSize: "0.68rem", marginTop: 3 }}>{"Staged " + (entry.date || "")}</div>
+          <span style={{ color: "#c9a84c", fontWeight: 600, fontSize: "0.68rem", letterSpacing: "0.1em" }}>{(entry.type || "").toUpperCase()}</span>
+          <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "1rem", marginTop: 3, letterSpacing: "-0.01em" }}>{partyLine}</div>
+          {entry.docId && <span style={{ color: "#444444", fontSize: "0.72rem" }}>{entry.docId}</span>}
+          <div style={{ color: "#3a3a3a", fontSize: "0.66rem", marginTop: 3 }}>{"Staged " + (entry.date || "")}</div>
         </div>
         <div style={{ flexShrink: 0, marginLeft: 8, display: "flex", gap: 6, alignItems: "center" }}>
           {confirmDel ? (
             <div style={{ display: "flex", gap: 5 }}>
-              <button onClick={() => onDelete(entry.id)} style={{ background: "#4a0000", color: "#e5e5e7", border: "none", padding: "2px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>DEL</button>
-              <button onClick={() => setConfirmDel(false)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "2px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>NO</button>
+              <button onClick={() => onDelete(entry.id)} style={{ background: "rgba(255,68,68,0.15)", color: "#ff4444", border: "none", borderRadius: 8, padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}>DEL</button>
+              <button onClick={() => setConfirmDel(false)} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, color: "#666666", padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.68rem", cursor: "pointer" }}>NO</button>
             </div>
           ) : (
             <React.Fragment>
-              <button onClick={() => onEdit(entry)} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "0.72rem", padding: "2px 4px", fontFamily: "'Courier New',monospace" }}>EDIT</button>
-              <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.9rem", padding: "2px 4px" }}>x</button>
+              <button onClick={() => onEdit(entry)} style={{ background: "none", border: "none", color: "#444444", cursor: "pointer", fontSize: "0.7rem", padding: "2px 4px", fontFamily: "'SF Mono','Menlo','Courier New',monospace" }}>EDIT</button>
+              <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.88rem", padding: "2px 4px" }}>×</button>
             </React.Fragment>
           )}
         </div>
       </div>
-      <div style={{ marginBottom: 10 }}>
+      <div style={{ marginBottom: 12, paddingLeft: 0 }}>
         {(entry.lineItems || []).filter(li => li.name).map((li, idx) => (
-          <div key={idx} style={{ display: "flex", gap: 10, padding: "2px 0", alignItems: "baseline" }}>
-            {(li.qty || li.unit) && <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.84rem", whiteSpace: "nowrap", flexShrink: 0, minWidth: 52 }}>{li.qty}{li.unit ? " " + li.unit : ""}</span>}
-            <span style={{ color: "#dddddd", fontSize: "0.94rem", lineHeight: 1.45, overflowWrap: "anywhere" }}>{li.name}</span>
+          <div key={idx} style={{ display: "flex", gap: 10, padding: "3px 0", alignItems: "baseline" }}>
+            {(li.qty || li.unit) && <span style={{ color: "#5b8fff", fontWeight: 600, fontSize: "0.82rem", whiteSpace: "nowrap", flexShrink: 0, minWidth: 52 }}>{li.qty}{li.unit ? " " + li.unit : ""}</span>}
+            <span style={{ color: "#e5e5e7", fontSize: "0.92rem", lineHeight: 1.45, overflowWrap: "anywhere" }}>{li.name}</span>
           </div>
         ))}
       </div>
-      {entry.notes && <div style={{ marginBottom: 8, fontSize: "0.78rem", color: "#555555", fontStyle: "italic" }}>{entry.notes}</div>}
-      <button onClick={() => onConfirm(entry)} style={{ background: "#c9a84c", color: "#0a0a0a", border: "none", padding: "8px 20px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.08em", cursor: "pointer", width: "100%" }}>{confirmLabel}</button>
+      {entry.notes && <div style={{ marginBottom: 10, fontSize: "0.76rem", color: "#555555", fontStyle: "italic" }}>{entry.notes}</div>}
+      <button onClick={() => onConfirm(entry)} style={{ background: "#c9a84c", color: "#0a0a0a", border: "none", borderRadius: 12, padding: "10px 20px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.86rem", letterSpacing: "0.06em", cursor: "pointer", width: "100%" }}>{confirmLabel}</button>
     </div>
   );
 }
 
 function DateHeader({ dateStr }) {
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "28px 0 10px" }}>
-      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.04)" }} />
-      <span style={{ color: "#ffffff", fontSize: "0.76rem", fontWeight: 700, letterSpacing: "0.2em", whiteSpace: "nowrap" }}>{formatDateHeading(dateStr).toUpperCase()}</span>
-      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.04)" }} />
+    <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "24px 0 12px" }}>
+      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
+      <span style={{ color: "#555555", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.16em", whiteSpace: "nowrap" }}>{formatDateHeading(dateStr).toUpperCase()}</span>
+      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
     </div>
   );
 }
@@ -993,10 +996,10 @@ function AddModal({ onClose, onSave, onSaveUpcoming, defaultType, editEntry, edi
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", width: "min(500px,96vw)", maxHeight: "92vh", overflowY: "auto", padding: "18px 16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
-          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.1em" }}>{editEntry ? "EDIT ENTRY" : "LOG ENTRY"}</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(28,28,30,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, width: "min(500px,96vw)", maxHeight: "92vh", overflowY: "auto", padding: "22px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.08em" }}>{editEntry ? "EDIT ENTRY" : "LOG ENTRY"}</span>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: 30, height: 30, color: "#555555", cursor: "pointer", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
         </div>
         <div style={{ marginBottom: 12 }}>
           <label style={lbl}>TYPE</label>
@@ -1031,11 +1034,11 @@ function AddModal({ onClose, onSave, onSaveUpcoming, defaultType, editEntry, edi
         <button onClick={addLine} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginBottom: 12 }}>+ LINE</button>
         <div style={{ marginBottom: 16 }}><label style={lbl}>NOTES (OPTIONAL)</label><input value={form.notes} onChange={e => set("notes", e.target.value)} style={inp} /></div>
         {editEntry ? (
-          <button onClick={save} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.97rem", letterSpacing: "0.1em", cursor: "pointer" }}>SAVE CHANGES</button>
+          <button onClick={save} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 12, padding: "12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.06em", cursor: "pointer" }}>SAVE CHANGES</button>
         ) : (
           <div style={{ display: "flex", gap: 8 }}>
-            <button onClick={save} style={{ flex: 1, background: "#ffffff", color: "#0a0a0a", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.08em", cursor: "pointer" }}>SAVE</button>
-            <button onClick={saveUpcoming} style={{ flex: 1, background: "#000000", color: "#c9a84c", border: "1px solid #3a3020", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.08em", cursor: "pointer" }}>UPCOMING</button>
+            <button onClick={save} style={{ flex: 1, background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 12, padding: "12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.06em", cursor: "pointer" }}>SAVE</button>
+            <button onClick={saveUpcoming} style={{ flex: 1, background: "rgba(201,168,76,0.1)", color: "#c9a84c", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 12, padding: "12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.06em", cursor: "pointer" }}>UPCOMING</button>
           </div>
         )}
       </div>
@@ -1047,10 +1050,10 @@ function ApiKeyModal({ onClose }) {
   const [val, setVal] = useState(getApiKey());
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", width: "min(380px,92vw)", padding: "20px 16px" }}>
-        <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em", marginBottom: 12 }}>API KEY</div>
-        <input value={val} onChange={e => setVal(e.target.value)} placeholder="sk-ant-..." type="password" style={{ ...inp, marginBottom: 10 }} />
-        <button onClick={() => { setApiKeyVal(val); onClose(); }} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", padding: "8px", fontFamily: "'Courier New',monospace", fontWeight: 700, cursor: "pointer" }}>SAVE</button>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(28,28,30,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, width: "min(380px,92vw)", padding: "22px 20px" }}>
+        <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.1em", marginBottom: 14 }}>API KEY</div>
+        <input value={val} onChange={e => setVal(e.target.value)} placeholder="sk-ant-..." type="password" style={{ ...inp, marginBottom: 12 }} />
+        <button onClick={() => { setApiKeyVal(val); onClose(); }} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 12, padding: "10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, cursor: "pointer" }}>SAVE</button>
       </div>
     </div>
   );
@@ -1060,13 +1063,13 @@ function SyncTokenModal({ onClose, onSaved }) {
   const [val, setVal] = useState(GitHubSync.getToken());
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", width: "min(380px,92vw)", padding: "20px 16px" }}>
-        <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em", marginBottom: 6 }}>SYNC TOKEN</div>
-        <div style={{ fontSize: "0.7rem", color: "#555555", marginBottom: 12, lineHeight: 1.5 }}>GitHub personal access token for syncing data across devices. Syncs to neimaD7/aurora-log-data.</div>
-        <input value={val} onChange={e => setVal(e.target.value)} placeholder="github_pat_..." type="password" style={{ ...inp, marginBottom: 10 }} />
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(28,28,30,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, width: "min(380px,92vw)", padding: "22px 20px" }}>
+        <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.1em", marginBottom: 8 }}>SYNC TOKEN</div>
+        <div style={{ fontSize: "0.7rem", color: "#444444", marginBottom: 14, lineHeight: 1.5 }}>GitHub personal access token for syncing data across devices. Syncs to neimaD7/aurora-log-data.</div>
+        <input value={val} onChange={e => setVal(e.target.value)} placeholder="github_pat_..." type="password" style={{ ...inp, marginBottom: 12 }} />
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={() => { GitHubSync.setToken(val); if (onSaved) onSaved(); onClose(); }} style={{ flex: 1, background: "#ffffff", color: "#0a0a0a", border: "none", padding: "8px", fontFamily: "'Courier New',monospace", fontWeight: 700, cursor: "pointer" }}>SAVE</button>
-          {val && <button onClick={() => { GitHubSync.setToken(""); setVal(""); }} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "8px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", cursor: "pointer" }}>CLEAR</button>}
+          <button onClick={() => { GitHubSync.setToken(val); if (onSaved) onSaved(); onClose(); }} style={{ flex: 1, background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 12, padding: "10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, cursor: "pointer" }}>SAVE</button>
+          {val && <button onClick={() => { GitHubSync.setToken(""); setVal(""); }} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 12, color: "#666666", padding: "10px 14px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.76rem", cursor: "pointer" }}>CLEAR</button>}
         </div>
       </div>
     </div>
@@ -1082,10 +1085,10 @@ function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown, onOpe
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", width: "min(460px,96vw)", maxHeight: "85vh", overflowY: "auto", padding: "18px 16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em" }}>ITEM DICTIONARY</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(28,28,30,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, width: "min(460px,96vw)", maxHeight: "85vh", overflowY: "auto", padding: "22px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.1em" }}>ITEM DICTIONARY</span>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: 30, height: 30, color: "#555555", cursor: "pointer", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
         </div>
         <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>Auto-learned from entries. AI matches documents to these names. Tap to edit.</div>
         {knownItems.length === 0 && <div style={{ color: "#333333", fontSize: "0.84rem", padding: "20px 0", textAlign: "center" }}>No items yet — log your first entry to start building the dictionary.</div>}
@@ -1108,9 +1111,9 @@ function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown, onOpe
           </div>
         ))}
         <div style={{ display: "flex", gap: 8, marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
-          <button onClick={() => { onClose(); onOpenLabels(); }} style={{ flex: 1, background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#888888", padding: "8px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>LABELS</button>
-          <button onClick={() => { onClose(); onOpenApiKey(); }} style={{ flex: 1, background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#555555", padding: "8px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", cursor: "pointer", letterSpacing: "0.06em" }}>API KEY</button>
-          <button onClick={() => { onClose(); onOpenSync(); }} style={{ flex: 1, background: "none", border: "1px solid " + (GitHubSync.isConfigured() ? "#1a2d1a" : "#2a2a2a"), color: GitHubSync.isConfigured() ? "#00c853" : "#555555", padding: "8px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", cursor: "pointer", letterSpacing: "0.06em" }}>SYNC</button>
+          <button onClick={() => { onClose(); onOpenLabels(); }} style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: "#888888", padding: "10px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", fontWeight: 600, cursor: "pointer", letterSpacing: "0.06em" }}>LABELS</button>
+          <button onClick={() => { onClose(); onOpenApiKey(); }} style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: "#555555", padding: "10px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", cursor: "pointer", letterSpacing: "0.06em" }}>API KEY</button>
+          <button onClick={() => { onClose(); onOpenSync(); }} style={{ flex: 1, background: GitHubSync.isConfigured() ? "rgba(0,200,83,0.08)" : "rgba(255,255,255,0.04)", border: "1px solid " + (GitHubSync.isConfigured() ? "rgba(0,200,83,0.15)" : "rgba(255,255,255,0.08)"), borderRadius: 10, color: GitHubSync.isConfigured() ? "#00c853" : "#555555", padding: "10px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", cursor: "pointer", letterSpacing: "0.06em" }}>SYNC</button>
         </div>
       </div>
     </div>
@@ -1171,14 +1174,14 @@ function LabelMakerModal({ onClose, knownItems }) {
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", width: "min(500px,96vw)", maxHeight: "90vh", overflowY: "auto", padding: "18px 16px" }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em" }}>LABEL MAKER</span>
-          <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(28,28,30,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, width: "min(500px,96vw)", maxHeight: "90vh", overflowY: "auto", padding: "22px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.1em" }}>LABEL MAKER</span>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: 30, height: 30, color: "#555555", cursor: "pointer", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
         </div>
         <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>Item labels for 2" x 6" C-channel holders. Print on cardstock, cut along dashed lines.</div>
         {labels.map((lb, idx) => (
-          <div key={lb.id} style={{ marginBottom: 8, background: "#1c1c1e", border: "1px solid #1a1a1a", padding: "10px" }}>
+          <div key={lb.id} style={{ marginBottom: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "12px 14px" }}>
             <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
               <div style={{ flex: 1 }}>
                 <label style={lbl}>ITEM NAME</label>
@@ -1195,9 +1198,9 @@ function LabelMakerModal({ onClose, knownItems }) {
             </div>
           </div>
         ))}
-        <button onClick={addLabel} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "5px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer", marginBottom: 14, width: "100%" }}>+ ADD LABEL</button>
+        <button onClick={addLabel} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: "#666666", padding: "8px 12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", cursor: "pointer", marginBottom: 16, width: "100%" }}>+ ADD LABEL</button>
         <div style={{ display: "flex", gap: 8 }}>
-          <button onClick={printLabels} disabled={validLabels.length === 0} style={{ flex: 1, background: validLabels.length > 0 ? "#ffffff" : "#222222", color: validLabels.length > 0 ? "#0a0a0a" : "#555555", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.08em", cursor: validLabels.length > 0 ? "pointer" : "default" }}>
+          <button onClick={printLabels} disabled={validLabels.length === 0} style={{ flex: 1, background: validLabels.length > 0 ? "#ffffff" : "rgba(255,255,255,0.06)", color: validLabels.length > 0 ? "#0a0a0a" : "#555555", border: "none", borderRadius: 12, padding: "12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.06em", cursor: validLabels.length > 0 ? "pointer" : "default" }}>
             PRINT {validLabels.length > 0 ? "(" + validLabels.length + ")" : ""}
           </button>
         </div>
@@ -1222,8 +1225,8 @@ function SyncStatusBar({ syncState }) {
   } else { text = "SYNC IDLE"; color = "#333333"; }
 
   return (
-    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, textAlign: "center", padding: "4px 0", paddingBottom: "calc(4px + env(safe-area-inset-bottom))", background: "#000000", borderTop: "1px solid rgba(255,255,255,0.04)", zIndex: 500 }}>
-      <span style={{ fontSize: "0.58rem", letterSpacing: "0.12em", color, fontFamily: "'Courier New', monospace" }}>{text}</span>
+    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, textAlign: "center", padding: "5px 0", paddingBottom: "calc(5px + env(safe-area-inset-bottom))", background: "rgba(0,0,0,0.9)", borderTop: "1px solid rgba(255,255,255,0.04)", zIndex: 500, WebkitBackdropFilter: "blur(10px)", backdropFilter: "blur(10px)" }}>
+      <span style={{ fontSize: "0.56rem", letterSpacing: "0.12em", color, fontFamily: "'SF Mono','Menlo','Courier New', monospace" }}>{text}</span>
       {error && <span style={{ fontSize: "0.52rem", color: "#ff4444", marginLeft: 6 }}>{error}</span>}
     </div>
   );
@@ -1516,14 +1519,15 @@ function App() {
 
   const tabBtn = (id, label, count, highlight) => (
     <button onClick={() => setTab(id)} style={{
-      background: "none", border: "none",
+      background: tab === id ? "rgba(255,255,255,0.06)" : "none", border: "none",
       borderBottom: tab === id ? ("2px solid " + (highlight || "#ffffff")) : "2px solid transparent",
-      color: tab === id ? (highlight || "#ffffff") : "#555555",
-      padding: "9px 6px", fontFamily: "'Courier New',monospace", fontWeight: 700,
-      fontSize: "0.72rem", letterSpacing: "0.06em", cursor: "pointer", whiteSpace: "nowrap", flex: "1 1 0", textAlign: "center"
+      color: tab === id ? (highlight || "#ffffff") : "#444444",
+      padding: "11px 6px 9px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700,
+      fontSize: "0.7rem", letterSpacing: "0.08em", cursor: "pointer", whiteSpace: "nowrap", flex: "1 1 0", textAlign: "center",
+      transition: "all 0.15s ease"
     }}>
       {label}
-      {count > 0 && <span style={{ marginLeft: 4, fontSize: "0.62rem", color: tab === id ? (highlight || "#ffffff") : "#444444" }}>{count}</span>}
+      {count > 0 && <span style={{ marginLeft: 4, fontSize: "0.6rem", color: tab === id ? (highlight || "#ffffff") : "#333333" }}>{count}</span>}
     </button>
   );
 
@@ -1531,25 +1535,25 @@ function App() {
 
   return (
     <div style={{ minHeight: "100vh", background: "#000000", color: "#e5e5e7", fontFamily: "'Courier New', monospace", maxWidth: 660, margin: "0 auto" }}>
-      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 auto", minWidth: 0 }}>
+      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "18px 18px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, flex: "1 1 auto", minWidth: 0 }}>
           <div style={{ flexShrink: 0 }}>
-            <div style={{ fontSize: "0.62rem", letterSpacing: "0.22em", color: "#555555", marginBottom: 1 }}>AURORA</div>
-            <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.06em", lineHeight: 1 }}>RECEIVING LOG</div>
+            <div style={{ fontSize: "0.6rem", letterSpacing: "0.22em", color: "#444444", marginBottom: 2 }}>AURORA</div>
+            <div style={{ fontSize: "1.3rem", fontWeight: 700, color: "#ffffff", letterSpacing: "-0.01em", lineHeight: 1 }}>Receiving Log</div>
           </div>
-          <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "6px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>
-              DICT{knownItems.length > 0 && <span style={{ fontSize: "0.6rem", color: "#666666", marginLeft: 2 }}>{knownItems.length}</span>}
+          <button onClick={() => setShowDict(true)} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, color: knownItems.length > 0 ? "#888888" : "#444444", padding: "7px 12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", fontWeight: 600, cursor: "pointer" }}>
+              DICT{knownItems.length > 0 && <span style={{ fontSize: "0.58rem", color: "#555555", marginLeft: 3 }}>{knownItems.length}</span>}
           </button>
         </div>
         <div style={{ display: "flex", gap: 8, alignItems: "center", flexShrink: 0 }}>
           {isPullTab ? (
             <React.Fragment>
-              <button onClick={() => setShowPullIntake(s => !s)} style={{ background: showPullIntake ? "#141414" : "none", border: "1px solid " + (showPullIntake ? "rgba(91,143,255,0.5)" : "#2a2a2a"), color: showPullIntake ? "#5b8fff" : "#666666", padding: "6px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>{showPullIntake ? "HIDE" : "+ SO"}</button>
+              <button onClick={() => setShowPullIntake(s => !s)} style={{ background: showPullIntake ? "rgba(91,143,255,0.12)" : "rgba(255,255,255,0.06)", border: "1px solid " + (showPullIntake ? "rgba(91,143,255,0.3)" : "rgba(255,255,255,0.06)"), borderRadius: 10, color: showPullIntake ? "#5b8fff" : "#666666", padding: "7px 14px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.76rem", fontWeight: 600, cursor: "pointer" }}>{showPullIntake ? "HIDE" : "+ SO"}</button>
             </React.Fragment>
           ) : (
             <React.Fragment>
-              <button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? "#141414" : "none", border: "1px solid " + (showIntake ? "rgba(255,255,255,0.33)" : "#2a2a2a"), color: showIntake ? "#ffffff" : "#666666", padding: "6px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>{showIntake ? "HIDE" : "SCAN"}</button>
-              <button onClick={() => { setEditEntry(null); setEditMode(null); setShowAdd(true); }} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "6px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>+ LOG</button>
+              <button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.06)", border: "1px solid " + (showIntake ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.06)"), borderRadius: 10, color: showIntake ? "#ffffff" : "#666666", padding: "7px 14px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.76rem", fontWeight: 600, cursor: "pointer" }}>{showIntake ? "HIDE" : "SCAN"}</button>
+              <button onClick={() => { setEditEntry(null); setEditMode(null); setShowAdd(true); }} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 10, padding: "7px 14px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.76rem", fontWeight: 700, cursor: "pointer" }}>+ LOG</button>
             </React.Fragment>
           )}
         </div>
@@ -1591,15 +1595,15 @@ function App() {
                     {pullCheckedCount} / {pullTotalCount}
                   </span>
                   <div style={{ display: "flex", gap: 6 }}>
-                    <button onClick={() => setShowSOList(s => !s)} style={{ background: "none", border: "1px solid #1a1a2a", color: "#5b8fff", padding: "3px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", fontWeight: 700, cursor: "pointer" }}>
+                    <button onClick={() => setShowSOList(s => !s)} style={{ background: "rgba(91,143,255,0.1)", border: "1px solid rgba(91,143,255,0.2)", borderRadius: 8, color: "#5b8fff", padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.64rem", fontWeight: 600, cursor: "pointer" }}>
                       {pullQueue.length} SO{pullQueue.length !== 1 ? "s" : ""}
                     </button>
-                    <button onClick={() => setShowPriority(true)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "3px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", cursor: "pointer" }}>ORDER</button>
-                    <button onClick={() => { if (confirm("Clear all SOs from pull sheet?")) clearPull(); }} style={{ background: "#1a0000", border: "1px solid #3a1010", color: "#aa4444", padding: "3px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", fontWeight: 700, cursor: "pointer" }}>CLEAR</button>
+                    <button onClick={() => setShowPriority(true)} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, color: "#666666", padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.64rem", cursor: "pointer" }}>ORDER</button>
+                    <button onClick={() => { if (confirm("Clear all SOs from pull sheet?")) clearPull(); }} style={{ background: "rgba(255,68,68,0.08)", border: "1px solid rgba(255,68,68,0.15)", borderRadius: 8, color: "#aa4444", padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.64rem", fontWeight: 600, cursor: "pointer" }}>CLEAR</button>
                   </div>
                 </div>
-                <div style={{ height: 4, background: "rgba(255,255,255,0.04)", width: "100%" }}>
-                  <div style={{ height: 4, background: pullCheckedCount === pullTotalCount && pullTotalCount > 0 ? "#00c853" : "#5b8fff", width: pullTotalCount > 0 ? ((pullCheckedCount / pullTotalCount) * 100) + "%" : "0%", transition: "width 0.2s, background 0.2s" }} />
+                <div style={{ height: 4, background: "rgba(255,255,255,0.06)", width: "100%", borderRadius: 2, overflow: "hidden" }}>
+                  <div style={{ height: 4, borderRadius: 2, background: pullCheckedCount === pullTotalCount && pullTotalCount > 0 ? "#00c853" : "#5b8fff", width: pullTotalCount > 0 ? ((pullCheckedCount / pullTotalCount) * 100) + "%" : "0%", transition: "width 0.3s ease, background 0.3s ease" }} />
                 </div>
               </div>
 
@@ -1611,9 +1615,9 @@ function App() {
               )}
 
               {pullCheckedCount === pullTotalCount && pullTotalCount > 0 && (
-                <div style={{ background: "#0a1a0a", border: "1px solid #1a3a1a", padding: "12px 14px", marginBottom: 10, textAlign: "center" }}>
-                  <div style={{ color: "#00c853", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.08em" }}>ALL ITEMS PULLED</div>
-                  <div style={{ color: "#335533", fontSize: "0.72rem", marginTop: 4 }}>Tap CLEAR when orders are loaded out.</div>
+                <div style={{ background: "rgba(0,200,83,0.08)", border: "1px solid rgba(0,200,83,0.15)", borderRadius: 14, padding: "14px 16px", marginBottom: 12, textAlign: "center" }}>
+                  <div style={{ color: "#00c853", fontWeight: 700, fontSize: "0.86rem", letterSpacing: "0.06em" }}>ALL ITEMS PULLED</div>
+                  <div style={{ color: "#335533", fontSize: "0.7rem", marginTop: 4 }}>Tap CLEAR when orders are loaded out.</div>
                 </div>
               )}
               {mergedPullItems.map((item, idx) => (
