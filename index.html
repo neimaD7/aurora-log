@@ -1519,15 +1519,15 @@ function App() {
 
   const tabBtn = (id, label, count, highlight) => (
     <button onClick={() => setTab(id)} style={{
-      background: tab === id ? "rgba(255,255,255,0.06)" : "none", border: "none",
-      borderBottom: tab === id ? ("2px solid " + (highlight || "#ffffff")) : "2px solid transparent",
-      color: tab === id ? (highlight || "#ffffff") : "#444444",
-      padding: "11px 6px 9px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700,
-      fontSize: "0.7rem", letterSpacing: "0.08em", cursor: "pointer", whiteSpace: "nowrap", flex: "1 1 0", textAlign: "center",
-      transition: "all 0.15s ease"
+      background: tab === id ? (highlight ? highlight : "#ffffff") : "transparent",
+      border: "none", borderRadius: 10,
+      color: tab === id ? (highlight ? "#000000" : "#000000") : "#555555",
+      padding: "8px 0", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: tab === id ? 700 : 500,
+      fontSize: "0.72rem", letterSpacing: "0.04em", cursor: "pointer", whiteSpace: "nowrap", flex: "1 1 0", textAlign: "center",
+      transition: "all 0.2s ease", position: "relative", zIndex: 1
     }}>
       {label}
-      {count > 0 && <span style={{ marginLeft: 4, fontSize: "0.6rem", color: tab === id ? (highlight || "#ffffff") : "#333333" }}>{count}</span>}
+      {count > 0 && <span style={{ marginLeft: 3, fontSize: "0.58rem", opacity: tab === id ? 0.7 : 0.5 }}>{count}</span>}
     </button>
   );
 
@@ -1570,22 +1570,28 @@ function App() {
       {showIntake && !isPullTab && <AIIntake onSave={addEntry} onSaveUpcoming={addUpcoming} knownItems={knownItems} />}
       {showPullIntake && isPullTab && <PullIntake onAddSO={addSO} knownItems={knownItems} />}
 
-      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", display: "flex" }}>
-        {tabBtn("po", "POs", poCount)}
-        {tabBtn("transfers", "XFERS", trCount)}
-        {tabBtn("upcoming", "UPCOMING", upCount, "#c9a84c")}
-        {tabBtn("pull", "PULL", plCount, "#5b8fff")}
+      <div style={{ padding: "10px 16px 6px" }}>
+        <div style={{ display: "flex", background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 3, gap: 3 }}>
+          {tabBtn("po", "POs", poCount)}
+          {tabBtn("transfers", "XFERS", trCount)}
+          {tabBtn("upcoming", "UPCOMING", upCount, "#c9a84c")}
+          {tabBtn("pull", "PULL", plCount, "#5b8fff")}
+        </div>
       </div>
 
       <div style={{ padding: "0 12px calc(80px + env(safe-area-inset-bottom))" }}>
         {!loaded ? (
-          <div style={{ padding: 50, textAlign: "center", color: "#555555", fontSize: "0.84rem" }}>Loading...</div>
+          <div style={{ padding: "80px 30px", textAlign: "center" }}>
+            <div style={{ fontSize: "2.5rem", marginBottom: 16, animation: "pulse 1.5s infinite" }}>📋</div>
+            <div style={{ color: "#444444", fontSize: "0.84rem" }}>Loading...</div>
+          </div>
         ) : tab === "pull" ? (
           pullQueue.length === 0 ? (
-            <div style={{ padding: 60, textAlign: "center" }}>
-              <div style={{ color: "#2a2a2a", fontSize: "0.9rem", marginBottom: 12 }}>No sales orders loaded.</div>
-              <div style={{ color: "#333333", fontSize: "0.74rem", marginBottom: 20 }}>Tap + SO to scan or enter a sales order.</div>
-              <button onClick={loadDemoSOs} style={{ background: "none", border: "1px solid #1a1a2a", color: "#5b8fff", padding: "8px 16px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>LOAD DEMO</button>
+            <div style={{ padding: "80px 30px", textAlign: "center" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: 16, opacity: 0.3 }}>📋</div>
+              <div style={{ color: "#555555", fontSize: "0.92rem", fontWeight: 600, marginBottom: 6 }}>No sales orders</div>
+              <div style={{ color: "#333333", fontSize: "0.76rem", marginBottom: 24, lineHeight: 1.5 }}>Tap + SO to scan or enter a sales order</div>
+              <button onClick={loadDemoSOs} style={{ background: "rgba(91,143,255,0.1)", border: "1px solid rgba(91,143,255,0.2)", borderRadius: 12, color: "#5b8fff", padding: "10px 20px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em" }}>LOAD DEMO</button>
             </div>
           ) : (
             <div>
@@ -1629,12 +1635,20 @@ function App() {
           )
         ) : tab === "upcoming" ? (
           activeUpcoming.length === 0 ? (
-            <div style={{ padding: 60, textAlign: "center", color: "#2a2a2a", fontSize: "0.9rem" }}>No upcoming orders staged.</div>
+            <div style={{ padding: "80px 30px", textAlign: "center" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: 16, opacity: 0.3 }}>📦</div>
+              <div style={{ color: "#555555", fontSize: "0.92rem", fontWeight: 600, marginBottom: 6 }}>No upcoming orders</div>
+              <div style={{ color: "#333333", fontSize: "0.76rem", lineHeight: 1.5 }}>Orders staged here will appear when you tap UPCOMING during intake</div>
+            </div>
           ) : (
             activeUpcoming.map(entry => <UpcomingCard key={entry.id} entry={entry} onConfirm={confirmUpcoming} onDelete={deleteUpcoming} onEdit={handleEditUpcoming} />)
           )
         ) : grouped.length === 0 ? (
-          <div style={{ padding: 60, textAlign: "center", color: "#2a2a2a", fontSize: "0.9rem" }}>{"No " + (tab === "po" ? "purchase orders" : "transfers") + " logged yet."}</div>
+          <div style={{ padding: "80px 30px", textAlign: "center" }}>
+            <div style={{ fontSize: "2.5rem", marginBottom: 16, opacity: 0.3 }}>{tab === "po" ? "📝" : "🔄"}</div>
+            <div style={{ color: "#555555", fontSize: "0.92rem", fontWeight: 600, marginBottom: 6 }}>{"No " + (tab === "po" ? "purchase orders" : "transfers") + " yet"}</div>
+            <div style={{ color: "#333333", fontSize: "0.76rem", lineHeight: 1.5 }}>Tap SCAN to photograph a document or + LOG to enter manually</div>
+          </div>
         ) : (
           grouped.map(([date, dayEntries]) => (
             <div key={date}>
