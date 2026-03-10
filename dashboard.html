@@ -340,7 +340,9 @@ function renderTasks(data) {
   for (var i = 0; i < tasks.length; i++) {
     var t = tasks[i];
     var status = t.status || "idle";
-    var elapsed = t.started ? ((t.completed || Date.now()) - t.started) : 0;
+    var startTs = t.started || (t.startedAt ? new Date(t.startedAt).getTime() : 0);
+    var endTs = t.completed || (t.completedAt ? new Date(t.completedAt).getTime() : 0) || (t.status === "done" ? (t.updated || startTs) : Date.now());
+    var elapsed = startTs ? (endTs - startTs) : 0;
 
     h += '<div class="task-item">';
     h += '<div class="task-row">';
@@ -488,7 +490,7 @@ function init() {
     var sb = document.getElementById("setupBtnTop");
     if (sb) sb.onclick = showSetup;
     var ol = document.getElementById("openLogBtn");
-    if (ol) ol.onclick = function() { window.open("https://neimaD7.github.io/aurora-log/", "_blank"); };
+    if (ol) ol.onclick = function() { window.open("/", "_blank"); };
     var rbb = document.getElementById("refreshBtnBottom");
     if (rbb) rbb.onclick = function() { refresh(); fetchWeather(); };
   }, 50);
@@ -505,12 +507,20 @@ function init() {
   }
 }
 
-// Tick running task timers
+// Tick running task timers + sync line
 setInterval(function() {
-  if (!lastData || !lastData.tasks) return;
-  var hasRunning = lastData.tasks.some(function(t) { return t.status === "running"; });
-  if (hasRunning) renderTasks(lastData);
-}, 1000);
+  if (!lastData) return;
+  // Update running task elapsed times
+  if (lastData.tasks) {
+    var hasRunning = lastData.tasks.some(function(t) { return t.status === "running"; });
+    if (hasRunning) renderTasks(lastData);
+  }
+  // Update "ago" text
+  var sync = document.getElementById("syncLine");
+  if (sync && lastData.lastUpdated && !sync.style.color) {
+    sync.textContent = "UPDATED " + formatAgo(lastData.lastUpdated);
+  }
+}, 10000);
 
 // Start
 init();
