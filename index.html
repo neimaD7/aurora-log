@@ -178,25 +178,19 @@ function findBestMatch(name, knownItems) {
 }
 
 function extractJSON(text) {
-  // Strip any markdown fences aggressively (handles newlines, spaces, variants)
   let cleaned = text.replace(FENCE_RE, "");
-  // Also strip any remaining lines that are just whitespace or "json"
   cleaned = cleaned.replace(/^\s*json\s*$/gm, "").trim();
-  // Try direct parse
-  try { return JSON.parse(cleaned); } catch(e) { console.log("extractJSON direct parse failed:", e.message); }
-  // Try to find JSON object in the text
+  try { return JSON.parse(cleaned); } catch(e) {}
   const start = cleaned.indexOf("{");
   const end = cleaned.lastIndexOf("}");
   if (start !== -1 && end > start) {
-    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch(e) { console.log("extractJSON object extract failed:", e.message, "slice:", cleaned.slice(Math.max(end - 30, start), end + 1)); }
+    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch(e) {}
   }
-  // Try to find JSON array
   const aStart = cleaned.indexOf("[");
   const aEnd = cleaned.lastIndexOf("]");
   if (aStart !== -1 && aEnd > aStart) {
     try { return JSON.parse(cleaned.slice(aStart, aEnd + 1)); } catch(e) {}
   }
-  console.log("extractJSON failed. Full cleaned text:", cleaned);
   return null;
 }
 
@@ -515,7 +509,7 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (
       if (data.error) { setError("API error: " + (data.error.message || "Unknown")); setLoading(false); return; }
       const text = data.content?.map(b => b.text || "").join("").trim();
       let result = extractJSON(text);
-      if (!result) { setError("Couldn't parse response. API returned: " + text.slice(0, 300)); setLoading(false); return; }
+      if (!result) { setError("Couldn't parse AI response — try again or enter manually."); setLoading(false); return; }
       if (result.lineItems) {
         result.lineItems = result.lineItems.map(li => {
           const match = findBestMatch(li.name, knownItems);
@@ -663,7 +657,7 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (
       if (data.stop_reason === "max_tokens") { setError("Response was cut off (too many items). Try fewer pages."); setLoading(false); return; }
       const text = data.content?.map(b => b.text || "").join("").trim();
       let result = extractJSON(text);
-      if (!result) { setError("Couldn't parse SO. Start: " + text.slice(0, 200) + " ...END: " + text.slice(-100)); setLoading(false); return; }
+      if (!result) { setError("Couldn't parse SO — try again or enter manually."); setLoading(false); return; }
       if (result.lineItems) {
         result.lineItems = result.lineItems.map(li => {
           const match = findBestMatch(li.name, knownItems);
