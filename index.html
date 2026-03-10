@@ -410,6 +410,21 @@ const GitHubSync = {
         }
       } catch(e) { console.error("fullSync pull error for " + t.key + ":", e); }
     }
+    // Phase 1.5: Reap tombstones older than 24 hours
+    const REAP_AGE = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    for (const t of types) {
+      try {
+        const data = getLocal(t.storageKey);
+        if (data && data.length > 0) {
+          const reaped = data.filter(item => !(item._deleted && item.modifiedAt && (now - item.modifiedAt) > REAP_AGE));
+          if (reaped.length < data.length) {
+            console.log("Reaped " + (data.length - reaped.length) + " tombstones from " + t.key);
+            setLocal(t.storageKey, reaped);
+          }
+        }
+      } catch(e) { console.error("Reap error for " + t.key + ":", e); }
+    }
     // Phase 2: Push all local data back (creates missing files, syncs merged results)
     for (const t of types) {
       try {
