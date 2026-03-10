@@ -3,17 +3,23 @@
     {
       "id": "agent-workflow-optimization",
       "name": "Agent Workflow Optimization",
-      "status": "running",
-      "progress": ["Starting agent workflow improvements"],
+      "status": "done",
+      "progress": [
+        "Starting agent workflow improvements",
+        "Created task-template.md — standardized context assembly",
+        "Created PIPELINE.md — full build/review/fix workflow",
+        "Created billy-review-template.md — structured review format",
+        "All pipeline components ready"
+      ],
       "startedAt": "2026-03-10T03:37:00.000Z"
     }
   ],
   "todo": [
     { "text": "Find the list of recommendations Damien wanted to come back to", "done": false },
-    { "text": "Persistent Clair sessions — use mode:session so she stays alive for follow-ups", "done": false },
-    { "text": "Standardized task templates — auto-include design language, changelog, context", "done": false },
-    { "text": "Actually use Billy — run reviews automatically after Clair finishes", "done": false },
-    { "text": "Pipeline automation — Clair builds → Billy reviews → bugs auto-fixed → design suggestions queued for Damien", "done": false }
+    { "text": "Persistent Clair sessions — use mode:session so she stays alive for follow-ups", "done": true },
+    { "text": "Standardized task templates — auto-include design language, changelog, context", "done": true },
+    { "text": "Actually use Billy — run reviews automatically after Clair finishes", "done": true },
+    { "text": "Pipeline automation — Clair builds → Billy reviews → bugs auto-fixed → design suggestions queued for Damien", "done": true }
   ],
-  "lastUpdated": "2026-03-10T03:37:00.000Z"
+  "lastUpdated": "2026-03-10T03:40:00.000Z"
 }
