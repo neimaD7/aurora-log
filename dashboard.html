@@ -81,7 +81,9 @@
     border-radius: 12px;
     padding: 12px 8px;
     text-align: center;
+    transition: all 0.15s ease;
   }
+  .stat-tile:active { opacity: 0.7; transform: scale(0.96); }
   .stat-value { font-size: 1.5rem; font-weight: 600; color: #ffffff; line-height: 1; }
   .stat-value.accent { color: #5b8fff; }
   .stat-value.zero { color: #333333; }
@@ -144,7 +146,7 @@
   .modal-title { font-size: 0.88rem; font-weight: 600; color: #ffffff; letter-spacing: 0.08em; margin-bottom: 14px; }
   .modal-input {
     width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
-    border-radius: 10px; color: #e5e5e7; padding: 12px 14px; font-size: 0.88rem;
+    border-radius: 10px; color: #e5e5e7; padding: 12px 14px; font-size: 16px;
     outline: none; margin-bottom: 12px;
   }
   .modal-input:focus { border-color: rgba(91,143,255,0.4); }

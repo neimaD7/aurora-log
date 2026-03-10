@@ -1,4 +1,4 @@
-const CACHE_VERSION = 'aurora-v3';
+const CACHE_VERSION = 'aurora-v4';
 
 const CDN_ASSETS = [
   'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
