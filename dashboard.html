@@ -118,6 +118,37 @@
   .todo-text { font-size: 0.82rem; color: #e5e5e7; line-height: 1.4; }
   .todo-text.done { color: #444444; text-decoration: line-through; }
 
+  /* Ideas */
+  .idea-item { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  .idea-item:last-child { border-bottom: none; }
+  .idea-header { display: flex; align-items: center; gap: 8px; }
+  .idea-title { flex: 1; font-size: 0.82rem; font-weight: 500; color: #e5e5e7; }
+  .idea-badge {
+    font-size: 0.52rem; font-weight: 600; letter-spacing: 0.06em;
+    padding: 3px 7px; border-radius: 6px; text-transform: uppercase; flex-shrink: 0;
+  }
+  .idea-badge.log { background: rgba(91,143,255,0.12); color: #5b8fff; }
+  .idea-badge.dashboard { background: rgba(201,168,76,0.12); color: #c9a84c; }
+  .idea-badge.both { background: rgba(52,199,89,0.12); color: #34c759; }
+  .idea-diff {
+    font-size: 0.52rem; font-weight: 600; letter-spacing: 0.06em;
+    padding: 3px 7px; border-radius: 6px; text-transform: uppercase; flex-shrink: 0;
+  }
+  .idea-diff.easy { background: rgba(52,199,89,0.08); color: #34c759; }
+  .idea-diff.medium { background: rgba(201,168,76,0.08); color: #c9a84c; }
+  .idea-diff.hard { background: rgba(255,69,58,0.08); color: #ff453a; }
+  .idea-desc { font-size: 0.72rem; color: #666666; margin-top: 6px; line-height: 1.45; }
+  .idea-impact { margin-top: 4px; font-size: 0.62rem; color: #333333; }
+  .idea-status-approved { color: #34c759; }
+  .idea-status-building { color: #5b8fff; }
+  .idea-status-proposed { color: #555555; }
+  .ideas-tier-label {
+    font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em;
+    color: #444444; text-transform: uppercase; padding: 10px 0 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.03); margin-bottom: 4px;
+  }
+  .ideas-tier-label:first-child { padding-top: 0; }
+
   /* Empty states */
   .empty { text-align: center; padding: 20px 0; color: #333333; font-size: 0.78rem; }
 
@@ -384,6 +415,63 @@ function renderTodo(data) {
   el.innerHTML = h;
 }
 
+// ===== IDEAS =====
+function fetchRecommendations() {
+  var token = getToken();
+  if (!token) return Promise.resolve([]);
+  return fetch("https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/recommendations.json", {
+    headers: { "Authorization": "Bearer " + token, "Accept": "application/vnd.github.v3+json" },
+    cache: "no-store"
+  }).then(function(r) {
+    if (r.status === 404) return [];
+    if (!r.ok) throw new Error("API " + r.status);
+    return r.json();
+  }).then(function(data) {
+    var decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ""))));
+    return JSON.parse(decoded);
+  }).catch(function() { return []; });
+}
+
+function renderIdeas(ideas) {
+  var el = document.getElementById("ideasList");
+  if (!el) return;
+  if (!ideas || ideas.length === 0) {
+    el.innerHTML = '<div class="empty">No ideas yet</div>';
+    return;
+  }
+  var tierOrder = ["build-first", "high-value", "easy-win", "nice-to-have"];
+  var tierLabels = { "build-first": "Build First", "high-value": "High Value", "easy-win": "Easy Wins", "nice-to-have": "Nice to Have" };
+  var grouped = {};
+  for (var i = 0; i < ideas.length; i++) {
+    var tier = ideas[i].tier || "nice-to-have";
+    if (!grouped[tier]) grouped[tier] = [];
+    grouped[tier].push(ideas[i]);
+  }
+  var h = "";
+  for (var t = 0; t < tierOrder.length; t++) {
+    var key = tierOrder[t];
+    if (!grouped[key] || grouped[key].length === 0) continue;
+    h += '<div class="ideas-tier-label">' + (tierLabels[key] || key) + '</div>';
+    for (var j = 0; j < grouped[key].length; j++) {
+      var idea = grouped[key][j];
+      var appCls = idea.app === "Log" ? "log" : (idea.app === "Dashboard" ? "dashboard" : "both");
+      var diffCls = (idea.difficulty || "").toLowerCase();
+      var impactDots = "";
+      for (var d = 0; d < 5; d++) impactDots += d < (idea.impact || 0) ? "\uD83D\uDD25" : "";
+      h += '<div class="idea-item">';
+      h += '<div class="idea-header">';
+      h += '<div class="idea-title">' + esc(idea.title || "") + '</div>';
+      h += '<span class="idea-badge ' + appCls + '">' + esc(idea.app || "") + '</span>';
+      h += '<span class="idea-diff ' + diffCls + '">' + esc(idea.difficulty || "") + '</span>';
+      h += '</div>';
+      h += '<div class="idea-desc">' + esc(idea.description || "") + '</div>';
+      h += '<div class="idea-impact">' + impactDots + '</div>';
+      h += '</div>';
+    }
+  }
+  el.innerHTML = h;
+}
+
 // ===== REFRESH =====
 function refresh() {
   if (!getToken()) return;
@@ -396,6 +484,9 @@ function refresh() {
   }).catch(function(e) {
     var sync = document.getElementById("syncLine");
     if (sync) { sync.textContent = "ERROR: " + e.message; sync.style.color = "#ff453a"; }
+  });
+  fetchRecommendations().then(function(ideas) {
+    renderIdeas(ideas);
   });
   fetchStats();
 }
@@ -459,6 +550,9 @@ function init() {
 
   // Todo
   h += '<div class="card"><div class="card-label">Todo</div><div id="todoList"><div class="empty">Loading...</div></div></div>';
+
+  // Ideas
+  h += '<div class="card"><div class="card-label">Ideas</div><div id="ideasList"><div class="empty">Loading...</div></div></div>';
 
   // Footer
   h += '<div class="footer">';
