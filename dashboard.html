@@ -124,27 +124,25 @@
   .idea-header { display: flex; align-items: center; gap: 8px; }
   .idea-title { flex: 1; font-size: 0.82rem; font-weight: 500; color: #e5e5e7; }
   .idea-badge {
-    font-size: 0.52rem; font-weight: 600; letter-spacing: 0.06em;
+    font-size: 0.58rem; font-weight: 600; letter-spacing: 0.06em;
     padding: 3px 7px; border-radius: 6px; text-transform: uppercase; flex-shrink: 0;
   }
   .idea-badge.log { background: rgba(91,143,255,0.12); color: #5b8fff; }
   .idea-badge.dashboard { background: rgba(201,168,76,0.12); color: #c9a84c; }
   .idea-badge.both { background: rgba(52,199,89,0.12); color: #34c759; }
   .idea-diff {
-    font-size: 0.52rem; font-weight: 600; letter-spacing: 0.06em;
+    font-size: 0.58rem; font-weight: 600; letter-spacing: 0.06em;
     padding: 3px 7px; border-radius: 6px; text-transform: uppercase; flex-shrink: 0;
   }
   .idea-diff.easy { background: rgba(52,199,89,0.08); color: #34c759; }
   .idea-diff.medium { background: rgba(201,168,76,0.08); color: #c9a84c; }
   .idea-diff.hard { background: rgba(255,69,58,0.08); color: #ff453a; }
-  .idea-desc { font-size: 0.72rem; color: #666666; margin-top: 6px; line-height: 1.45; }
-  .idea-impact { margin-top: 4px; font-size: 0.62rem; color: #333333; }
-  .idea-status-approved { color: #34c759; }
-  .idea-status-building { color: #5b8fff; }
-  .idea-status-proposed { color: #555555; }
+  .idea-desc { font-size: 0.72rem; color: #555555; margin-top: 6px; line-height: 1.45; }
+  .idea-impact { margin-top: 4px; font-size: 0.62rem; color: #444444; }
+  /* idea-status classes: add when status indicators are implemented */
   .ideas-tier-label {
     font-size: 0.58rem; font-weight: 700; letter-spacing: 0.1em;
-    color: #444444; text-transform: uppercase; padding: 10px 0 4px;
+    color: #444444; text-transform: uppercase; padding: 14px 0 6px;
     border-bottom: 1px solid rgba(255,255,255,0.03); margin-bottom: 4px;
   }
   .ideas-tier-label:first-child { padding-top: 0; }
@@ -427,16 +425,23 @@ function fetchRecommendations() {
     if (!r.ok) throw new Error("API " + r.status);
     return r.json();
   }).then(function(data) {
-    var decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ""))));
+    var raw = atob(data.content.replace(/\n/g, ""));
+    var bytes = new Uint8Array(raw.length);
+    for (var i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
+    var decoded = new TextDecoder().decode(bytes);
     return JSON.parse(decoded);
-  }).catch(function() { return []; });
+  }).catch(function() { return null; });
 }
 
 function renderIdeas(ideas) {
   var el = document.getElementById("ideasList");
   if (!el) return;
+  if (ideas === null) {
+    el.innerHTML = '<div class="empty">Could not load ideas</div>';
+    return;
+  }
   if (!ideas || ideas.length === 0) {
-    el.innerHTML = '<div class="empty">No ideas yet</div>';
+    el.innerHTML = '<div class="empty">\uD83D\uDCA1 No ideas yet</div>';
     return;
   }
   var tierOrder = ["build-first", "high-value", "easy-win", "nice-to-have"];
