@@ -1,6 +1,6 @@
 {
-  "name": "Aurora",
-  "short_name": "Aurora",
+  "name": "\ud83d\udcddLog",
+  "short_name": "\ud83d\udcddLog",
   "display": "standalone",
   "start_url": "./index.html",
   "scope": "./",
