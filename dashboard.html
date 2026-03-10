@@ -320,7 +320,11 @@ function renderTasks(data) {
     el.innerHTML = '<div class="empty">No active tasks</div>';
     return;
   }
-  var tasks = data.tasks.slice().sort(function(a, b) {
+  var now = Date.now();
+  var tasks = data.tasks.filter(function(t) {
+    if (t.status === "done" && t.completed && (now - t.completed) > 300000) return false;
+    return true;
+  }).slice().sort(function(a, b) {
     var order = { running: 0, failed: 1, killed: 2, done: 3 };
     var oa = order[a.status] !== undefined ? order[a.status] : 4;
     var ob = order[b.status] !== undefined ? order[b.status] : 4;
