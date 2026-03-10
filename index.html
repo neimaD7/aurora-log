@@ -1588,12 +1588,7 @@ function App() {
   return (
     <div style={{ minHeight: "100vh", background: "#000000", color: "#e5e5e7", fontFamily: "'Courier New', monospace", maxWidth: 660, margin: "0 auto" }}>
       <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "18px 16px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 1, minWidth: 0 }}>
-          <div style={{ flexShrink: 0 }}>
-            <div style={{ fontSize: "0.6rem", letterSpacing: "0.22em", color: "#444444", marginBottom: 2 }}>AURORA</div>
-            <div style={{ fontSize: "1.2rem", fontWeight: 700, color: "#ffffff", letterSpacing: "-0.01em", lineHeight: 1 }}>Receiving Log</div>
-          </div>
-        </div>
+        <div style={{ flexShrink: 1, minWidth: 0 }} />
         <div style={{ display: "flex", gap: 6, alignItems: "center", flexShrink: 0 }}>
           <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: knownItems.filter(k => !k._deleted).length > 0 ? "#777777" : "#444444", padding: "7px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}>
               DICT{knownItems.filter(k => !k._deleted).length > 0 && <span style={{ fontSize: "0.56rem", color: "#555555", marginLeft: 3 }}>{knownItems.filter(k => !k._deleted).length}</span>}
