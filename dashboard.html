@@ -3,570 +3,323 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Bob — Dashboard V2</title>
+<title>Bob</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤙</text></svg>">
-<meta name="theme-color" content="#0a0a0a">
+<meta name="theme-color" content="#000000">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bob">
+<link rel="manifest" href="manifest.json">
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0a0a0a; color: #f5f5f5; font-family: 'Courier New', monospace; min-height: 100vh; }
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: #0a0a0a; }
-  ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { height: 100%; overflow: hidden; }
+  body {
+    background: #000000;
+    color: #e5e5e7;
+    font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
+    height: 100%; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  input { font-family: 'SF Mono', 'Menlo', 'Courier New', monospace; font-size: 16px; }
+  button { font-family: 'SF Mono', 'Menlo', 'Courier New', monospace; -webkit-tap-highlight-color: transparent; transition: all 0.15s ease; cursor: pointer; }
+  button:active { opacity: 0.6; transform: scale(0.97); }
+  ::-webkit-scrollbar { display: none; }
 
-  .container { max-width: 660px; margin: 0 auto; padding: 0; }
+  .container { max-width: 480px; margin: 0 auto; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); }
 
-  .header {
-    border-bottom: 2px solid #ffffff;
-    padding: 12px 14px;
-    display: flex; justify-content: space-between; align-items: center;
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 8px 0 20px; }
+  .header-name { font-size: 1.75rem; font-weight: 700; color: #ffffff; letter-spacing: -0.02em; }
+  .header-actions { display: flex; gap: 8px; }
+  .icon-btn {
+    width: 36px; height: 36px; border-radius: 50%; border: none;
+    background: rgba(255,255,255,0.08); color: #888888;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.82rem; font-weight: 600;
   }
-  .header-title .sub { font-size: 0.62rem; letter-spacing: 0.22em; color: #555555; margin-bottom: 1px; }
-  .header-title .main { font-size: 1.25rem; font-weight: 700; color: #ffffff; letter-spacing: 0.06em; line-height: 1; }
-  .header-right { display: flex; gap: 8px; align-items: center; }
-  .header-btn {
-    background: none; border: 1px solid #2a2a2a; color: #666666;
-    padding: 6px 12px; font-family: 'Courier New', monospace;
-    font-size: 0.78rem; font-weight: 700; cursor: pointer;
-  }
-  .header-btn:hover { border-color: #444444; color: #888888; }
-  .header-btn.active { border-color: rgba(91,143,255,0.5); color: #5b8fff; background: #141414; }
+  .icon-btn:hover { background: rgba(255,255,255,0.12); color: #aaaaaa; }
 
-  /* Weather Widget */
-  .weather-widget {
-    padding: 10px 14px;
-    border-bottom: 1px solid #1a1a1a;
-    background: #0d0d0d;
+  /* Cards */
+  .card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 16px 18px;
+    margin-bottom: 12px;
+    animation: fadeIn 0.3s ease;
   }
-  .weather-row {
-    display: flex; align-items: center; gap: 10px;
-    flex-wrap: wrap;
-  }
-  .weather-location {
-    font-size: 0.62rem; letter-spacing: 0.15em; color: #444444;
-    text-transform: uppercase; margin-bottom: 4px;
-  }
-  .weather-current {
-    display: flex; align-items: baseline; gap: 6px;
-  }
-  .weather-emoji { font-size: 1.1rem; line-height: 1; }
-  .weather-temp {
-    font-size: 1.3rem; font-weight: 700; color: #ffffff; line-height: 1;
-  }
-  .weather-condition {
-    font-size: 0.72rem; color: #888888;
-  }
-  .weather-details {
-    display: flex; gap: 12px; align-items: center;
-    font-size: 0.68rem; color: #555555;
-    margin-left: auto;
-  }
-  .weather-details .hi { color: #c9a84c; }
-  .weather-details .lo { color: #5b8fff; }
-  .weather-details .precip { color: #5b8fff; }
-  .weather-tomorrow {
-    display: flex; align-items: center; gap: 8px;
-    font-size: 0.64rem; color: #444444;
-    margin-top: 4px;
-    padding-top: 4px;
-    border-top: 1px solid #141414;
-  }
-  .weather-tomorrow .label { color: #333333; letter-spacing: 0.1em; }
-  .weather-tomorrow .hi { color: #6b5a2a; }
-  .weather-tomorrow .lo { color: #3a5a8f; }
-  .weather-loading {
-    font-size: 0.68rem; color: #333333; letter-spacing: 0.1em;
-    padding: 4px 0;
-  }
-  .weather-error {
-    font-size: 0.68rem; color: #ff4444; letter-spacing: 0.1em;
-    padding: 4px 0;
+  .card-label {
+    font-size: 0.62rem; font-weight: 600; letter-spacing: 0.12em;
+    color: #555555; text-transform: uppercase; margin-bottom: 10px;
   }
 
-  /* Status dots */
-  .status-dot {
-    width: 8px; height: 8px; border-radius: 50%;
-    display: inline-block; margin-right: 6px; flex-shrink: 0;
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Weather */
+  .weather-temp { font-size: 2.8rem; font-weight: 200; color: #ffffff; letter-spacing: -0.03em; line-height: 1; }
+  .weather-temp .unit { font-size: 1.2rem; color: #555555; vertical-align: super; }
+  .weather-row { display: flex; align-items: center; gap: 12px; }
+  .weather-details { flex: 1; }
+  .weather-condition { font-size: 0.82rem; color: #888888; margin-top: 2px; }
+  .weather-hilo { font-size: 0.72rem; color: #555555; margin-top: 4px; }
+  .weather-hilo .hi { color: #c9a84c; }
+  .weather-hilo .lo { color: #5b8fff; }
+  .weather-emoji { font-size: 2rem; line-height: 1; }
+  .weather-tomorrow { font-size: 0.72rem; color: #444444; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.04); }
+  .weather-tomorrow .hi { color: #c9a84c; }
+  .weather-tomorrow .lo { color: #5b8fff; }
+
+  /* Stats Grid */
+  .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .stat-tile {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.04);
+    border-radius: 12px;
+    padding: 12px 8px;
+    text-align: center;
   }
-  .status-dot.idle { background: #333333; }
-  .status-dot.running { background: #5b8fff; animation: pulse 1.5s infinite; }
-  .status-dot.done { background: #00c853; }
-  .status-dot.failed { background: #ff4444; }
-  .status-dot.killed { background: #c9a84c; }
+  .stat-value { font-size: 1.5rem; font-weight: 600; color: #ffffff; line-height: 1; }
+  .stat-value.accent { color: #5b8fff; }
+  .stat-value.zero { color: #333333; }
+  .stat-label { font-size: 0.52rem; letter-spacing: 0.1em; color: #444444; margin-top: 6px; text-transform: uppercase; }
 
-  @keyframes pulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
+  /* Tasks */
+  .task-item { padding: 12px 0; border-bottom: 1px solid rgba(255,255,255,0.03); }
+  .task-item:last-child { border-bottom: none; }
+  .task-row { display: flex; align-items: center; gap: 10px; }
+  .task-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .task-dot.running { background: #5b8fff; animation: pulse 1.5s infinite; }
+  .task-dot.done { background: #34c759; }
+  .task-dot.failed { background: #ff453a; }
+  .task-dot.killed { background: #c9a84c; }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+  .task-name { flex: 1; font-size: 0.84rem; font-weight: 500; color: #e5e5e7; }
+  .task-name.done { color: #555555; }
+  .task-time { font-size: 0.68rem; color: #444444; flex-shrink: 0; }
+  .task-progress { font-size: 0.72rem; color: #555555; margin-top: 4px; padding-left: 18px; }
+  .task-log-entry { padding: 2px 0; }
+  .task-log-time { color: #333333; font-size: 0.62rem; margin-right: 6px; }
+
+  /* Todo */
+  .todo-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; }
+  .todo-check {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 1.5px solid #333333; flex-shrink: 0; margin-top: 1px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.6rem; color: transparent;
   }
+  .todo-check.done { border-color: #34c759; color: #34c759; background: rgba(52,199,89,0.1); }
+  .todo-text { font-size: 0.82rem; color: #e5e5e7; line-height: 1.4; }
+  .todo-text.done { color: #444444; text-decoration: line-through; }
 
-  .task-card {
-    border-left: 3px solid #333333;
-    background: #111111;
-    padding: 14px 16px;
-    margin: 8px 12px;
+  /* Empty states */
+  .empty { text-align: center; padding: 20px 0; color: #333333; font-size: 0.78rem; }
+
+  /* Footer */
+  .footer { display: flex; gap: 8px; margin-top: 8px; margin-bottom: 8px; }
+  .footer-btn {
+    flex: 1; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px; color: #666666; padding: 12px 8px;
+    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em;
   }
-  .task-card.running { border-left-color: #5b8fff; }
-  .task-card.done { border-left-color: #00c853; }
-  .task-card.failed { border-left-color: #ff4444; }
-  .task-card.killed { border-left-color: #c9a84c; }
+  .footer-btn:hover { background: rgba(255,255,255,0.08); color: #888888; }
 
-  .task-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 8px; }
-  .task-name { color: #ffffff; font-weight: 700; font-size: 0.94rem; }
-  .task-status {
-    font-size: 0.68rem; letter-spacing: 0.1em; font-weight: 700;
-    padding: 2px 8px; flex-shrink: 0;
-  }
-  .task-status.running { color: #5b8fff; }
-  .task-status.done { color: #00c853; }
-  .task-status.failed { color: #ff4444; }
-  .task-status.killed { color: #c9a84c; }
+  .sync-line { text-align: center; padding: 8px 0; font-size: 0.56rem; letter-spacing: 0.1em; color: #2a2a2a; }
 
-  .task-meta { font-size: 0.72rem; color: #555555; margin-bottom: 6px; }
-  .task-progress { font-size: 0.82rem; color: #999999; line-height: 1.5; }
-  .task-progress .timestamp { color: #444444; font-size: 0.68rem; margin-right: 6px; }
-  .task-elapsed { color: #444444; font-size: 0.68rem; margin-top: 6px; }
-
-  .empty-state {
-    padding: 80px 20px; text-align: center;
-  }
-  .empty-state .emoji { font-size: 2rem; margin-bottom: 12px; }
-  .empty-state .msg { color: #333333; font-size: 0.88rem; margin-bottom: 6px; }
-  .empty-state .sub { color: #222222; font-size: 0.74rem; }
-
-  .refresh-bar {
-    text-align: center; padding: 8px;
-    font-size: 0.58rem; letter-spacing: 0.12em; color: #333333;
-  }
-  .refresh-bar.error { color: #ff4444; }
-  .refresh-bar.connected { color: #2a4a2a; }
-
-  .setup-modal {
-    position: fixed; inset: 0; background: rgba(8,7,5,0.88);
+  /* Setup modal */
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+    -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
     display: flex; align-items: center; justify-content: center; z-index: 1000;
   }
-  .setup-box {
-    background: #141414; border: 1px solid #2a2a2a;
-    width: min(380px, 92vw); padding: 20px 16px;
+  .modal-box {
+    background: #1c1c1e; border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px; width: min(360px, 90vw); padding: 24px 20px;
+    animation: fadeIn 0.2s ease;
   }
-  .setup-title { color: #ffffff; font-weight: 700; font-size: 0.94rem; letter-spacing: 0.12em; margin-bottom: 12px; }
-  .setup-input {
-    width: 100%; background: #0a0a0a; border: 1px solid #2a2a2a;
-    color: #f5f5f5; padding: 8px 10px; font-size: 0.97rem;
-    font-family: 'Courier New', monospace; outline: none; margin-bottom: 10px;
+  .modal-title { font-size: 0.88rem; font-weight: 600; color: #ffffff; letter-spacing: 0.08em; margin-bottom: 14px; }
+  .modal-input {
+    width: 100%; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 10px; color: #e5e5e7; padding: 12px 14px; font-size: 0.88rem;
+    outline: none; margin-bottom: 12px;
   }
-  .setup-btn {
-    width: 100%; background: #ffffff; color: #0a0a0a; border: none;
-    padding: 8px; font-family: 'Courier New', monospace; font-weight: 700; cursor: pointer;
-  }
-
-  .summary-bar {
-    display: flex; gap: 16px; padding: 12px 14px;
-    border-bottom: 1px solid #1a1a1a;
-  }
-  .summary-item { font-size: 0.72rem; color: #555555; }
-  .summary-item .count { color: #ffffff; font-weight: 700; margin-right: 4px; }
-  .summary-item .count.running { color: #5b8fff; }
-  .summary-item .count.zero { color: #333333; }
-
-  .log-entry { padding: 3px 0; border-bottom: 1px solid #0d0d0d; }
-
-  /* Quick Stats Widget */
-  .quick-stats {
-    padding: 10px 14px;
-    border-bottom: 1px solid #1a1a1a;
-    background: #0d0d0d;
-  }
-  .quick-stats-label {
-    font-size: 0.58rem; letter-spacing: 0.18em; color: #333333;
-    text-transform: uppercase; margin-bottom: 8px;
-  }
-  .quick-stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-  }
-  .qs-item {
-    text-align: center;
-    padding: 6px 4px;
-    background: #111111;
-    border: 1px solid #1a1a1a;
-  }
-  .qs-number {
-    font-size: 1.2rem; font-weight: 700; color: #ffffff;
-    line-height: 1.2;
-  }
-  .qs-number.accent { color: #5b8fff; }
-  .qs-desc {
-    font-size: 0.56rem; color: #555555;
-    letter-spacing: 0.1em; text-transform: uppercase;
-    margin-top: 2px;
-  }
-  .qs-loading {
-    font-size: 0.68rem; color: #333333; letter-spacing: 0.1em;
-    padding: 4px 0;
+  .modal-input:focus { border-color: rgba(91,143,255,0.4); }
+  .modal-btn {
+    width: 100%; background: #ffffff; color: #000000; border: none; border-radius: 10px;
+    padding: 12px; font-weight: 600; font-size: 0.88rem;
   }
 
-  /* Todo Widget */
-  .todo-widget {
-    padding: 10px 14px;
-    border-top: 1px solid #1a1a1a;
-  }
-  .todo-label {
-    font-size: 0.58rem; letter-spacing: 0.18em; color: #333333;
-    text-transform: uppercase; margin-bottom: 8px;
-  }
-  .todo-item {
-    display: flex; align-items: flex-start; gap: 8px;
-    padding: 4px 0;
-    font-size: 0.82rem;
-    line-height: 1.4;
-  }
-  .todo-check {
-    color: #333333; flex-shrink: 0; font-size: 0.78rem;
-    margin-top: 1px;
-  }
-  .todo-check.done { color: #2a4a2a; }
-  .todo-text { color: #f5f5f5; }
-  .todo-text.done { color: #333333; text-decoration: line-through; }
-  .todo-empty {
-    font-size: 0.72rem; color: #333333; font-style: italic;
-    padding: 4px 0;
-  }
-
-  @media (max-width: 400px) {
-    .quick-stats-grid { grid-template-columns: repeat(2, 1fr); }
+  /* Responsive */
+  @media (max-width: 380px) {
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
+    .weather-temp { font-size: 2.2rem; }
   }
 </style>
 </head>
 <body>
-<div class="container" id="app">
-  <div class="header">
-    <div class="header-title">
-      <div class="sub">BOB</div>
-      <div class="main">DASHBOARD</div>
-    </div>
-    <div class="header-right">
-      <button class="header-btn" id="refreshBtn" onclick="refresh()">REFRESH</button>
-      <button class="header-btn" id="setupBtn" onclick="toggleSetup()">TOKEN</button>
-    </div>
-  </div>
-
-  <div class="weather-widget" id="weatherWidget">
-    <div class="weather-loading">LOADING WEATHER...</div>
-  </div>
-
-  <div class="quick-stats" id="quickStats">
-    <div class="qs-loading">LOADING STATS...</div>
-  </div>
-
-  <div class="summary-bar" id="summaryBar">
-    <div class="summary-item"><span class="count zero" id="runningCount">0</span>RUNNING</div>
-    <div class="summary-item"><span class="count zero" id="doneCount">0</span>DONE</div>
-    <div class="summary-item"><span class="count zero" id="failedCount">0</span>FAILED</div>
-  </div>
-
-  <div id="taskList"></div>
-  <div class="todo-widget" id="todoWidget">
-    <div class="todo-label">BOB'S TO-DO</div>
-    <div class="todo-empty">Loading...</div>
-  </div>
-
-  <div class="refresh-bar" id="refreshBar">WAITING FOR TOKEN...</div>
-</div>
-
-<div class="setup-modal" id="setupModal" style="display:none">
-  <div class="setup-box">
-    <div class="setup-title">SYNC TOKEN</div>
-    <input class="setup-input" id="tokenInput" type="password" placeholder="github_pat_..." />
-    <button class="setup-btn" onclick="saveToken()">SAVE</button>
-  </div>
-</div>
+<div class="container" id="app"></div>
 
 <script>
-// ===== WEATHER WIDGET =====
-var WEATHER_URL = "https://api.open-meteo.com/v1/forecast?latitude=45.23&longitude=-122.75&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&hourly=temperature_2m,precipitation,weathercode&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=America/Los_Angeles&forecast_days=2";
-
-var WEATHER_CODES = {
-  0: { label: "Clear", emoji: "\u2600\uFE0F" },
-  1: { label: "Clear", emoji: "\uD83C\uDF24\uFE0F" },
-  2: { label: "Partly Cloudy", emoji: "\u26C5" },
-  3: { label: "Overcast", emoji: "\u2601\uFE0F" },
-  45: { label: "Fog", emoji: "\uD83C\uDF2B\uFE0F" },
-  48: { label: "Fog", emoji: "\uD83C\uDF2B\uFE0F" },
-  51: { label: "Light Drizzle", emoji: "\uD83C\uDF26\uFE0F" },
-  53: { label: "Drizzle", emoji: "\uD83C\uDF26\uFE0F" },
-  55: { label: "Heavy Drizzle", emoji: "\uD83C\uDF26\uFE0F" },
-  61: { label: "Light Rain", emoji: "\uD83C\uDF27\uFE0F" },
-  63: { label: "Rain", emoji: "\uD83C\uDF27\uFE0F" },
-  65: { label: "Heavy Rain", emoji: "\uD83C\uDF27\uFE0F" },
-  71: { label: "Light Snow", emoji: "\uD83C\uDF28\uFE0F" },
-  73: { label: "Snow", emoji: "\u2744\uFE0F" },
-  75: { label: "Heavy Snow", emoji: "\u2744\uFE0F" },
-  80: { label: "Rain Showers", emoji: "\uD83C\uDF27\uFE0F" },
-  81: { label: "Rain Showers", emoji: "\uD83C\uDF27\uFE0F" },
-  82: { label: "Heavy Showers", emoji: "\u26C8\uFE0F" },
-  95: { label: "Thunderstorm", emoji: "\u26A1" },
-  96: { label: "Thunderstorm", emoji: "\u26A1" },
-  99: { label: "Thunderstorm", emoji: "\u26A1" }
-};
-
-function getWeatherInfo(code) {
-  if (WEATHER_CODES[code]) return WEATHER_CODES[code];
-  // Fallback ranges
-  if (code <= 1) return { label: "Clear", emoji: "\u2600\uFE0F" };
-  if (code <= 3) return { label: "Cloudy", emoji: "\u2601\uFE0F" };
-  if (code <= 48) return { label: "Fog", emoji: "\uD83C\uDF2B\uFE0F" };
-  if (code <= 55) return { label: "Drizzle", emoji: "\uD83C\uDF26\uFE0F" };
-  if (code <= 65) return { label: "Rain", emoji: "\uD83C\uDF27\uFE0F" };
-  if (code <= 75) return { label: "Snow", emoji: "\u2744\uFE0F" };
-  if (code <= 82) return { label: "Showers", emoji: "\uD83C\uDF27\uFE0F" };
-  return { label: "Storm", emoji: "\u26A1" };
-}
-
-function getCurrentHourIndex(hourlyTimes) {
-  var now = new Date();
-  var best = 0;
-  var bestDiff = Infinity;
-  for (var i = 0; i < hourlyTimes.length; i++) {
-    var diff = Math.abs(new Date(hourlyTimes[i]).getTime() - now.getTime());
-    if (diff < bestDiff) { bestDiff = diff; best = i; }
-  }
-  return best;
-}
-
-async function fetchWeather() {
-  var widget = document.getElementById("weatherWidget");
-  try {
-    var res = await fetch(WEATHER_URL);
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    var data = await res.json();
-
-    var hourIdx = getCurrentHourIndex(data.hourly.time);
-    var currentTemp = Math.round(data.hourly.temperature_2m[hourIdx]);
-    var currentCode = data.hourly.weathercode[hourIdx];
-    var currentPrecip = data.hourly.precipitation[hourIdx];
-    var currentInfo = getWeatherInfo(currentCode);
-
-    // Today (index 0)
-    var todayHi = Math.round(data.daily.temperature_2m_max[0]);
-    var todayLo = Math.round(data.daily.temperature_2m_min[0]);
-    var todayPrecip = data.daily.precipitation_sum[0];
-
-    // Tomorrow (index 1)
-    var tmrwHi = Math.round(data.daily.temperature_2m_max[1]);
-    var tmrwLo = Math.round(data.daily.temperature_2m_min[1]);
-    var tmrwCode = data.daily.weathercode[1];
-    var tmrwPrecip = data.daily.precipitation_sum[1];
-    var tmrwInfo = getWeatherInfo(tmrwCode);
-
-    var h = '<div class="weather-location">AURORA, OR</div>';
-    h += '<div class="weather-row">';
-    h += '<div class="weather-current">';
-    h += '<span class="weather-emoji">' + currentInfo.emoji + '</span>';
-    h += '<span class="weather-temp">' + currentTemp + '\u00B0</span>';
-    h += '<span class="weather-condition">' + currentInfo.label + '</span>';
-    h += '</div>';
-    h += '<div class="weather-details">';
-    h += '<span><span class="hi">\u25B2' + todayHi + '\u00B0</span> <span class="lo">\u25BC' + todayLo + '\u00B0</span></span>';
-    if (todayPrecip > 0) {
-      h += '<span class="precip">\uD83D\uDCA7' + todayPrecip.toFixed(2) + '"</span>';
-    }
-    if (currentPrecip > 0) {
-      h += '<span class="precip">now: ' + currentPrecip.toFixed(2) + '"/hr</span>';
-    }
-    h += '</div>';
-    h += '</div>';
-
-    // Tomorrow row
-    h += '<div class="weather-tomorrow">';
-    h += '<span class="label">TMR</span>';
-    h += '<span>' + tmrwInfo.emoji + '</span>';
-    h += '<span>' + tmrwInfo.label + '</span>';
-    h += '<span><span class="hi">\u25B2' + tmrwHi + '\u00B0</span> <span class="lo">\u25BC' + tmrwLo + '\u00B0</span></span>';
-    if (tmrwPrecip > 0) {
-      h += '<span class="precip">\uD83D\uDCA7' + tmrwPrecip.toFixed(2) + '"</span>';
-    }
-    h += '</div>';
-
-    widget.innerHTML = h;
-  } catch (e) {
-    widget.innerHTML = '<div class="weather-error">WEATHER: ' + e.message + '</div>';
-  }
-}
-
-// Fetch weather on load and refresh every 15 minutes
-fetchWeather();
-setInterval(fetchWeather, 900000);
-
-// ===== QUICK STATS WIDGET =====
-async function fetchQuickStats() {
-  var token = getToken();
-  if (!token) return;
-  var widget = document.getElementById("quickStats");
-  var base = "https://api.github.com/repos/neimaD7/aurora-log-data/contents/";
-  var headers = { "Authorization": "Bearer " + token, "Accept": "application/vnd.github.v3+json" };
-
-  var results = { entries: 0, today: 0, upcoming: 0, dictionary: 0 };
-  var errors = [];
-
-  // Fetch all three in parallel
-  var fetches = [
-    fetch(base + "entries.json", { headers: headers, cache: "no-store" }).then(function(r) {
-      if (!r.ok) throw new Error("entries " + r.status);
-      return r.json();
-    }).then(function(d) {
-      var arr = JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g, "")))));
-      var now = new Date();
-      var todayStr = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0") + "-" + String(now.getDate()).padStart(2, "0");
-      var total = 0;
-      var todayCount = 0;
-      for (var i = 0; i < arr.length; i++) {
-        if (arr[i]._deleted) continue;
-        total++;
-        if (arr[i].date === todayStr) todayCount++;
-      }
-      results.entries = total;
-      results.today = todayCount;
-    }).catch(function(e) { errors.push(e.message); }),
-
-    fetch(base + "upcoming.json", { headers: headers, cache: "no-store" }).then(function(r) {
-      if (!r.ok) throw new Error("upcoming " + r.status);
-      return r.json();
-    }).then(function(d) {
-      var arr = JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g, "")))));
-      var count = 0;
-      for (var i = 0; i < arr.length; i++) {
-        if (!arr[i]._deleted) count++;
-      }
-      results.upcoming = count;
-    }).catch(function(e) { errors.push(e.message); }),
-
-    fetch(base + "known_items.json", { headers: headers, cache: "no-store" }).then(function(r) {
-      if (!r.ok) throw new Error("known_items " + r.status);
-      return r.json();
-    }).then(function(d) {
-      var arr = JSON.parse(decodeURIComponent(escape(atob(d.content.replace(/\n/g, "")))));
-      results.dictionary = arr.length;
-    }).catch(function(e) { errors.push(e.message); })
-  ];
-
-  try {
-    await Promise.all(fetches);
-  } catch (e) {
-    // individual catches handle errors
-  }
-
-  var h = '<div class="quick-stats-label">AURORA LOG</div>';
-  h += '<div class="quick-stats-grid">';
-  h += '<div class="qs-item"><div class="qs-number">' + results.entries + '</div><div class="qs-desc">Entries</div></div>';
-  h += '<div class="qs-item"><div class="qs-number' + (results.today > 0 ? ' accent' : '') + '">' + results.today + '</div><div class="qs-desc">Today</div></div>';
-  h += '<div class="qs-item"><div class="qs-number">' + results.upcoming + '</div><div class="qs-desc">Upcoming</div></div>';
-  h += '<div class="qs-item"><div class="qs-number">' + results.dictionary + '</div><div class="qs-desc">Dictionary</div></div>';
-  h += '</div>';
-  widget.innerHTML = h;
-}
-
-// ===== TODO WIDGET =====
-function renderTodo(data) {
-  var widget = document.getElementById("todoWidget");
-  var h = '<div class="todo-label">BOB\'S TO-DO</div>';
-
-  if (!data || !data.todo || data.todo.length === 0) {
-    h += '<div class="todo-empty">Nothing</div>';
-    widget.innerHTML = h;
-    return;
-  }
-
-  for (var i = 0; i < data.todo.length; i++) {
-    var item = data.todo[i];
-    var isDone = item.done;
-    h += '<div class="todo-item">';
-    h += '<span class="todo-check' + (isDone ? ' done' : '') + '">' + (isDone ? '[x]' : '[ ]') + '</span>';
-    h += '<span class="todo-text' + (isDone ? ' done' : '') + '">' + escHtml(item.text || '') + '</span>';
-    h += '</div>';
-  }
-
-  widget.innerHTML = h;
-}
-
-// ===== TASK MONITORING (existing) =====
 var OWNER = "neimaD7";
 var REPO = "aurora-log-data";
-var STATUS_FILE = "status.json";
 var autoRefreshTimer = null;
+var weatherRefreshTimer = null;
 var lastData = null;
 
 function getToken() { return localStorage.getItem("aurora_sync_token") || ""; }
-function saveToken() {
-  var val = document.getElementById("tokenInput").value.trim();
-  if (val) {
-    localStorage.setItem("aurora_sync_token", val);
-    document.getElementById("setupModal").style.display = "none";
-    refresh();
-    startAutoRefresh();
-  }
-}
-function toggleSetup() {
-  var modal = document.getElementById("setupModal");
-  var visible = modal.style.display !== "none";
-  modal.style.display = visible ? "none" : "flex";
-  if (!visible) document.getElementById("tokenInput").value = getToken();
+function saveToken(val) { localStorage.setItem("aurora_sync_token", val); }
+
+// ===== WEATHER =====
+var weatherCodes = {
+  0: ["☀️", "Clear"], 1: ["🌤", "Mostly Clear"], 2: ["⛅", "Partly Cloudy"], 3: ["☁️", "Overcast"],
+  45: ["🌫", "Fog"], 48: ["🌫", "Fog"], 51: ["🌦", "Light Drizzle"], 53: ["🌦", "Drizzle"],
+  55: ["🌧", "Heavy Drizzle"], 61: ["🌧", "Light Rain"], 63: ["🌧", "Rain"], 65: ["🌧", "Heavy Rain"],
+  71: ["🌨", "Light Snow"], 73: ["🌨", "Snow"], 75: ["❄️", "Heavy Snow"],
+  80: ["🌦", "Rain Showers"], 81: ["🌧", "Rain Showers"], 82: ["⛈", "Heavy Showers"],
+  95: ["⛈", "Thunderstorm"], 96: ["⛈", "Thunderstorm"], 99: ["⛈", "Severe Storm"]
+};
+
+function getWeatherInfo(code) { return weatherCodes[code] || ["🌡", "Unknown"]; }
+
+function fetchWeather() {
+  return fetch("https://api.open-meteo.com/v1/forecast?latitude=45.23&longitude=-122.75&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,weathercode&hourly=temperature_2m,weathercode&temperature_unit=fahrenheit&precipitation_unit=inch&timezone=America/Los_Angeles&forecast_days=2")
+    .then(function(r) { return r.json(); })
+    .then(function(data) {
+      var now = new Date();
+      var hour = now.getHours();
+      var currentTemp = data.hourly ? Math.round(data.hourly.temperature_2m[hour]) : "--";
+      var currentCode = data.hourly ? data.hourly.weathercode[hour] : 0;
+      var info = getWeatherInfo(currentCode);
+      var todayHi = Math.round(data.daily.temperature_2m_max[0]);
+      var todayLo = Math.round(data.daily.temperature_2m_min[0]);
+      var todayPrecip = data.daily.precipitation_sum[0];
+      var tmrwCode = data.daily.weathercode[1];
+      var tmrwInfo = getWeatherInfo(tmrwCode);
+      var tmrwHi = Math.round(data.daily.temperature_2m_max[1]);
+      var tmrwLo = Math.round(data.daily.temperature_2m_min[1]);
+      var tmrwPrecip = data.daily.precipitation_sum[1];
+
+      var el = document.getElementById("weatherCard");
+      if (!el) return;
+      var h = '<div class="weather-row">';
+      h += '<div class="weather-emoji">' + info[0] + '</div>';
+      h += '<div class="weather-details">';
+      h += '<div class="weather-temp">' + currentTemp + '<span class="unit">\u00B0F</span></div>';
+      h += '<div class="weather-condition">' + info[1];
+      if (todayPrecip > 0) h += ' \u00B7 ' + todayPrecip + '" precip';
+      h += '</div>';
+      h += '<div class="weather-hilo">H:<span class="hi">' + todayHi + '\u00B0</span> L:<span class="lo">' + todayLo + '\u00B0</span></div>';
+      h += '</div></div>';
+      h += '<div class="weather-tomorrow">';
+      h += 'Tomorrow: ' + tmrwInfo[0] + ' ' + tmrwInfo[1];
+      h += ' \u00B7 H:<span class="hi">' + tmrwHi + '\u00B0</span> L:<span class="lo">' + tmrwLo + '\u00B0</span>';
+      if (tmrwPrecip > 0) h += ' \u00B7 ' + tmrwPrecip + '" precip';
+      h += '</div>';
+      el.innerHTML = h;
+    })
+    .catch(function() {
+      var el = document.getElementById("weatherCard");
+      if (el) el.innerHTML = '<div class="empty">Weather unavailable</div>';
+    });
 }
 
+// ===== STATS =====
+function fetchStats() {
+  var token = getToken();
+  if (!token) return;
+  var headers = { "Authorization": "Bearer " + token, "Accept": "application/vnd.github.v3+json" };
+  var files = ["entries.json", "upcoming.json", "known_items.json"];
+  var results = { entries: [], upcoming: [], known: [] };
+
+  var promises = files.map(function(f) {
+    return fetch("https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + f, { headers: headers, cache: "no-store" })
+      .then(function(r) { if (!r.ok) return null; return r.json(); })
+      .then(function(data) {
+        if (!data) return [];
+        return JSON.parse(decodeURIComponent(escape(atob(data.content.replace(/\n/g, "")))));
+      })
+      .catch(function() { return []; });
+  });
+
+  Promise.all(promises).then(function(res) {
+    var entries = res[0] || [];
+    var upcoming = res[1] || [];
+    var known = res[2] || [];
+
+    var active = entries.filter(function(e) { return !e._deleted; });
+    var todayStr = (function() { var n = new Date(); return n.getFullYear() + "-" + String(n.getMonth()+1).padStart(2,"0") + "-" + String(n.getDate()).padStart(2,"0"); })();
+    var todayCount = active.filter(function(e) { return e.date === todayStr; }).length;
+    var upcomingActive = upcoming.filter(function(e) { return !e._deleted; }).length;
+
+    var el = document.getElementById("statsGrid");
+    if (!el) return;
+    var tiles = [
+      { val: active.length, label: "ENTRIES", accent: false },
+      { val: todayCount, label: "TODAY", accent: todayCount > 0 },
+      { val: upcomingActive, label: "UPCOMING", accent: false },
+      { val: known.length, label: "DICT", accent: false }
+    ];
+    var h = "";
+    for (var i = 0; i < tiles.length; i++) {
+      var t = tiles[i];
+      var cls = t.accent ? "accent" : (t.val === 0 ? "zero" : "");
+      h += '<div class="stat-tile"><div class="stat-value ' + cls + '">' + t.val + '</div><div class="stat-label">' + t.label + '</div></div>';
+    }
+    el.innerHTML = h;
+  });
+}
+
+// ===== TASKS =====
 function formatElapsed(ms) {
   if (ms < 0) ms = 0;
   var s = Math.floor(ms / 1000);
   if (s < 60) return s + "s";
-  if (s < 3600) return Math.floor(s / 60) + "m " + (s % 60) + "s";
+  if (s < 3600) return Math.floor(s / 60) + "m";
   return Math.floor(s / 3600) + "h " + Math.floor((s % 3600) / 60) + "m";
 }
-
 function formatTime(ts) {
   if (!ts) return "";
   var d = new Date(ts);
-  var h = d.getHours();
-  var m = String(d.getMinutes()).padStart(2, "0");
-  var ampm = h >= 12 ? "PM" : "AM";
-  h = h % 12 || 12;
+  var h = d.getHours(); var m = String(d.getMinutes()).padStart(2, "0");
+  var ampm = h >= 12 ? "PM" : "AM"; h = h % 12 || 12;
   return h + ":" + m + " " + ampm;
 }
-
 function formatAgo(ts) {
   if (!ts) return "";
   var ago = Math.round((Date.now() - ts) / 1000);
   if (ago < 60) return ago + "s ago";
   if (ago < 3600) return Math.round(ago / 60) + "m ago";
-  if (ago < 86400) return Math.round(ago / 3600) + "h ago";
-  return Math.round(ago / 86400) + "d ago";
+  return Math.round(ago / 3600) + "h ago";
 }
+function esc(s) { return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
 
-async function fetchStatus() {
+function fetchStatus() {
   var token = getToken();
-  if (!token) return null;
-  var res = await fetch("https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/" + STATUS_FILE, {
+  if (!token) return Promise.resolve(null);
+  return fetch("https://api.github.com/repos/" + OWNER + "/" + REPO + "/contents/status.json", {
     headers: { "Authorization": "Bearer " + token, "Accept": "application/vnd.github.v3+json" },
     cache: "no-store"
+  }).then(function(r) {
+    if (r.status === 404) return { tasks: [], todo: [], lastUpdated: null };
+    if (!r.ok) throw new Error("API " + r.status);
+    return r.json();
+  }).then(function(data) {
+    var decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ""))));
+    return JSON.parse(decoded);
   });
-  if (res.status === 404) return { tasks: [], lastUpdated: null };
-  if (!res.ok) throw new Error("API error: " + res.status);
-  var data = await res.json();
-  var decoded = decodeURIComponent(escape(atob(data.content.replace(/\n/g, ""))));
-  return JSON.parse(decoded);
 }
 
 function renderTasks(data) {
-  var list = document.getElementById("taskList");
-  var bar = document.getElementById("refreshBar");
-
-  if (!data || !data.tasks) {
-    list.innerHTML = '<div class="empty-state"><div class="emoji">🤙</div><div class="msg">No tasks tracked yet.</div><div class="sub">Bob will update this when work starts.</div></div>';
-    bar.className = "refresh-bar connected";
-    bar.textContent = "CONNECTED \u2014 NO ACTIVE TASKS";
-    updateSummary(data);
+  var el = document.getElementById("taskList");
+  if (!el) return;
+  if (!data || !data.tasks || data.tasks.length === 0) {
+    el.innerHTML = '<div class="empty">No active tasks</div>';
     return;
   }
-
   var tasks = data.tasks.slice().sort(function(a, b) {
     var order = { running: 0, failed: 1, killed: 2, done: 3 };
     var oa = order[a.status] !== undefined ? order[a.status] : 4;
@@ -575,125 +328,183 @@ function renderTasks(data) {
     return (b.updated || b.started || 0) - (a.updated || a.started || 0);
   });
 
-  var html = "";
+  var h = "";
   for (var i = 0; i < tasks.length; i++) {
     var t = tasks[i];
     var status = t.status || "idle";
-    var now = Date.now();
-    var elapsed = t.started ? (t.completed || now) - t.started : 0;
+    var elapsed = t.started ? ((t.completed || Date.now()) - t.started) : 0;
 
-    html += '<div class="task-card ' + status + '">';
-    html += '<div class="task-header">';
-    html += '<div class="task-name"><span class="status-dot ' + status + '"></span>' + escHtml(t.name || "Unnamed Task") + '</div>';
-    html += '<div class="task-status ' + status + '">' + status.toUpperCase() + '</div>';
-    html += '</div>';
-
-    var meta = [];
-    if (t.started) meta.push("Started " + formatTime(t.started));
-    if (t.completed) meta.push("Finished " + formatTime(t.completed));
-    if (t.sessionId) meta.push("Session: " + t.sessionId);
-    if (meta.length) html += '<div class="task-meta">' + meta.join(" &middot; ") + '</div>';
+    h += '<div class="task-item">';
+    h += '<div class="task-row">';
+    h += '<div class="task-dot ' + status + '"></div>';
+    h += '<div class="task-name ' + (status === "done" ? "done" : "") + '">' + esc(t.name || "Unnamed") + '</div>';
+    h += '<div class="task-time">' + formatElapsed(elapsed) + '</div>';
+    h += '</div>';
 
     if (t.log && t.log.length) {
-      html += '<div class="task-progress">';
-      var logSlice = t.log.slice(-5);
+      h += '<div class="task-progress">';
+      var logSlice = t.log.slice(-3);
       for (var j = 0; j < logSlice.length; j++) {
-        var entry = logSlice[j];
-        html += '<div class="log-entry">';
-        if (entry.time) html += '<span class="timestamp">' + formatTime(entry.time) + '</span>';
-        html += escHtml(entry.msg || "");
-        html += '</div>';
+        h += '<div class="task-log-entry">';
+        if (logSlice[j].time) h += '<span class="task-log-time">' + formatTime(logSlice[j].time) + '</span>';
+        h += esc(logSlice[j].msg || "");
+        h += '</div>';
       }
-      html += '</div>';
+      h += '</div>';
     } else if (t.progress) {
-      html += '<div class="task-progress">' + escHtml(t.progress) + '</div>';
+      h += '<div class="task-progress">' + esc(t.progress) + '</div>';
     }
-
-    if (elapsed > 0) {
-      html += '<div class="task-elapsed">' + formatElapsed(elapsed);
-      if (status === "running") html += ' (running)';
-      html += '</div>';
-    }
-
-    html += '</div>';
+    h += '</div>';
   }
-
-  list.innerHTML = html;
-  bar.className = "refresh-bar connected";
-  bar.textContent = "UPDATED " + formatAgo(data.lastUpdated || Date.now());
-  updateSummary(data);
+  el.innerHTML = h;
 }
 
-function updateSummary(data) {
-  var running = 0, done = 0, failed = 0;
-  if (data && data.tasks) {
-    for (var i = 0; i < data.tasks.length; i++) {
-      var s = data.tasks[i].status;
-      if (s === "running") running++;
-      else if (s === "done") done++;
-      else if (s === "failed" || s === "killed") failed++;
-    }
-  }
-  var rc = document.getElementById("runningCount");
-  var dc = document.getElementById("doneCount");
-  var fc = document.getElementById("failedCount");
-  rc.textContent = running + " ";
-  rc.className = "count" + (running > 0 ? " running" : " zero");
-  dc.textContent = done + " ";
-  dc.className = "count" + (done > 0 ? "" : " zero");
-  fc.textContent = failed + " ";
-  fc.className = "count" + (failed > 0 ? "" : " zero");
-}
-
-function escHtml(s) {
-  return (s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-async function refresh() {
-  var bar = document.getElementById("refreshBar");
-  var btn = document.getElementById("refreshBtn");
-  if (!getToken()) {
-    bar.className = "refresh-bar";
-    bar.textContent = "WAITING FOR TOKEN...";
-    toggleSetup();
+function renderTodo(data) {
+  var el = document.getElementById("todoList");
+  if (!el) return;
+  var todos = (data && data.todo) ? data.todo : [];
+  if (todos.length === 0) {
+    el.innerHTML = '<div class="empty">Nothing queued</div>';
     return;
   }
-  btn.textContent = "...";
-  try {
-    var data = await fetchStatus();
+  var h = "";
+  for (var i = 0; i < todos.length; i++) {
+    var t = todos[i];
+    h += '<div class="todo-item">';
+    h += '<div class="todo-check ' + (t.done ? "done" : "") + '">' + (t.done ? "\u2713" : "") + '</div>';
+    h += '<div class="todo-text ' + (t.done ? "done" : "") + '">' + esc(t.text || "") + '</div>';
+    h += '</div>';
+  }
+  el.innerHTML = h;
+}
+
+// ===== REFRESH =====
+function refresh() {
+  if (!getToken()) return;
+  fetchStatus().then(function(data) {
     lastData = data;
     renderTasks(data);
     renderTodo(data);
-  } catch (e) {
-    bar.className = "refresh-bar error";
-    bar.textContent = "ERROR: " + e.message;
-  }
-  fetchQuickStats();
-  btn.textContent = "REFRESH";
+    var sync = document.getElementById("syncLine");
+    if (sync && data) sync.textContent = "UPDATED " + formatAgo(data.lastUpdated || Date.now());
+  }).catch(function(e) {
+    var sync = document.getElementById("syncLine");
+    if (sync) { sync.textContent = "ERROR: " + e.message; sync.style.color = "#ff453a"; }
+  });
+  fetchStats();
 }
 
 function startAutoRefresh() {
   if (autoRefreshTimer) clearInterval(autoRefreshTimer);
-  autoRefreshTimer = setInterval(function() {
-    if (getToken()) refresh();
-  }, 30000);
+  autoRefreshTimer = setInterval(function() { if (getToken()) refresh(); }, 30000);
+  if (weatherRefreshTimer) clearInterval(weatherRefreshTimer);
+  weatherRefreshTimer = setInterval(fetchWeather, 1800000);
 }
 
-// Init
-if (getToken()) {
-  refresh();
-  startAutoRefresh();
-} else {
-  document.getElementById("taskList").innerHTML = '<div class="empty-state"><div class="emoji">🔑</div><div class="msg">Enter your sync token to connect.</div><div class="sub">Same token as Aurora Log sync.</div></div>';
-  toggleSetup();
+// ===== SETUP MODAL =====
+function showSetup() {
+  var existing = document.getElementById("setupModal");
+  if (existing) { existing.remove(); return; }
+  var div = document.createElement("div");
+  div.id = "setupModal";
+  div.className = "modal-overlay";
+  div.onclick = function(e) { if (e.target === div) div.remove(); };
+  var box = document.createElement("div");
+  box.className = "modal-box";
+  box.onclick = function(e) { e.stopPropagation(); };
+  box.innerHTML = '<div class="modal-title">SYNC TOKEN</div><input class="modal-input" id="tokenInput" type="password" placeholder="github_pat_..." value="' + getToken() + '" /><button class="modal-btn" id="tokenSaveBtn">SAVE</button>';
+  div.appendChild(box);
+  document.body.appendChild(div);
+  setTimeout(function() {
+    var btn = document.getElementById("tokenSaveBtn");
+    if (btn) btn.onclick = function() {
+      var val = document.getElementById("tokenInput").value.trim();
+      if (val) { saveToken(val); div.remove(); init(); }
+    };
+  }, 50);
 }
 
-// Refresh elapsed times every second for running tasks
+// ===== INIT =====
+function init() {
+  var app = document.getElementById("app");
+  var h = '';
+
+  // Header
+  h += '<div class="header">';
+  h += '<div class="header-name">Bob</div>';
+  h += '<div class="header-actions">';
+  h += '<button class="icon-btn" id="refreshBtnTop" title="Refresh">\u21BB</button>';
+  h += '<button class="icon-btn" id="setupBtnTop" title="Settings">\u2699</button>';
+  h += '</div></div>';
+
+  // Weather
+  h += '<div class="card"><div class="card-label">Aurora, OR</div><div id="weatherCard"><div class="empty">Loading weather...</div></div></div>';
+
+  // Stats
+  h += '<div class="stats-grid" id="statsGrid">';
+  h += '<div class="stat-tile"><div class="stat-value zero">-</div><div class="stat-label">ENTRIES</div></div>';
+  h += '<div class="stat-tile"><div class="stat-value zero">-</div><div class="stat-label">TODAY</div></div>';
+  h += '<div class="stat-tile"><div class="stat-value zero">-</div><div class="stat-label">UPCOMING</div></div>';
+  h += '<div class="stat-tile"><div class="stat-value zero">-</div><div class="stat-label">DICT</div></div>';
+  h += '</div>';
+
+  // Tasks
+  h += '<div class="card" style="margin-top:12px"><div class="card-label">Active</div><div id="taskList"><div class="empty">Loading...</div></div></div>';
+
+  // Todo
+  h += '<div class="card"><div class="card-label">Todo</div><div id="todoList"><div class="empty">Loading...</div></div></div>';
+
+  // Footer
+  h += '<div class="footer">';
+  h += '<button class="footer-btn" id="openLogBtn">AURORA LOG</button>';
+  h += '<button class="footer-btn" id="refreshBtnBottom">REFRESH</button>';
+  h += '</div>';
+
+  // Sync line
+  h += '<div class="sync-line" id="syncLine">CONNECTING...</div>';
+
+  app.innerHTML = h;
+
+  // Bind events
+  setTimeout(function() {
+    var rb = document.getElementById("refreshBtnTop");
+    if (rb) rb.onclick = function() { refresh(); fetchWeather(); };
+    var sb = document.getElementById("setupBtnTop");
+    if (sb) sb.onclick = showSetup;
+    var ol = document.getElementById("openLogBtn");
+    if (ol) ol.onclick = function() { window.open("https://neimaD7.github.io/aurora-log/", "_blank"); };
+    var rbb = document.getElementById("refreshBtnBottom");
+    if (rbb) rbb.onclick = function() { refresh(); fetchWeather(); };
+  }, 50);
+
+  // Load data
+  if (getToken()) {
+    fetchWeather();
+    refresh();
+    startAutoRefresh();
+  } else {
+    var sync = document.getElementById("syncLine");
+    if (sync) sync.textContent = "TAP \u2699 TO ADD TOKEN";
+    showSetup();
+  }
+}
+
+// Tick running task timers
 setInterval(function() {
   if (!lastData || !lastData.tasks) return;
   var hasRunning = lastData.tasks.some(function(t) { return t.status === "running"; });
   if (hasRunning) renderTasks(lastData);
 }, 1000);
+
+// Start
+init();
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').catch(function() {});
+  });
+}
 </script>
 </body>
 </html>
