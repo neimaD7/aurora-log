@@ -16,23 +16,23 @@
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
   html { height: 100%; overflow: hidden; }
   body {
-    background: #0a0a0a; color: #f5f5f5; font-family: 'Courier New', monospace;
-    overflow-x: hidden; overflow-y: auto; height: 100%;
+    background: #000000; color: #e5e5e7;
+    font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
+    height: 100%; overflow-x: hidden; overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     padding-top: env(safe-area-inset-top);
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
     padding-bottom: env(safe-area-inset-bottom);
   }
-  ::-webkit-scrollbar { width: 4px; }
-  ::-webkit-scrollbar-track { background: #0a0a0a; }
-  ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
-  input, select, textarea { font-family: 'Courier New', monospace; font-size: 16px; }
-  option { background: #141414; color: #f5f5f5; }
-  button { -webkit-tap-highlight-color: transparent; transition: opacity 0.1s; }
-  button:active { opacity: 0.7; }
-  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  ::-webkit-scrollbar { display: none; }
+  input, select, textarea { font-family: 'SF Mono', 'Menlo', 'Courier New', monospace; font-size: 16px; }
+  option { background: #1c1c1e; color: #e5e5e7; }
+  button { -webkit-tap-highlight-color: transparent; transition: all 0.15s ease; cursor: pointer; }
+  button:active { opacity: 0.6; transform: scale(0.97); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
   @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -136,8 +136,8 @@ const { useState, useEffect, useRef } = React;
 
 const STORES = ["Hillsboro", "Eugene", "Gresham", "Vancouver"];
 const FENCE_RE = new RegExp(String.fromCharCode(96,96,96) + "json|" + String.fromCharCode(96,96,96), "g");
-const inp = { width: "100%", background: "#0a0a0a", border: "1px solid #2a2a2a", color: "#f5f5f5", padding: "8px 10px", fontSize: "0.97rem", outline: "none", fontFamily: "'Courier New', monospace", boxSizing: "border-box" };
-const lbl = { display: "block", fontSize: "0.7rem", letterSpacing: "0.14em", color: "#666666", marginBottom: 4 };
+const inp = { width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", color: "#e5e5e7", padding: "12px 14px", fontSize: "16px", outline: "none", fontFamily: "'SF Mono', 'Menlo', 'Courier New', monospace", boxSizing: "border-box", transition: "border-color 0.15s ease" };
+const lbl = { display: "block", fontSize: "0.62rem", fontWeight: "600", letterSpacing: "0.12em", color: "#555555", marginBottom: 6, textTransform: "uppercase" };
 
 const DEFAULT_PULL_PRIORITY = [
   "stakes", "bag ties", "form oil", "dobies", "bolts", "pier papers", "form clips/flat ties", "snap ties", "misc"
@@ -439,7 +439,7 @@ function NameInput({ value, onChange, placeholder, knownItems, inputStyle }) {
   };
 
   const pick = (item) => { onChange(item.name); setSuggestions([]); setShowSugg(false); };
-  const style = inputStyle || { ...inp, background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" };
+  const style = inputStyle || { ...inp, background: "#000000", fontSize: "0.88rem", padding: "5px 7px" };
 
   return (
     <div style={{ position: "relative" }}>
@@ -448,7 +448,7 @@ function NameInput({ value, onChange, placeholder, knownItems, inputStyle }) {
         onBlur={() => setTimeout(() => setShowSugg(false), 200)}
         placeholder={placeholder} style={style} />
       {showSugg && (
-        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1a1a1a", border: "1px solid #333333", zIndex: 100, maxHeight: 140, overflowY: "auto" }}>
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", zIndex: 100, maxHeight: 140, overflowY: "auto" }}>
           {suggestions.map((s, i) => (
             <div key={i} onMouseDown={(e) => { e.preventDefault(); pick(s); }}
               style={{ padding: "6px 8px", fontSize: "0.82rem", color: "#cccccc", cursor: "pointer", borderBottom: "1px solid #222222" }}
@@ -547,14 +547,14 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (
   const typeAccent = { "PO": "#aaaaaa", "Transfer In": "#00e676", "Transfer Out": "#ff3d3d" };
 
   return (
-    <div style={{ background: "#0a0a0a", borderBottom: "1px solid #2a2a2a", padding: "12px 14px" }}>
+    <div style={{ background: "#000000", borderBottom: "1px solid #2a2a2a", padding: "12px 14px" }}>
       {images.length > 0 && (
         <div style={{ marginBottom: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
           {images.map((img, idx) => (
             <div key={idx} style={{ position: "relative", display: "inline-block" }}>
-              <img src={img.preview} alt="" style={{ height: 80, maxWidth: 100, border: "1px solid #2a2a2a", display: "block", objectFit: "cover" }} />
-              <button onClick={() => removeImage(idx)} style={{ position: "absolute", top: 2, right: 2, background: "#0a0a0a", border: "1px solid #2a2a2a", color: "#f5f5f5", cursor: "pointer", fontSize: "0.7rem", padding: "0px 4px", lineHeight: "16px" }}>x</button>
-              <div style={{ position: "absolute", bottom: 2, left: 2, background: "#0a0a0a", color: "#666666", fontSize: "0.6rem", padding: "0 3px", fontWeight: 700 }}>{"P" + (idx + 1)}</div>
+              <img src={img.preview} alt="" style={{ height: 80, maxWidth: 100, border: "1px solid rgba(255,255,255,0.06)", display: "block", objectFit: "cover" }} />
+              <button onClick={() => removeImage(idx)} style={{ position: "absolute", top: 2, right: 2, background: "#000000", border: "1px solid rgba(255,255,255,0.06)", color: "#e5e5e7", cursor: "pointer", fontSize: "0.7rem", padding: "0px 4px", lineHeight: "16px" }}>x</button>
+              <div style={{ position: "absolute", bottom: 2, left: 2, background: "#000000", color: "#666666", fontSize: "0.6rem", padding: "0 3px", fontWeight: 700 }}>{"P" + (idx + 1)}</div>
             </div>
           ))}
         </div>
@@ -563,17 +563,17 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (
         <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
           <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); parse(); } }}
             placeholder={images.length > 0 ? images.length + " photo" + (images.length > 1 ? "s" : "") + " — add more or hit GO" : "Describe a PO or transfer, or snap a photo"}
-            rows={2} style={{ ...inp, flex: 1, resize: "none", background: "#0a0a0a", fontSize: "0.9rem" }} />
+            rows={2} style={{ ...inp, flex: 1, resize: "none", background: "#000000", fontSize: "0.9rem" }} />
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <button onClick={() => fileRef.current?.click()} style={{ background: images.length > 0 ? "#1a2d5a" : "#141414", border: "1px solid #2a2a2a", color: images.length > 0 ? "#7aa8f0" : "#666666", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer" }}>{images.length > 0 ? "+" + images.length : "PHOTO"}</button>
+            <button onClick={() => fileRef.current?.click()} style={{ background: images.length > 0 ? "#1a2d5a" : "#141414", border: "1px solid rgba(255,255,255,0.06)", color: images.length > 0 ? "#7aa8f0" : "#666666", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer" }}>{images.length > 0 ? "+" + images.length : "PHOTO"}</button>
             <button onClick={parse} disabled={loading || (!input.trim() && images.length === 0)} style={{ background: loading ? "#141414" : "#ffffff", color: loading ? "#2d4a8a" : "#0a0a0a", border: "none", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", cursor: loading ? "default" : "pointer" }}>{loading ? "..." : "GO"}</button>
           </div>
         </div>
       )}
       <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleImage} style={{ display: "none" }} />
-      {error && <div style={{ marginTop: 8, color: "#ff4444", fontSize: "0.82rem", padding: "6px 8px", background: "#111111", border: "1px solid #1a0000" }}>{error}</div>}
+      {error && <div style={{ marginTop: 8, color: "#ff4444", fontSize: "0.82rem", padding: "6px 8px", background: "rgba(255,255,255,0.04)", border: "1px solid #1a0000" }}>{error}</div>}
       {parsed && (
-        <div style={{ background: "#111111", border: "1px solid #2a2a2a", padding: "14px" }}>
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", padding: "14px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <span style={{ color: typeAccent[parsed.type] || "#ffffff", fontWeight: 700, fontSize: "0.78rem", letterSpacing: "0.1em" }}>{(parsed.type || "").toUpperCase()}</span>
             <button onClick={reset} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.1rem" }}>x</button>
@@ -582,34 +582,34 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (
             <div style={{ flex: "2 1 150px" }}>
               <label style={lbl}>{parsed.type === "PO" ? "VENDOR" : parsed.type === "Transfer In" ? "FROM STORE" : "TO STORE"}</label>
               {parsed.type !== "PO" ? (
-                <select value={parsed.party || ""} onChange={e => set("party", e.target.value)} style={{ ...inp, background: "#0a0a0a", padding: "7px 9px" }}>
+                <select value={parsed.party || ""} onChange={e => set("party", e.target.value)} style={{ ...inp, background: "#000000", padding: "7px 9px" }}>
                   <option value="">Select store</option>
                   {STORES.map(s => <option key={s}>{s}</option>)}
                 </select>
               ) : (
-                <input value={parsed.party || ""} onChange={e => set("party", e.target.value)} style={{ ...inp, background: "#0a0a0a" }} />
+                <input value={parsed.party || ""} onChange={e => set("party", e.target.value)} style={{ ...inp, background: "#000000" }} />
               )}
             </div>
-            <div style={{ flex: "1 1 90px" }}><label style={lbl}>DOC #</label><input value={parsed.docId || ""} onChange={e => set("docId", e.target.value)} style={{ ...inp, background: "#0a0a0a" }} /></div>
-            <div style={{ flex: "1 1 110px" }}><label style={lbl}>DATE</label><input type="date" value={parsed.date || today()} onChange={e => set("date", e.target.value)} style={{ ...inp, background: "#0a0a0a" }} /></div>
+            <div style={{ flex: "1 1 90px" }}><label style={lbl}>DOC #</label><input value={parsed.docId || ""} onChange={e => set("docId", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
+            <div style={{ flex: "1 1 110px" }}><label style={lbl}>DATE</label><input type="date" value={parsed.date || today()} onChange={e => set("date", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
           </div>
           <label style={{ ...lbl, marginBottom: 6 }}>LINE ITEMS</label>
           {(parsed.lineItems || []).map((li, idx) => (
             <div key={idx} style={{ marginBottom: 5 }}>
               <div style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 22px", gap: 5 }}>
                 <NameInput value={li.name} onChange={v => updateLine(idx, "name", v)} placeholder="Item name" knownItems={knownItems} />
-                <input value={li.qty || ""} onChange={e => updateLine(idx, "qty", e.target.value)} placeholder="Qty" style={{ ...inp, background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" }} />
-                <input value={li.unit || ""} onChange={e => updateLine(idx, "unit", e.target.value)} placeholder="Unit" style={{ ...inp, background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" }} />
+                <input value={li.qty || ""} onChange={e => updateLine(idx, "qty", e.target.value)} placeholder="Qty" style={{ ...inp, background: "#000000", fontSize: "0.88rem", padding: "5px 7px" }} />
+                <input value={li.unit || ""} onChange={e => updateLine(idx, "unit", e.target.value)} placeholder="Unit" style={{ ...inp, background: "#000000", fontSize: "0.88rem", padding: "5px 7px" }} />
                 <button onClick={() => removeLine(idx)} style={{ background: "none", border: "none", color: "#4a0000", cursor: "pointer", fontSize: "0.94rem", padding: 0, alignSelf: "center" }}>x</button>
               </div>
               {li._matched && <div style={{ fontSize: "0.66rem", color: "#00c853", letterSpacing: "0.06em", marginTop: 1, paddingLeft: 2 }}>MATCHED</div>}
             </div>
           ))}
-          <button onClick={addLine} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginTop: 2, marginBottom: 12 }}>+ LINE</button>
+          <button onClick={addLine} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginTop: 2, marginBottom: 12 }}>+ LINE</button>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <button onClick={confirm} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", padding: "8px 18px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.08em", cursor: "pointer" }}>LOG IT</button>
-            <button onClick={stageUpcoming} style={{ background: "#0a0a0a", color: "#c9a84c", border: "1px solid #3a3020", padding: "8px 18px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.08em", cursor: "pointer" }}>UPCOMING</button>
-            <button onClick={reset} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "8px 14px", fontFamily: "'Courier New',monospace", fontSize: "0.84rem", cursor: "pointer" }}>CANCEL</button>
+            <button onClick={stageUpcoming} style={{ background: "#000000", color: "#c9a84c", border: "1px solid #3a3020", padding: "8px 18px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.08em", cursor: "pointer" }}>UPCOMING</button>
+            <button onClick={reset} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "8px 14px", fontFamily: "'Courier New',monospace", fontSize: "0.84rem", cursor: "pointer" }}>CANCEL</button>
           </div>
         </div>
       )}
@@ -705,14 +705,14 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (
   };
 
   return (
-    <div style={{ background: "#0a0a0a", borderBottom: "1px solid #2a2a2a", padding: "12px 14px" }}>
+    <div style={{ background: "#000000", borderBottom: "1px solid #2a2a2a", padding: "12px 14px" }}>
       {images.length > 0 && (
         <div style={{ marginBottom: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
           {images.map((img, idx) => (
             <div key={idx} style={{ position: "relative", display: "inline-block" }}>
-              <img src={img.preview} alt="" style={{ height: 80, maxWidth: 100, border: "1px solid #2a2a2a", display: "block", objectFit: "cover" }} />
-              <button onClick={() => removeImage(idx)} style={{ position: "absolute", top: 2, right: 2, background: "#0a0a0a", border: "1px solid #2a2a2a", color: "#f5f5f5", cursor: "pointer", fontSize: "0.7rem", padding: "0px 4px", lineHeight: "16px" }}>x</button>
-              <div style={{ position: "absolute", bottom: 2, left: 2, background: "#0a0a0a", color: "#666666", fontSize: "0.6rem", padding: "0 3px", fontWeight: 700 }}>{"P" + (idx + 1)}</div>
+              <img src={img.preview} alt="" style={{ height: 80, maxWidth: 100, border: "1px solid rgba(255,255,255,0.06)", display: "block", objectFit: "cover" }} />
+              <button onClick={() => removeImage(idx)} style={{ position: "absolute", top: 2, right: 2, background: "#000000", border: "1px solid rgba(255,255,255,0.06)", color: "#e5e5e7", cursor: "pointer", fontSize: "0.7rem", padding: "0px 4px", lineHeight: "16px" }}>x</button>
+              <div style={{ position: "absolute", bottom: 2, left: 2, background: "#000000", color: "#666666", fontSize: "0.6rem", padding: "0 3px", fontWeight: 700 }}>{"P" + (idx + 1)}</div>
             </div>
           ))}
         </div>
@@ -721,39 +721,39 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (
         <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
           <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); parse(); } }}
             placeholder={images.length > 0 ? images.length + " photo" + (images.length > 1 ? "s" : "") + " — add more or hit GO" : "Snap an SO / will-call, or type items"}
-            rows={2} style={{ ...inp, flex: 1, resize: "none", background: "#0a0a0a", fontSize: "0.9rem" }} />
+            rows={2} style={{ ...inp, flex: 1, resize: "none", background: "#000000", fontSize: "0.9rem" }} />
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            <button onClick={() => fileRef.current?.click()} style={{ background: images.length > 0 ? "#1a2d5a" : "#141414", border: "1px solid #2a2a2a", color: images.length > 0 ? "#7aa8f0" : "#666666", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer" }}>{images.length > 0 ? "+" + images.length : "PHOTO"}</button>
+            <button onClick={() => fileRef.current?.click()} style={{ background: images.length > 0 ? "#1a2d5a" : "#141414", border: "1px solid rgba(255,255,255,0.06)", color: images.length > 0 ? "#7aa8f0" : "#666666", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer" }}>{images.length > 0 ? "+" + images.length : "PHOTO"}</button>
             <button onClick={parse} disabled={loading || (!input.trim() && images.length === 0)} style={{ background: loading ? "#141414" : "#ffffff", color: loading ? "#2d4a8a" : "#0a0a0a", border: "none", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", cursor: loading ? "default" : "pointer" }}>{loading ? "..." : "GO"}</button>
           </div>
         </div>
       )}
       <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleImage} style={{ display: "none" }} />
-      {error && <div style={{ marginTop: 8, color: "#ff4444", fontSize: "0.82rem", padding: "6px 8px", background: "#111111", border: "1px solid #1a0000" }}>{error}</div>}
+      {error && <div style={{ marginTop: 8, color: "#ff4444", fontSize: "0.82rem", padding: "6px 8px", background: "rgba(255,255,255,0.04)", border: "1px solid #1a0000" }}>{error}</div>}
       {parsed && (
-        <div style={{ background: "#111111", border: "1px solid #2a2a2a", padding: "14px" }}>
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", padding: "14px" }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
             <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.78rem", letterSpacing: "0.1em" }}>SALES ORDER</span>
             <button onClick={reset} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.1rem" }}>x</button>
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
-            <div style={{ flex: "2 1 150px" }}><label style={lbl}>CUSTOMER</label><input value={parsed.customer || ""} onChange={e => updateField("customer", e.target.value)} style={{ ...inp, background: "#0a0a0a" }} /></div>
-            <div style={{ flex: "1 1 90px" }}><label style={lbl}>SO #</label><input value={parsed.soNumber || ""} onChange={e => updateField("soNumber", e.target.value)} style={{ ...inp, background: "#0a0a0a" }} /></div>
+            <div style={{ flex: "2 1 150px" }}><label style={lbl}>CUSTOMER</label><input value={parsed.customer || ""} onChange={e => updateField("customer", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
+            <div style={{ flex: "1 1 90px" }}><label style={lbl}>SO #</label><input value={parsed.soNumber || ""} onChange={e => updateField("soNumber", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
           </div>
-          <div style={{ marginBottom: 10 }}><label style={lbl}>JOB SITE / LOT</label><input value={parsed.jobSite || ""} onChange={e => updateField("jobSite", e.target.value)} style={{ ...inp, background: "#0a0a0a" }} /></div>
+          <div style={{ marginBottom: 10 }}><label style={lbl}>JOB SITE / LOT</label><input value={parsed.jobSite || ""} onChange={e => updateField("jobSite", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
           <label style={{ ...lbl, marginBottom: 6 }}>LINE ITEMS</label>
           {(parsed.lineItems || []).map((li, idx) => (
             <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 22px", gap: 5, marginBottom: 5 }}>
               <NameInput value={li.name} onChange={v => updateLine(idx, "name", v)} placeholder="Item name" knownItems={knownItems} />
-              <input value={li.qty || ""} onChange={e => updateLine(idx, "qty", e.target.value)} placeholder="Qty" style={{ ...inp, background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" }} />
-              <input value={li.unit || ""} onChange={e => updateLine(idx, "unit", e.target.value)} placeholder="Unit" style={{ ...inp, background: "#0a0a0a", fontSize: "0.88rem", padding: "5px 7px" }} />
+              <input value={li.qty || ""} onChange={e => updateLine(idx, "qty", e.target.value)} placeholder="Qty" style={{ ...inp, background: "#000000", fontSize: "0.88rem", padding: "5px 7px" }} />
+              <input value={li.unit || ""} onChange={e => updateLine(idx, "unit", e.target.value)} placeholder="Unit" style={{ ...inp, background: "#000000", fontSize: "0.88rem", padding: "5px 7px" }} />
               <button onClick={() => removeLine(idx)} style={{ background: "none", border: "none", color: "#4a0000", cursor: "pointer", fontSize: "0.94rem", padding: 0, alignSelf: "center" }}>x</button>
             </div>
           ))}
-          <button onClick={addLine} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginTop: 2, marginBottom: 12 }}>+ LINE</button>
+          <button onClick={addLine} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginTop: 2, marginBottom: 12 }}>+ LINE</button>
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={confirm} style={{ background: "#5b8fff", color: "#0a0a0a", border: "none", padding: "8px 18px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.88rem", letterSpacing: "0.08em", cursor: "pointer" }}>ADD TO PULL</button>
-            <button onClick={reset} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "8px 14px", fontFamily: "'Courier New',monospace", fontSize: "0.84rem", cursor: "pointer" }}>CANCEL</button>
+            <button onClick={reset} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "8px 14px", fontFamily: "'Courier New',monospace", fontSize: "0.84rem", cursor: "pointer" }}>CANCEL</button>
           </div>
         </div>
       )}
@@ -782,13 +782,13 @@ function PullItemRow({ item, checked, onToggle, expanded, onExpand }) {
         </div>
         {item.sources.length > 1 && (
           <button onClick={(e) => { e.stopPropagation(); onExpand(); }} style={{
-            background: "none", border: "1px solid #2a2a2a", color: expanded ? "#ffffff" : "#555555",
+            background: "none", border: "1px solid rgba(255,255,255,0.06)", color: expanded ? "#ffffff" : "#555555",
             padding: "4px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.68rem", cursor: "pointer", flexShrink: 0
           }}>{expanded ? "HIDE" : "SPLIT"}</button>
         )}
       </div>
       {expanded && item.sources.length > 1 && (
-        <div style={{ padding: "0 13px 10px 51px", borderTop: "1px solid #1a1a1a" }}>
+        <div style={{ padding: "0 13px 10px 51px", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
           {item.sources.map((src, si) => (
             <div key={si} style={{ display: "flex", gap: 10, padding: "5px 0", alignItems: "baseline", borderBottom: si < item.sources.length - 1 ? "1px solid #151515" : "none" }}>
               <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap", minWidth: 44 }}>{src.qty}{item.unit ? " " + item.unit : ""}</span>
@@ -831,15 +831,15 @@ function PullPriorityModal({ onClose, priority, onSave }) {
   const save = () => { onSave(items); onClose(); };
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(420px,96vw)", maxHeight: "85vh", overflowY: "auto", padding: "18px 16px" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", width: "min(420px,96vw)", maxHeight: "85vh", overflowY: "auto", padding: "18px 16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em" }}>PULL ORDER</span>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
         </div>
         <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>Items matching earlier categories get pulled first. Use arrows to reorder.</div>
         {items.map((cat, idx) => (
-          <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 0", borderBottom: "1px solid #1a1a1a" }}>
+          <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
             <span style={{ color: "#444444", fontSize: "0.68rem", fontWeight: 700, width: 18, textAlign: "center", flexShrink: 0 }}>{idx + 1}</span>
             <span style={{ flex: 1, color: "#cccccc", fontSize: "0.88rem" }}>{cat}</span>
             <button onClick={() => moveUp(idx)} disabled={idx === 0} style={{ background: "none", border: "1px solid " + (idx === 0 ? "#1a1a1a" : "#2a2a2a"), color: idx === 0 ? "#1a1a1a" : "#888888", padding: "3px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", cursor: idx === 0 ? "default" : "pointer" }}>&#9650;</button>
@@ -849,8 +849,8 @@ function PullPriorityModal({ onClose, priority, onSave }) {
         ))}
         <div style={{ display: "flex", gap: 6, marginTop: 10, marginBottom: 14 }}>
           <input value={newCat} onChange={e => setNewCat(e.target.value)} onKeyDown={e => { if (e.key === "Enter") add(); }}
-            placeholder="New category..." style={{ ...inp, flex: 1, fontSize: "0.84rem", padding: "5px 7px", background: "#0a0a0a" }} />
-          <button onClick={add} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer" }}>+ ADD</button>
+            placeholder="New category..." style={{ ...inp, flex: 1, fontSize: "0.84rem", padding: "5px 7px", background: "#000000" }} />
+          <button onClick={add} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer" }}>+ ADD</button>
         </div>
         <button onClick={save} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.08em", cursor: "pointer" }}>SAVE ORDER</button>
       </div>
@@ -870,8 +870,8 @@ function PullSOCard({ so, onRemove }) {
       </div>
       {confirmDel ? (
         <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
-          <button onClick={() => onRemove(so.id)} style={{ background: "#4a0000", color: "#f5f5f5", border: "none", padding: "2px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>DEL</button>
-          <button onClick={() => setConfirmDel(false)} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "2px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>NO</button>
+          <button onClick={() => onRemove(so.id)} style={{ background: "#4a0000", color: "#e5e5e7", border: "none", padding: "2px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>DEL</button>
+          <button onClick={() => setConfirmDel(false)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "2px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>NO</button>
         </div>
       ) : (
         <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.9rem", padding: "2px 4px", flexShrink: 0 }}>x</button>
@@ -889,7 +889,7 @@ function EntryCard({ entry, onDelete, onEdit }) {
   const partyColor = isPO ? "#ffffff" : isIn ? "#00e676" : "#ff3d3d";
 
   return (
-    <div style={{ borderLeft: "3px solid " + accentColor, background: "#111111", padding: "11px 13px", marginBottom: 7 }}>
+    <div style={{ borderLeft: "3px solid " + accentColor, background: "rgba(255,255,255,0.04)", padding: "11px 13px", marginBottom: 7 }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 7 }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           <span style={{ color: partyColor, fontWeight: 700, fontSize: "1rem", letterSpacing: "0.03em" }}>{partyLine}</span>
@@ -898,8 +898,8 @@ function EntryCard({ entry, onDelete, onEdit }) {
         <div style={{ flexShrink: 0, marginLeft: 8, display: "flex", gap: 6, alignItems: "center" }}>
           {confirmDel ? (
             <div style={{ display: "flex", gap: 5 }}>
-              <button onClick={() => onDelete(entry.id)} style={{ background: "#4a0000", color: "#f5f5f5", border: "none", padding: "2px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>DEL</button>
-              <button onClick={() => setConfirmDel(false)} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "2px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>NO</button>
+              <button onClick={() => onDelete(entry.id)} style={{ background: "#4a0000", color: "#e5e5e7", border: "none", padding: "2px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>DEL</button>
+              <button onClick={() => setConfirmDel(false)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "2px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>NO</button>
             </div>
           ) : (
             <React.Fragment>
@@ -941,8 +941,8 @@ function UpcomingCard({ entry, onConfirm, onDelete, onEdit }) {
         <div style={{ flexShrink: 0, marginLeft: 8, display: "flex", gap: 6, alignItems: "center" }}>
           {confirmDel ? (
             <div style={{ display: "flex", gap: 5 }}>
-              <button onClick={() => onDelete(entry.id)} style={{ background: "#4a0000", color: "#f5f5f5", border: "none", padding: "2px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>DEL</button>
-              <button onClick={() => setConfirmDel(false)} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "2px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>NO</button>
+              <button onClick={() => onDelete(entry.id)} style={{ background: "#4a0000", color: "#e5e5e7", border: "none", padding: "2px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>DEL</button>
+              <button onClick={() => setConfirmDel(false)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "2px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.7rem", cursor: "pointer" }}>NO</button>
             </div>
           ) : (
             <React.Fragment>
@@ -969,9 +969,9 @@ function UpcomingCard({ entry, onConfirm, onDelete, onEdit }) {
 function DateHeader({ dateStr }) {
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "28px 0 10px" }}>
-      <div style={{ flex: 1, height: 1, background: "#1a1a1a" }} />
+      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.04)" }} />
       <span style={{ color: "#ffffff", fontSize: "0.76rem", fontWeight: 700, letterSpacing: "0.2em", whiteSpace: "nowrap" }}>{formatDateHeading(dateStr).toUpperCase()}</span>
-      <div style={{ flex: 1, height: 1, background: "#1a1a1a" }} />
+      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.04)" }} />
     </div>
   );
 }
@@ -992,8 +992,8 @@ function AddModal({ onClose, onSave, onSaveUpcoming, defaultType, editEntry, edi
   const saveUpcoming = () => { if (!isValid) return; onSaveUpcoming(form); onClose(); };
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(500px,96vw)", maxHeight: "92vh", overflowY: "auto", padding: "18px 16px" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", width: "min(500px,96vw)", maxHeight: "92vh", overflowY: "auto", padding: "18px 16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
           <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.1em" }}>{editEntry ? "EDIT ENTRY" : "LOG ENTRY"}</span>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
@@ -1028,14 +1028,14 @@ function AddModal({ onClose, onSave, onSaveUpcoming, defaultType, editEntry, edi
             <button onClick={() => removeLine(idx)} style={{ background: "none", border: "none", color: "#4a0000", cursor: "pointer", fontSize: "0.94rem", alignSelf: "center" }}>x</button>
           </div>
         ))}
-        <button onClick={addLine} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginBottom: 12 }}>+ LINE</button>
+        <button onClick={addLine} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginBottom: 12 }}>+ LINE</button>
         <div style={{ marginBottom: 16 }}><label style={lbl}>NOTES (OPTIONAL)</label><input value={form.notes} onChange={e => set("notes", e.target.value)} style={inp} /></div>
         {editEntry ? (
           <button onClick={save} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.97rem", letterSpacing: "0.1em", cursor: "pointer" }}>SAVE CHANGES</button>
         ) : (
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={save} style={{ flex: 1, background: "#ffffff", color: "#0a0a0a", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.08em", cursor: "pointer" }}>SAVE</button>
-            <button onClick={saveUpcoming} style={{ flex: 1, background: "#0a0a0a", color: "#c9a84c", border: "1px solid #3a3020", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.08em", cursor: "pointer" }}>UPCOMING</button>
+            <button onClick={saveUpcoming} style={{ flex: 1, background: "#000000", color: "#c9a84c", border: "1px solid #3a3020", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.08em", cursor: "pointer" }}>UPCOMING</button>
           </div>
         )}
       </div>
@@ -1046,8 +1046,8 @@ function AddModal({ onClose, onSave, onSaveUpcoming, defaultType, editEntry, edi
 function ApiKeyModal({ onClose }) {
   const [val, setVal] = useState(getApiKey());
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(380px,92vw)", padding: "20px 16px" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", width: "min(380px,92vw)", padding: "20px 16px" }}>
         <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em", marginBottom: 12 }}>API KEY</div>
         <input value={val} onChange={e => setVal(e.target.value)} placeholder="sk-ant-..." type="password" style={{ ...inp, marginBottom: 10 }} />
         <button onClick={() => { setApiKeyVal(val); onClose(); }} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", padding: "8px", fontFamily: "'Courier New',monospace", fontWeight: 700, cursor: "pointer" }}>SAVE</button>
@@ -1059,14 +1059,14 @@ function ApiKeyModal({ onClose }) {
 function SyncTokenModal({ onClose, onSaved }) {
   const [val, setVal] = useState(GitHubSync.getToken());
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(380px,92vw)", padding: "20px 16px" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", width: "min(380px,92vw)", padding: "20px 16px" }}>
         <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em", marginBottom: 6 }}>SYNC TOKEN</div>
         <div style={{ fontSize: "0.7rem", color: "#555555", marginBottom: 12, lineHeight: 1.5 }}>GitHub personal access token for syncing data across devices. Syncs to neimaD7/aurora-log-data.</div>
         <input value={val} onChange={e => setVal(e.target.value)} placeholder="github_pat_..." type="password" style={{ ...inp, marginBottom: 10 }} />
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => { GitHubSync.setToken(val); if (onSaved) onSaved(); onClose(); }} style={{ flex: 1, background: "#ffffff", color: "#0a0a0a", border: "none", padding: "8px", fontFamily: "'Courier New',monospace", fontWeight: 700, cursor: "pointer" }}>SAVE</button>
-          {val && <button onClick={() => { GitHubSync.setToken(""); setVal(""); }} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "8px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", cursor: "pointer" }}>CLEAR</button>}
+          {val && <button onClick={() => { GitHubSync.setToken(""); setVal(""); }} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "8px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", cursor: "pointer" }}>CLEAR</button>}
         </div>
       </div>
     </div>
@@ -1081,8 +1081,8 @@ function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown, onOpe
   const saveEdit = (idx) => { if (!editVal.trim()) return; const next = knownItems.map((k, i) => i === idx ? { ...k, name: editVal.trim() } : k); setKnownItems(next); persistKnown(next); setEditName(null); };
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(460px,96vw)", maxHeight: "85vh", overflowY: "auto", padding: "18px 16px" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", width: "min(460px,96vw)", maxHeight: "85vh", overflowY: "auto", padding: "18px 16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em" }}>ITEM DICTIONARY</span>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
@@ -1090,11 +1090,11 @@ function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown, onOpe
         <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>Auto-learned from entries. AI matches documents to these names. Tap to edit.</div>
         {knownItems.length === 0 && <div style={{ color: "#333333", fontSize: "0.84rem", padding: "20px 0", textAlign: "center" }}>No items yet — log your first entry to start building the dictionary.</div>}
         {knownItems.map((item, idx) => (
-          <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid #1a1a1a" }}>
+          <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
             {editName === idx ? (
               <React.Fragment>
                 <input value={editVal} onChange={e => setEditVal(e.target.value)} onKeyDown={e => { if (e.key === "Enter") saveEdit(idx); }}
-                  style={{ ...inp, flex: 1, fontSize: "0.86rem", padding: "4px 7px", background: "#0a0a0a" }} autoFocus />
+                  style={{ ...inp, flex: 1, fontSize: "0.86rem", padding: "4px 7px", background: "#000000" }} autoFocus />
                 <button onClick={() => saveEdit(idx)} style={{ background: "none", border: "none", color: "#00c853", cursor: "pointer", fontSize: "0.72rem", fontFamily: "'Courier New',monospace", fontWeight: 700 }}>SAVE</button>
               </React.Fragment>
             ) : (
@@ -1107,9 +1107,9 @@ function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown, onOpe
             )}
           </div>
         ))}
-        <div style={{ display: "flex", gap: 8, marginTop: 16, paddingTop: 14, borderTop: "1px solid #1a1a1a" }}>
-          <button onClick={() => { onClose(); onOpenLabels(); }} style={{ flex: 1, background: "none", border: "1px solid #2a2a2a", color: "#888888", padding: "8px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>LABELS</button>
-          <button onClick={() => { onClose(); onOpenApiKey(); }} style={{ flex: 1, background: "none", border: "1px solid #2a2a2a", color: "#555555", padding: "8px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", cursor: "pointer", letterSpacing: "0.06em" }}>API KEY</button>
+        <div style={{ display: "flex", gap: 8, marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+          <button onClick={() => { onClose(); onOpenLabels(); }} style={{ flex: 1, background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#888888", padding: "8px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", fontWeight: 700, cursor: "pointer", letterSpacing: "0.06em" }}>LABELS</button>
+          <button onClick={() => { onClose(); onOpenApiKey(); }} style={{ flex: 1, background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#555555", padding: "8px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", cursor: "pointer", letterSpacing: "0.06em" }}>API KEY</button>
           <button onClick={() => { onClose(); onOpenSync(); }} style={{ flex: 1, background: "none", border: "1px solid " + (GitHubSync.isConfigured() ? "#1a2d1a" : "#2a2a2a"), color: GitHubSync.isConfigured() ? "#00c853" : "#555555", padding: "8px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", cursor: "pointer", letterSpacing: "0.06em" }}>SYNC</button>
         </div>
       </div>
@@ -1170,32 +1170,32 @@ function LabelMakerModal({ onClose, knownItems }) {
   };
 
   return (
-    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(8,7,5,0.88)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
-      <div onClick={e => e.stopPropagation()} style={{ background: "#141414", border: "1px solid #2a2a2a", width: "min(500px,96vw)", maxHeight: "90vh", overflowY: "auto", padding: "18px 16px" }}>
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.06)", width: "min(500px,96vw)", maxHeight: "90vh", overflowY: "auto", padding: "18px 16px" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
           <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.12em" }}>LABEL MAKER</span>
           <button onClick={onClose} style={{ background: "none", border: "none", color: "#555555", cursor: "pointer", fontSize: "1.3rem" }}>x</button>
         </div>
         <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>Item labels for 2" x 6" C-channel holders. Print on cardstock, cut along dashed lines.</div>
         {labels.map((lb, idx) => (
-          <div key={lb.id} style={{ marginBottom: 8, background: "#0d0d0d", border: "1px solid #1a1a1a", padding: "10px" }}>
+          <div key={lb.id} style={{ marginBottom: 8, background: "#1c1c1e", border: "1px solid #1a1a1a", padding: "10px" }}>
             <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
               <div style={{ flex: 1 }}>
                 <label style={lbl}>ITEM NAME</label>
-                <input value={lb.name} onChange={e => updateLabel(idx, "name", e.target.value)} placeholder="e.g. #4 Rebar 20' Grade 60" style={{ ...inp, background: "#0a0a0a", fontSize: "0.86rem", padding: "6px 8px" }} />
+                <input value={lb.name} onChange={e => updateLabel(idx, "name", e.target.value)} placeholder="e.g. #4 Rebar 20' Grade 60" style={{ ...inp, background: "#000000", fontSize: "0.86rem", padding: "6px 8px" }} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "flex-end", flexShrink: 0 }}>
-                <button onClick={() => dupLabel(idx)} title="Duplicate" style={{ background: "none", border: "1px solid #2a2a2a", color: "#555555", padding: "2px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.68rem", cursor: "pointer" }}>DUP</button>
+                <button onClick={() => dupLabel(idx)} title="Duplicate" style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#555555", padding: "2px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.68rem", cursor: "pointer" }}>DUP</button>
                 {labels.length > 1 && <button onClick={() => removeLabel(idx)} style={{ background: "none", border: "none", color: "#3a1010", cursor: "pointer", fontSize: "0.82rem", padding: "0 4px" }}>x</button>}
               </div>
             </div>
             <div>
               <label style={lbl}>OVERSTOCK LOCATION (OPTIONAL)</label>
-              <input value={lb.overstock} onChange={e => updateLabel(idx, "overstock", e.target.value)} placeholder="e.g. Bin 5" style={{ ...inp, background: "#0a0a0a", fontSize: "0.84rem", padding: "5px 8px" }} />
+              <input value={lb.overstock} onChange={e => updateLabel(idx, "overstock", e.target.value)} placeholder="e.g. Bin 5" style={{ ...inp, background: "#000000", fontSize: "0.84rem", padding: "5px 8px" }} />
             </div>
           </div>
         ))}
-        <button onClick={addLabel} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "5px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer", marginBottom: 14, width: "100%" }}>+ ADD LABEL</button>
+        <button onClick={addLabel} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "5px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer", marginBottom: 14, width: "100%" }}>+ ADD LABEL</button>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={printLabels} disabled={validLabels.length === 0} style={{ flex: 1, background: validLabels.length > 0 ? "#ffffff" : "#222222", color: validLabels.length > 0 ? "#0a0a0a" : "#555555", border: "none", padding: "10px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.08em", cursor: validLabels.length > 0 ? "pointer" : "default" }}>
             PRINT {validLabels.length > 0 ? "(" + validLabels.length + ")" : ""}
@@ -1222,7 +1222,7 @@ function SyncStatusBar({ syncState }) {
   } else { text = "SYNC IDLE"; color = "#333333"; }
 
   return (
-    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, textAlign: "center", padding: "4px 0", paddingBottom: "calc(4px + env(safe-area-inset-bottom))", background: "#0a0a0a", borderTop: "1px solid #141414", zIndex: 500 }}>
+    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, textAlign: "center", padding: "4px 0", paddingBottom: "calc(4px + env(safe-area-inset-bottom))", background: "#000000", borderTop: "1px solid rgba(255,255,255,0.04)", zIndex: 500 }}>
       <span style={{ fontSize: "0.58rem", letterSpacing: "0.12em", color, fontFamily: "'Courier New', monospace" }}>{text}</span>
       {error && <span style={{ fontSize: "0.52rem", color: "#ff4444", marginLeft: 6 }}>{error}</span>}
     </div>
@@ -1530,14 +1530,14 @@ function App() {
   const isPullTab = tab === "pull";
 
   return (
-    <div style={{ minHeight: "100vh", background: "#0a0a0a", color: "#f5f5f5", fontFamily: "'Courier New', monospace", maxWidth: 660, margin: "0 auto" }}>
-      <div style={{ borderBottom: "2px solid #ffffff", padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+    <div style={{ minHeight: "100vh", background: "#000000", color: "#e5e5e7", fontFamily: "'Courier New', monospace", maxWidth: 660, margin: "0 auto" }}>
+      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "14px 16px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flex: "1 1 auto", minWidth: 0 }}>
           <div style={{ flexShrink: 0 }}>
             <div style={{ fontSize: "0.62rem", letterSpacing: "0.22em", color: "#555555", marginBottom: 1 }}>AURORA</div>
             <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "#ffffff", letterSpacing: "0.06em", lineHeight: 1 }}>RECEIVING LOG</div>
           </div>
-          <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "6px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>
+          <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: knownItems.length > 0 ? "#888888" : "#444444", padding: "6px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.78rem", fontWeight: 700, cursor: "pointer" }}>
               DICT{knownItems.length > 0 && <span style={{ fontSize: "0.6rem", color: "#666666", marginLeft: 2 }}>{knownItems.length}</span>}
           </button>
         </div>
@@ -1566,7 +1566,7 @@ function App() {
       {showIntake && !isPullTab && <AIIntake onSave={addEntry} onSaveUpcoming={addUpcoming} knownItems={knownItems} />}
       {showPullIntake && isPullTab && <PullIntake onAddSO={addSO} knownItems={knownItems} />}
 
-      <div style={{ borderBottom: "1px solid #1a1a1a", display: "flex" }}>
+      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.04)", display: "flex" }}>
         {tabBtn("po", "POs", poCount)}
         {tabBtn("transfers", "XFERS", trCount)}
         {tabBtn("upcoming", "UPCOMING", upCount, "#c9a84c")}
@@ -1594,11 +1594,11 @@ function App() {
                     <button onClick={() => setShowSOList(s => !s)} style={{ background: "none", border: "1px solid #1a1a2a", color: "#5b8fff", padding: "3px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", fontWeight: 700, cursor: "pointer" }}>
                       {pullQueue.length} SO{pullQueue.length !== 1 ? "s" : ""}
                     </button>
-                    <button onClick={() => setShowPriority(true)} style={{ background: "none", border: "1px solid #2a2a2a", color: "#666666", padding: "3px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", cursor: "pointer" }}>ORDER</button>
+                    <button onClick={() => setShowPriority(true)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "3px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", cursor: "pointer" }}>ORDER</button>
                     <button onClick={() => { if (confirm("Clear all SOs from pull sheet?")) clearPull(); }} style={{ background: "#1a0000", border: "1px solid #3a1010", color: "#aa4444", padding: "3px 8px", fontFamily: "'Courier New',monospace", fontSize: "0.66rem", fontWeight: 700, cursor: "pointer" }}>CLEAR</button>
                   </div>
                 </div>
-                <div style={{ height: 4, background: "#1a1a1a", width: "100%" }}>
+                <div style={{ height: 4, background: "rgba(255,255,255,0.04)", width: "100%" }}>
                   <div style={{ height: 4, background: pullCheckedCount === pullTotalCount && pullTotalCount > 0 ? "#00c853" : "#5b8fff", width: pullTotalCount > 0 ? ((pullCheckedCount / pullTotalCount) * 100) + "%" : "0%", transition: "width 0.2s, background 0.2s" }} />
                 </div>
               </div>
