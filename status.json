@@ -1,7 +1,19 @@
 {
-  "tasks": [],
-  "todo": [
-    { "text": "Find the list of recommendations Damien wanted to come back to", "done": false }
+  "tasks": [
+    {
+      "id": "agent-workflow-optimization",
+      "name": "Agent Workflow Optimization",
+      "status": "running",
+      "progress": ["Starting agent workflow improvements"],
+      "startedAt": "2026-03-10T03:37:00.000Z"
+    }
   ],
-  "lastUpdated": "2026-03-10T03:26:00.000Z"
+  "todo": [
+    { "text": "Find the list of recommendations Damien wanted to come back to", "done": false },
+    { "text": "Persistent Clair sessions — use mode:session so she stays alive for follow-ups", "done": false },
+    { "text": "Standardized task templates — auto-include design language, changelog, context", "done": false },
+    { "text": "Actually use Billy — run reviews automatically after Clair finishes", "done": false },
+    { "text": "Pipeline automation — Clair builds → Billy reviews → bugs auto-fixed → design suggestions queued for Damien", "done": false }
+  ],
+  "lastUpdated": "2026-03-10T03:37:00.000Z"
 }
