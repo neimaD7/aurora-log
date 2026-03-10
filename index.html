@@ -1162,9 +1162,9 @@ function LabelMakerModal({ onClose, knownItems }) {
   const [labels, setLabels] = useState([{ id: "l1", name: "", overstock: "" }]);
   const nextId = useRef(2);
   const addLabel = () => { setLabels(l => [...l, { id: "l" + (nextId.current++), name: "", overstock: "" }]); };
-  const removeLabel = (idx) => setLabels(l => l.filter((_, i) => i !== idx));
-  const updateLabel = (idx, key, val) => setLabels(l => l.map((lb, i) => i === idx ? { ...lb, [key]: val } : lb));
-  const dupLabel = (idx) => setLabels(l => { const copy = { ...l[idx], id: "l" + (nextId.current++) }; const next = [...l]; next.splice(idx + 1, 0, copy); return next; });
+  const removeLabel = (id) => setLabels(l => l.filter(lb => lb.id !== id));
+  const updateLabel = (id, key, val) => setLabels(l => l.map(lb => lb.id === id ? { ...lb, [key]: val } : lb));
+  const dupLabel = (id) => setLabels(l => { const srcIdx = l.findIndex(lb => lb.id === id); if (srcIdx < 0) return l; const copy = { ...l[srcIdx], id: "l" + (nextId.current++) }; const next = [...l]; next.splice(srcIdx + 1, 0, copy); return next; });
 
   const validLabels = labels.filter(lb => (lb.name || "").trim());
 
@@ -1223,16 +1223,16 @@ function LabelMakerModal({ onClose, knownItems }) {
             <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
               <div style={{ flex: 1 }}>
                 <label style={lbl}>ITEM NAME</label>
-                <input value={lb.name} onChange={e => updateLabel(idx, "name", e.target.value)} placeholder="e.g. #4 Rebar 20' Grade 60" style={{ ...inp, background: "#000000", fontSize: "0.86rem", padding: "6px 8px" }} />
+                <input value={lb.name} onChange={e => updateLabel(lb.id, "name", e.target.value)} placeholder="e.g. #4 Rebar 20' Grade 60" style={{ ...inp, background: "#000000", fontSize: "0.86rem", padding: "6px 8px" }} />
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "flex-end", flexShrink: 0 }}>
-                <button onClick={() => dupLabel(idx)} title="Duplicate" style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#555555", padding: "2px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.68rem", cursor: "pointer" }}>DUP</button>
-                {labels.length > 1 && <button onClick={() => removeLabel(idx)} style={{ background: "none", border: "1px solid rgba(255,80,80,0.2)", borderRadius: 4, color: "#ff4444", cursor: "pointer", fontSize: "0.72rem", fontWeight: 700, padding: "2px 6px", fontFamily: "'Courier New',monospace" }}>DEL</button>}
+                <button onClick={() => dupLabel(lb.id)} title="Duplicate" style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#555555", padding: "2px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.68rem", cursor: "pointer" }}>DUP</button>
+                {labels.length > 1 && <button onClick={() => removeLabel(lb.id)} style={{ background: "none", border: "1px solid rgba(255,80,80,0.2)", borderRadius: 4, color: "#ff4444", cursor: "pointer", fontSize: "0.72rem", fontWeight: 700, padding: "2px 6px", fontFamily: "'Courier New',monospace" }}>DEL</button>}
               </div>
             </div>
             <div>
               <label style={lbl}>OVERSTOCK LOCATION (OPTIONAL)</label>
-              <input value={lb.overstock} onChange={e => updateLabel(idx, "overstock", e.target.value)} placeholder="e.g. Bin 5" style={{ ...inp, background: "#000000", fontSize: "0.84rem", padding: "5px 8px" }} />
+              <input value={lb.overstock} onChange={e => updateLabel(lb.id, "overstock", e.target.value)} placeholder="e.g. Bin 5" style={{ ...inp, background: "#000000", fontSize: "0.84rem", padding: "5px 8px" }} />
             </div>
           </div>
         ))}
