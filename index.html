@@ -590,8 +590,8 @@ CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (
             )}
           </div>
           <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
-            <div style={{ flex: 1 }}><label style={lbl}>DOC #</label><input value={parsed.docId || ""} onChange={e => set("docId", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
-            <div style={{ flex: 1 }}><label style={lbl}>DATE</label><input type="date" value={parsed.date || today()} onChange={e => set("date", e.target.value)} style={{ ...inp, background: "#000000", maxWidth: "100%" }} /></div>
+            <div style={{ flex: 1, minWidth: 0 }}><label style={lbl}>DOC #</label><input value={parsed.docId || ""} onChange={e => set("docId", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
+            <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}><label style={lbl}>DATE</label><input type="date" value={parsed.date || today()} onChange={e => set("date", e.target.value)} style={{ ...inp, background: "#000000", width: "100%", minWidth: 0 }} /></div>
           </div>
           <label style={{ ...lbl, marginBottom: 6 }}>LINE ITEMS</label>
           {(parsed.lineItems || []).map((li, idx) => (
@@ -1019,8 +1019,8 @@ function AddModal({ onClose, onSave, onSaveUpcoming, defaultType, editEntry, edi
           )}
         </div>
         <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
-          <div style={{ flex: 1 }}><label style={lbl}>DOC #</label><input value={form.docId} onChange={e => set("docId", e.target.value)} placeholder="optional" style={inp} /></div>
-          <div style={{ flex: 1 }}><label style={lbl}>DATE</label><input type="date" value={form.date} onChange={e => set("date", e.target.value)} style={{ ...inp, maxWidth: "100%" }} /></div>
+          <div style={{ flex: 1, minWidth: 0 }}><label style={lbl}>DOC #</label><input value={form.docId} onChange={e => set("docId", e.target.value)} placeholder="optional" style={inp} /></div>
+          <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}><label style={lbl}>DATE</label><input type="date" value={form.date} onChange={e => set("date", e.target.value)} style={{ ...inp, width: "100%", minWidth: 0 }} /></div>
         </div>
         <label style={{ ...lbl, marginBottom: 7 }}>LINE ITEMS</label>
         {form.lineItems.map((li, idx) => (
