@@ -292,7 +292,9 @@ function formatTime(ts) {
 }
 function formatAgo(ts) {
   if (!ts) return "";
-  var ago = Math.round((Date.now() - ts) / 1000);
+  var t = typeof ts === "number" ? ts : new Date(ts).getTime();
+  if (isNaN(t)) return "";
+  var ago = Math.round((Date.now() - t) / 1000);
   if (ago < 60) return ago + "s ago";
   if (ago < 3600) return Math.round(ago / 60) + "m ago";
   return Math.round(ago / 3600) + "h ago";
