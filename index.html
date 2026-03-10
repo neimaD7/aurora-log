@@ -366,8 +366,13 @@ const GitHubSync = {
     }
     for (const item of local) {
       const key = normalizeForMatch(item.name);
-      if (!map[key]) {
+      const existing = map[key];
+      if (!existing) {
         map[key] = item;
+      } else {
+        if ((item.modifiedAt || 0) > (existing.modifiedAt || 0)) {
+          map[key] = item;
+        }
       }
     }
     return Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
@@ -1079,9 +1084,27 @@ function SyncTokenModal({ onClose, onSaved }) {
 function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown, onOpenLabels, onOpenApiKey, onOpenSync }) {
   const [editName, setEditName] = useState(null);
   const [editVal, setEditVal] = useState("");
-  const remove = (idx) => { const next = knownItems.filter((_, i) => i !== idx); setKnownItems(next); persistKnown(next); };
+  const remove = (idx) => { const next = knownItems.map((k, i) => i === idx ? { ...k, _deleted: true, modifiedAt: Date.now() } : k); setKnownItems(next); persistKnown(next); };
   const startEdit = (item, idx) => { setEditName(idx); setEditVal(item.name); };
-  const saveEdit = (idx) => { if (!editVal.trim()) return; const next = knownItems.map((k, i) => i === idx ? { ...k, name: editVal.trim() } : k); setKnownItems(next); persistKnown(next); setEditName(null); };
+  const saveEdit = (idx) => {
+    if (!editVal.trim()) return;
+    const newName = editVal.trim();
+    const newKey = normalizeForMatch(newName);
+    // Check for tombstone collision — if renamed target was previously deleted, un-delete it instead of creating a duplicate
+    const tombstoneIdx = knownItems.findIndex((k, i) => i !== idx && normalizeForMatch(k.name) === newKey && k._deleted);
+    let next;
+    if (tombstoneIdx >= 0) {
+      // Remove the old entry, un-delete the tombstone with the new name
+      next = knownItems.map((k, i) => {
+        if (i === tombstoneIdx) return { ...k, name: newName, _deleted: undefined, modifiedAt: Date.now() };
+        if (i === idx) return { ...k, _deleted: true, modifiedAt: Date.now() };
+        return k;
+      });
+    } else {
+      next = knownItems.map((k, i) => i === idx ? { ...k, name: newName, modifiedAt: Date.now() } : k);
+    }
+    setKnownItems(next); persistKnown(next); setEditName(null);
+  };
 
   return (
     <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
@@ -1091,8 +1114,8 @@ function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown, onOpe
           <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: 30, height: 30, color: "#555555", cursor: "pointer", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
         </div>
         <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>Auto-learned from entries. AI matches documents to these names. Tap to edit.</div>
-        {knownItems.length === 0 && <div style={{ color: "#333333", fontSize: "0.84rem", padding: "20px 0", textAlign: "center" }}>No items yet — log your first entry to start building the dictionary.</div>}
-        {knownItems.map((item, idx) => (
+        {knownItems.filter(k => !k._deleted).length === 0 && <div style={{ color: "#333333", fontSize: "0.84rem", padding: "20px 0", textAlign: "center" }}>No items yet — log your first entry to start building the dictionary.</div>}
+        {knownItems.map((item, idx) => item._deleted ? null : (
           <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
             {editName === idx ? (
               <React.Fragment>
@@ -1272,7 +1295,17 @@ function App() {
       let localEntries = [], localUpcoming = [], localKnown = [];
       try { const r = await window.storage.get("entries"); if (r?.value) { localEntries = JSON.parse(r.value); setEntries(localEntries); } } catch {}
       try { const r = await window.storage.get("upcoming"); if (r?.value) { localUpcoming = JSON.parse(r.value); setUpcoming(localUpcoming); } } catch {}
-      try { const r = await window.storage.get("known_items"); if (r?.value) { localKnown = JSON.parse(r.value); setKnownItems(localKnown); } } catch {}
+      try { const r = await window.storage.get("known_items"); if (r?.value) {
+        localKnown = JSON.parse(r.value);
+        // Migration: stamp modifiedAt on old items that don't have it
+        let migrated = false;
+        localKnown = localKnown.map(k => {
+          if (!k.modifiedAt) { migrated = true; return { ...k, modifiedAt: Date.now() }; }
+          return k;
+        });
+        if (migrated) { try { await window.storage.set("known_items", JSON.stringify(localKnown)); } catch {} }
+        setKnownItems(localKnown);
+      } } catch {}
       try { const r = await window.storage.get("pull_queue"); if (r?.value) setPullQueue(JSON.parse(r.value)); } catch {}
       try { const r = await window.storage.get("pull_priority"); if (r?.value) { const v = JSON.parse(r.value); if (Array.isArray(v) && v.length > 0) setPullPriority(v); } } catch {}
       setLoaded(true);
@@ -1334,8 +1367,9 @@ function App() {
     for (const li of (lineItems || [])) {
       const name = (li.name || "").trim();
       if (!name) continue;
-      const exists = updated.some(k => normalizeForMatch(k.name) === normalizeForMatch(name));
-      if (!exists) { updated.push({ name, unit: (li.unit || "").trim() }); changed = true; }
+      const existingIdx = updated.findIndex(k => normalizeForMatch(k.name) === normalizeForMatch(name));
+      if (existingIdx === -1) { updated.push({ name, unit: (li.unit || "").trim(), modifiedAt: Date.now() }); changed = true; }
+      else if (updated[existingIdx]._deleted) { updated[existingIdx] = { ...updated[existingIdx], _deleted: false, modifiedAt: Date.now() }; changed = true; }
     }
     if (changed) { updated.sort((a, b) => a.name.localeCompare(b.name)); setKnownItems(updated); persistKnown(updated); }
   };
