@@ -1180,7 +1180,8 @@ function LabelMakerModal({ onClose, knownItems }) {
     html += '@page { size: 8.5in 11in; margin: 0.5in; }';
     html += '* { margin: 0; padding: 0; box-sizing: border-box; }';
     html += 'body { font-family: "Courier New", monospace; }';
-    html += '.label { width: ' + labelW + 'in; height: ' + labelH + 'in; border: 1px dashed #cccccc; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0.15in 0.25in; page-break-inside: avoid; margin-bottom: 0.08in; overflow: hidden; position: relative; }';
+    html += '.label { width: ' + labelW + 'in; height: ' + labelH + 'in; border: 1px dashed #cccccc; border-bottom: none; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0.15in 0.25in; page-break-inside: avoid; overflow: hidden; position: relative; }';
+    html += '.label:last-child { border-bottom: 1px dashed #cccccc; }';
     html += '.item-name { font-weight: 700; line-height: 1.2; color: #000000; white-space: nowrap; }';
     html += '.overstock { font-weight: 400; color: #555555; margin-top: 0.06in; white-space: nowrap; }';
     html += '</style></head><body>';
