@@ -6,19 +6,33 @@
 <title>Aurora Log</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Aurora Log">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="manifest" href="data:application/manifest+json,%7B%22name%22%3A%22Aurora+Receiving+Log%22%2C%22short_name%22%3A%22Aurora+Log%22%2C%22display%22%3A%22standalone%22%2C%22background_color%22%3A%22%230d0c0a%22%2C%22theme_color%22%3A%22%230d0c0a%22%2C%22orientation%22%3A%22portrait%22%7D">
+<link rel="manifest" href="manifest.json">
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js');}</script>
 <style>
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { background: #0a0a0a; color: #f5f5f5; font-family: 'Courier New', monospace; overflow-x: hidden; }
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { height: 100%; overflow: hidden; }
+  body {
+    background: #0a0a0a; color: #f5f5f5; font-family: 'Courier New', monospace;
+    overflow-x: hidden; overflow-y: auto; height: 100%;
+    -webkit-overflow-scrolling: touch;
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: #0a0a0a; }
   ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 2px; }
-  input, select, textarea { font-family: 'Courier New', monospace; }
+  input, select, textarea { font-family: 'Courier New', monospace; font-size: 16px; }
   option { background: #141414; color: #f5f5f5; }
+  button { -webkit-tap-highlight-color: transparent; transition: opacity 0.1s; }
+  button:active { opacity: 0.7; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -1208,7 +1222,7 @@ function SyncStatusBar({ syncState }) {
   } else { text = "SYNC IDLE"; color = "#333333"; }
 
   return (
-    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, textAlign: "center", padding: "4px 0", background: "#0a0a0a", borderTop: "1px solid #141414", zIndex: 500 }}>
+    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, textAlign: "center", padding: "4px 0", paddingBottom: "calc(4px + env(safe-area-inset-bottom))", background: "#0a0a0a", borderTop: "1px solid #141414", zIndex: 500 }}>
       <span style={{ fontSize: "0.58rem", letterSpacing: "0.12em", color, fontFamily: "'Courier New', monospace" }}>{text}</span>
       {error && <span style={{ fontSize: "0.52rem", color: "#ff4444", marginLeft: 6 }}>{error}</span>}
     </div>
@@ -1559,7 +1573,7 @@ function App() {
         {tabBtn("pull", "PULL", plCount, "#5b8fff")}
       </div>
 
-      <div style={{ padding: "0 12px 80px" }}>
+      <div style={{ padding: "0 12px calc(80px + env(safe-area-inset-bottom))" }}>
         {!loaded ? (
           <div style={{ padding: 50, textAlign: "center", color: "#555555", fontSize: "0.84rem" }}>Loading...</div>
         ) : tab === "pull" ? (
@@ -1640,6 +1654,13 @@ function App() {
 }
 
 ReactDOM.render(<App />, document.getElementById("root"));
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').catch(function() {});
+  });
+}
 </script>
 </body>
 </html>
