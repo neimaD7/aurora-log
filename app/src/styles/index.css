@@ -1,0 +1,126 @@
+/* Aurora Log Global Styles */
+
+/* Reset and base styles */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html {
+  height: 100%;
+  overflow: hidden;
+}
+
+body {
+  background: #000000;
+  color: #e5e5e7;
+  font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Hide scrollbars */
+::-webkit-scrollbar {
+  display: none;
+}
+
+/* Form elements */
+input, select, textarea {
+  font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
+  font-size: 16px;
+}
+
+option {
+  background: #1c1c1e;
+  color: #e5e5e7;
+}
+
+/* Button styles */
+button {
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+button:active {
+  opacity: 0.6;
+  transform: scale(0.97);
+}
+
+/* App container */
+#root {
+  height: 100%;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+/* Utility classes */
+.fade-in {
+  animation: fadeIn 0.3s ease;
+}
+
+.slide-up {
+  animation: slideUp 0.3s ease;
+}
+
+.pulse {
+  animation: pulse 1.5s infinite;
+}
+
+/* Print styles for label printing */
+@media print {
+  @page {
+    size: 8.5in 11in;
+    margin: 0.5in;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: "Courier New", monospace;
+    background: white !important;
+    color: black !important;
+  }
+}

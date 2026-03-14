@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>📝Log</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aurora Log">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<script>
+/* ====== APPLE TOUCH ICON ====== */
+(function() {
+  var c = document.createElement('canvas');
+  c.width = 180; c.height = 180;
+  var ctx = c.getContext('2d');
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, 180, 180);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 8;
+  ctx.strokeRect(4, 4, 172, 172);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 110px Courier New';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('A', 90, 88);
+  ctx.fillStyle = '#555555';
+  ctx.font = 'bold 22px Courier New';
+  ctx.fillText('LOG', 90, 148);
+  var link = document.createElement('link');
+  link.rel = 'apple-touch-icon';
+  link.href = c.toDataURL('image/png');
+  document.head.appendChild(link);
+})();
+</script>
+  <script type="module" crossorigin src="./assets/index-ByLv4vh6.js"></script>
+  <link rel="stylesheet" crossorigin href="./assets/index-_I1FT6Vj.css">
+</head>
+<body>
+<div id="root"></div>
+<script>
+/* ====== FAILSAFE SYSTEM — runs BEFORE React ====== */
+window._dataLost = false;
+["aurora_log_entries", "aurora_log_known_items", "aurora_log_upcoming", "aurora_log_pull_queue", "aurora_log_pull_priority"].forEach(function(k) {
+  try { var v = localStorage.getItem(k); if (v !== null) JSON.parse(v); }
+  catch(e) {
+    try { localStorage.setItem(k + "_corrupted_backup", localStorage.getItem(k)); } catch(x) {}
+    localStorage.removeItem(k);
+    var backup = localStorage.getItem(k + "_backup");
+    if (backup) {
+      try { JSON.parse(backup); localStorage.setItem(k, backup); }
+      catch(e2) {
+        localStorage.removeItem(k + "_backup");
+        if (k === "aurora_log_entries") window._dataLost = true;
+      }
+    } else {
+      if (k === "aurora_log_entries") window._dataLost = true;
+    }
+  }
+});
+window.storage = {
+  get: function(k) { var v = localStorage.getItem("aurora_log_" + k); if (v === null) return Promise.reject(new Error("Not found")); return Promise.resolve({ key: k, value: v }); },
+  set: function(k, v) { localStorage.setItem("aurora_log_" + k, v); try { localStorage.setItem("aurora_log_" + k + "_backup", v); } catch(e) {} return Promise.resolve({ key: k, value: v }); }
+};
+function showRecoveryUI(reason) {
+  var root = document.getElementById("root"); if (!root) return;
+  var entries = [], known = [], upcoming = [];
+  try { var r = localStorage.getItem("aurora_log_entries") || localStorage.getItem("aurora_log_entries_backup"); if (r) entries = JSON.parse(r); } catch(e) {}
+  try { var r2 = localStorage.getItem("aurora_log_known_items") || localStorage.getItem("aurora_log_known_items_backup"); if (r2) known = JSON.parse(r2); } catch(e) {}
+  try { var r3 = localStorage.getItem("aurora_log_upcoming") || localStorage.getItem("aurora_log_upcoming_backup"); if (r3) upcoming = JSON.parse(r3); } catch(e) {}
+  var hasData = entries.length > 0 || known.length > 0 || upcoming.length > 0;
+  var exportData = JSON.stringify({ entries: entries, knownItems: known, upcoming: upcoming, exportedAt: new Date().toISOString() }, null, 2);
+  var h = '<div style="padding:24px 16px;font-family:Courier New,monospace;background:#0a0a0a;color:#f5f5f5;min-height:100vh"><div style="max-width:500px;margin:0 auto">';
+  h += '<div style="color:#ff4444;font-weight:700;font-size:1rem;letter-spacing:0.1em;margin-bottom:6px">RECOVERY MODE</div>';
+  h += '<div style="color:#666;font-size:0.78rem;margin-bottom:20px">' + (reason || "App failed to load.") + '</div>';
+  if (hasData) {
+    h += '<div style="color:#00c853;font-size:0.82rem;margin-bottom:12px;font-weight:700">DATA SAFE: ' + entries.length + ' entries, ' + upcoming.length + ' upcoming, ' + known.length + ' dict</div>';
+    h += '<button id="copyBtn" style="background:#1a2d5a;color:#7aa8f0;border:1px solid #2a2a2a;padding:10px 16px;font-family:Courier New,monospace;font-weight:700;font-size:0.84rem;cursor:pointer;width:100%;margin-bottom:8px">COPY DATA BACKUP</button>';
+    h += '<textarea id="exportArea" readonly style="width:100%;height:60px;background:#111;border:1px solid #2a2a2a;color:#555;font-size:0.68rem;padding:6px;font-family:Courier New,monospace;resize:vertical;margin-bottom:12px">' + exportData.replace(/</g, "&lt;") + '</textarea>';
+  }
+  h += '<div style="display:flex;gap:8px">';
+  h += '<button id="retryBtn" style="background:#fff;color:#0a0a0a;border:none;padding:10px 20px;font-family:Courier New,monospace;font-weight:700;font-size:0.88rem;cursor:pointer;flex:1">RETRY</button>';
+  h += '<button id="clearBtn" style="background:#2a0000;color:#ff4444;border:1px solid #4a0000;padding:10px 20px;font-family:Courier New,monospace;font-weight:700;font-size:0.88rem;cursor:pointer;flex:1">CLEAR + RELOAD</button>';
+  h += '</div>';
+  if (hasData) h += '<button id="restoreBtn" style="background:none;border:1px solid #2a2a2a;color:#888;padding:8px 16px;font-family:Courier New,monospace;font-size:0.76rem;cursor:pointer;width:100%;margin-top:8px">RESTORE FROM BACKUP</button>';
+  h += '</div></div>';
+  root.innerHTML = h;
+  setTimeout(function() {
+    var cb = document.getElementById("copyBtn");
+    if (cb) cb.onclick = function() { if (navigator.clipboard) navigator.clipboard.writeText(exportData).then(function() { cb.textContent = "COPIED!"; cb.style.background = "#0a3a1a"; cb.style.color = "#00c853"; }); };
+    var rb = document.getElementById("retryBtn"); if (rb) rb.onclick = function() { location.reload(); };
+    var clb = document.getElementById("clearBtn"); if (clb) clb.onclick = function() { if (confirm("Erase all data? Copy backup first!")) { localStorage.clear(); location.reload(); } };
+    var rsb = document.getElementById("restoreBtn"); if (rsb) rsb.onclick = function() {
+      ["aurora_log_entries","aurora_log_known_items","aurora_log_upcoming"].forEach(function(k) { var b = localStorage.getItem(k + "_backup"); if (b) { try { JSON.parse(b); localStorage.setItem(k, b); } catch(e) {} } });
+      location.reload();
+    };
+  }, 50);
+}
+window.onerror = function(msg, src, line) { showRecoveryUI("Error: " + msg + " (line " + line + ")"); return true; };
+window._appMounted = false;
+setTimeout(function() { if (!window._appMounted) showRecoveryUI("App failed to initialize. Your data is preserved."); }, 8000);
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(r) { r.unregister(); });
+  });
+}
+</script>
+</body>
+</html>

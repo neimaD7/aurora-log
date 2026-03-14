@@ -1,0 +1,20 @@
+# Dependencies
+node_modules/
+
+# OpenClaw workspace
+.openclaw/
+
+# Secrets
+.github-sync-token
+
+# Editor
+.vscode/
+.idea/
+*.sw?
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log

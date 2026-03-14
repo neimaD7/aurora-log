@@ -1,0 +1,18 @@
+{
+  "name": "\ud83d\udccbDashboard",
+  "short_name": "\ud83d\udccbDashboard",
+  "display": "standalone",
+  "start_url": "./dashboard.html",
+  "scope": "./",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>\ud83e\udd19</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

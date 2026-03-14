@@ -1,0 +1,30 @@
+with open(r'C:\Users\billy\aurora-log\index.html', 'r', encoding='utf-8') as f:
+    c = f.read()
+lines = c.splitlines()
+print(f'Lines: {len(lines)}')
+print(f'Size: {len(c)} bytes')
+print(f'Parens: {c.count("(")} / {c.count(")")}')
+print(f'Braces: {c.count("{" )} / {c.count("}")}')
+print(f'Brackets: {c.count("[" )} / {c.count("]")}')
+print(f'Scripts: {c.count("<script")} / {c.count("</script")}')
+print(f'Ends OK: {c.strip().endswith("html>")}')
+for i, line in enumerate(lines, 1):
+    if 'function NameInput' in line:
+        print(f'NameInput at line {i}')
+bt = chr(96)*3
+print(f'Triple backticks: {"WARNING!" if bt in c else "clean"}')
+print(f'Mount signal: {"present" if "_appMounted = true" in c else "MISSING!"}')
+print(f'Recovery UI: {"present" if "showRecoveryUI" in c else "MISSING!"}')
+print(f'Auto-backup: {"present" if "_backup" in c else "MISSING!"}')
+has_restore = "backup" in c and "localStorage.setItem(k, backup)" in c
+print(f'Auto-restore: {"present" if has_restore else "MISSING!"}')
+print(f'_dataLost flag: {"present" if "_dataLost" in c else "MISSING!"}')
+print(f'Local today(): {"present" if "getFullYear" in c else "MISSING - uses UTC!"}')
+print(f'FENCE_RE: {"present" if "FENCE_RE" in c else "MISSING!"}')
+print(f'PullIntake: {"present" if "function PullIntake(" in c else "MISSING!"}')
+print(f'PullItemRow: {"present" if "function PullItemRow(" in c else "MISSING!"}')
+print(f'PullPriorityModal: {"present" if "function PullPriorityModal(" in c else "MISSING!"}')
+print(f'PullSOCard: {"present" if "function PullSOCard(" in c else "MISSING!"}')
+print(f'matchPriority (every): {"present" if "catTokens.every" in c else "MISSING!"}')
+print(f'extractJSON: {"present" if "function extractJSON" in c else "MISSING!"}')
+print(f'GitHubSync: {"present" if "GitHubSync" in c else "MISSING!"}')

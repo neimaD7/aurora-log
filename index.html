@@ -1,0 +1,1730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>📝Log</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📋</text></svg>">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Aurora Log">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<script>if('serviceWorker' in navigator){navigator.serviceWorker.register('./sw.js');}</script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { height: 100%; overflow: hidden; }
+  body {
+    background: #000000; color: #e5e5e7;
+    font-family: 'SF Mono', 'Menlo', 'Courier New', monospace;
+    height: 100%; overflow-x: hidden; overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-top: env(safe-area-inset-top);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  ::-webkit-scrollbar { display: none; }
+  input, select, textarea { font-family: 'SF Mono', 'Menlo', 'Courier New', monospace; font-size: 16px; }
+  option { background: #1c1c1e; color: #e5e5e7; }
+  button { -webkit-tap-highlight-color: transparent; transition: all 0.15s ease; cursor: pointer; }
+  button:active { opacity: 0.6; transform: scale(0.97); }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+</style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+<script>
+(function() {
+  var _warn = console.warn;
+  console.warn = function(msg) {
+    if (typeof msg === 'string' && msg.indexOf('Babel') !== -1) return;
+    _warn.apply(console, arguments);
+  };
+  var c = document.createElement('canvas');
+  c.width = 180; c.height = 180;
+  var ctx = c.getContext('2d');
+  ctx.fillStyle = '#0a0a0a';
+  ctx.fillRect(0, 0, 180, 180);
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 8;
+  ctx.strokeRect(4, 4, 172, 172);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = 'bold 110px Courier New';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('A', 90, 88);
+  ctx.fillStyle = '#555555';
+  ctx.font = 'bold 22px Courier New';
+  ctx.fillText('LOG', 90, 148);
+  var link = document.createElement('link');
+  link.rel = 'apple-touch-icon';
+  link.href = c.toDataURL('image/png');
+  document.head.appendChild(link);
+})();
+</script>
+</head>
+<body>
+<div id="root"></div>
+<script>
+/* ====== FAILSAFE SYSTEM ====== */
+window._dataLost = false;
+["aurora_log_entries", "aurora_log_known_items", "aurora_log_upcoming", "aurora_log_pull_queue", "aurora_log_pull_priority"].forEach(function(k) {
+  try { var v = localStorage.getItem(k); if (v !== null) JSON.parse(v); }
+  catch(e) {
+    try { localStorage.setItem(k + "_corrupted_backup", localStorage.getItem(k)); } catch(x) {}
+    localStorage.removeItem(k);
+    var backup = localStorage.getItem(k + "_backup");
+    if (backup) {
+      try { JSON.parse(backup); localStorage.setItem(k, backup); }
+      catch(e2) {
+        localStorage.removeItem(k + "_backup");
+        if (k === "aurora_log_entries") window._dataLost = true;
+      }
+    } else {
+      if (k === "aurora_log_entries") window._dataLost = true;
+    }
+  }
+});
+window.storage = {
+  async get(k) { var v = localStorage.getItem("aurora_log_" + k); if (v === null) throw new Error("Not found"); return { key: k, value: v }; },
+  async set(k, v) { localStorage.setItem("aurora_log_" + k, v); try { localStorage.setItem("aurora_log_" + k + "_backup", v); } catch(e) {} return { key: k, value: v }; }
+};
+function showRecoveryUI(reason) {
+  var root = document.getElementById("root"); if (!root) return;
+  var entries = [], known = [], upcoming = [];
+  try { var r = localStorage.getItem("aurora_log_entries") || localStorage.getItem("aurora_log_entries_backup"); if (r) entries = JSON.parse(r); } catch(e) {}
+  try { var r2 = localStorage.getItem("aurora_log_known_items") || localStorage.getItem("aurora_log_known_items_backup"); if (r2) known = JSON.parse(r2); } catch(e) {}
+  try { var r3 = localStorage.getItem("aurora_log_upcoming") || localStorage.getItem("aurora_log_upcoming_backup"); if (r3) upcoming = JSON.parse(r3); } catch(e) {}
+  var hasData = entries.length > 0 || known.length > 0 || upcoming.length > 0;
+  var exportData = JSON.stringify({ entries: entries, knownItems: known, upcoming: upcoming, exportedAt: new Date().toISOString() }, null, 2);
+  var h = '<div style="padding:24px 16px;font-family:Courier New,monospace;background:#0a0a0a;color:#f5f5f5;min-height:100vh"><div style="max-width:500px;margin:0 auto">';
+  h += '<div style="color:#ff4444;font-weight:700;font-size:1rem;letter-spacing:0.1em;margin-bottom:6px">RECOVERY MODE</div>';
+  h += '<div style="color:#666;font-size:0.78rem;margin-bottom:20px">' + (reason || "App failed to load.") + '</div>';
+  if (hasData) {
+    h += '<div style="color:#00c853;font-size:0.82rem;margin-bottom:12px;font-weight:700">DATA SAFE: ' + entries.length + ' entries, ' + upcoming.length + ' upcoming, ' + known.length + ' dict</div>';
+    h += '<button id="copyBtn" style="background:#1a2d5a;color:#7aa8f0;border:1px solid #2a2a2a;padding:10px 16px;font-family:Courier New,monospace;font-weight:700;font-size:0.84rem;cursor:pointer;width:100%;margin-bottom:8px">COPY DATA BACKUP</button>';
+    h += '<textarea id="exportArea" readonly style="width:100%;height:60px;background:#111;border:1px solid #2a2a2a;color:#555;font-size:0.68rem;padding:6px;font-family:Courier New,monospace;resize:vertical;margin-bottom:12px">' + exportData.replace(/</g, "&lt;") + '</textarea>';
+  }
+  h += '<div style="display:flex;gap:8px">';
+  h += '<button id="retryBtn" style="background:#fff;color:#0a0a0a;border:none;padding:10px 20px;font-family:Courier New,monospace;font-weight:700;font-size:0.88rem;cursor:pointer;flex:1">RETRY</button>';
+  h += '<button id="clearBtn" style="background:#2a0000;color:#ff4444;border:1px solid #4a0000;padding:10px 20px;font-family:Courier New,monospace;font-weight:700;font-size:0.88rem;cursor:pointer;flex:1">CLEAR + RELOAD</button>';
+  h += '</div>';
+  if (hasData) h += '<button id="restoreBtn" style="background:none;border:1px solid #2a2a2a;color:#888;padding:8px 16px;font-family:Courier New,monospace;font-size:0.76rem;cursor:pointer;width:100%;margin-top:8px">RESTORE FROM BACKUP</button>';
+  h += '</div></div>';
+  root.innerHTML = h;
+  setTimeout(function() {
+    var cb = document.getElementById("copyBtn");
+    if (cb) cb.onclick = function() { if (navigator.clipboard) navigator.clipboard.writeText(exportData).then(function() { cb.textContent = "COPIED!"; cb.style.background = "#0a3a1a"; cb.style.color = "#00c853"; }); };
+    var rb = document.getElementById("retryBtn"); if (rb) rb.onclick = function() { location.reload(); };
+    var clb = document.getElementById("clearBtn"); if (clb) clb.onclick = function() { if (confirm("Erase all data? Copy backup first!")) { localStorage.clear(); location.reload(); } };
+    var rsb = document.getElementById("restoreBtn"); if (rsb) rsb.onclick = function() {
+      ["aurora_log_entries","aurora_log_known_items","aurora_log_upcoming"].forEach(function(k) { var b = localStorage.getItem(k + "_backup"); if (b) { try { JSON.parse(b); localStorage.setItem(k, b); } catch(e) {} } });
+      location.reload();
+    };
+  }, 50);
+}
+window.onerror = function(msg, src, line) { showRecoveryUI("Error: " + msg + " (line " + line + ")"); return true; };
+window._appMounted = false;
+setTimeout(function() { if (!window._appMounted) showRecoveryUI("App failed to initialize. Your data is preserved."); }, 8000);
+</script>
+<script type="text/babel" data-type="module">
+const { useState, useEffect, useRef } = React;
+
+const STORES = ["Hillsboro", "Eugene", "Gresham", "Vancouver", "Redmond"];
+const FENCE_RE = new RegExp(String.fromCharCode(96,96,96) + "json|" + String.fromCharCode(96,96,96), "g");
+const inp = { width: "100%", background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: "10px", color: "#e5e5e7", padding: "12px 14px", fontSize: "16px", outline: "none", fontFamily: "'SF Mono', 'Menlo', 'Courier New', monospace", boxSizing: "border-box", transition: "border-color 0.15s ease" };
+const lbl = { display: "block", fontSize: "0.62rem", fontWeight: "600", letterSpacing: "0.12em", color: "#555555", marginBottom: 6, textTransform: "uppercase" };
+
+const DEFAULT_PULL_PRIORITY = [
+  "stakes", "bag ties", "form oil", "dobies", "bolts", "pier papers", "form clips/flat ties", "snap ties", "misc"
+];
+
+function getApiKey() { return localStorage.getItem("aurora_api_key") || ""; }
+function setApiKeyVal(k) { localStorage.setItem("aurora_api_key", k); }
+function getApiHeaders() { return { "Content-Type": "application/json", "x-api-key": getApiKey(), "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" }; }
+function today() { const n = new Date(); return n.getFullYear() + "-" + String(n.getMonth()+1).padStart(2,"0") + "-" + String(n.getDate()).padStart(2,"0"); }
+function formatDateHeading(dateStr) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  const dt = new Date(y, m - 1, d);
+  const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  return `${days[dt.getDay()]}, ${months[dt.getMonth()]} ${d}`;
+}
+
+function normalizeForMatch(str) {
+  return (str || "").toLowerCase().replace(/[^a-z0-9]/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function hasDigit(s) { return /\d/.test(s); }
+
+function findBestMatch(name, knownItems) {
+  if (!name || !knownItems.length) return null;
+  const norm = normalizeForMatch(name);
+  if (!norm) return null;
+  const exact = knownItems.find(k => normalizeForMatch(k.name) === norm);
+  if (exact) return exact;
+  const tokens = norm.split(" ").filter(t => t.length > 1);
+  if (!tokens.length) return null;
+  let bestScore = 0, bestItem = null;
+  for (const item of knownItems) {
+    const kTokens = normalizeForMatch(item.name).split(" ").filter(t => t.length > 1);
+    if (!kTokens.length) continue;
+    // Check that numeric tokens match exactly — sizes/dimensions matter
+    const inputNums = tokens.filter(hasDigit);
+    const knownNums = kTokens.filter(hasDigit);
+    // If both have numbers, ALL numbers in the input must appear exactly in the known item
+    if (inputNums.length > 0 && knownNums.length > 0) {
+      const numMismatch = inputNums.some(n => !knownNums.includes(n)) || knownNums.some(n => !inputNums.includes(n));
+      if (numMismatch) continue; // Different size/dimension — skip entirely
+    }
+    let overlap = 0;
+    for (const t of tokens) {
+      if (kTokens.some(kt => kt === t)) overlap++; // Exact token match only
+    }
+    const score = overlap / Math.max(tokens.length, kTokens.length);
+    if (score > bestScore) { bestScore = score; bestItem = item; }
+  }
+  return bestScore >= 0.6 ? bestItem : null;
+}
+
+function extractJSON(text) {
+  let cleaned = text.replace(FENCE_RE, "");
+  cleaned = cleaned.replace(/^\s*json\s*$/gm, "").trim();
+  try { return JSON.parse(cleaned); } catch(e) {}
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+  if (start !== -1 && end > start) {
+    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch(e) {}
+  }
+  const aStart = cleaned.indexOf("[");
+  const aEnd = cleaned.lastIndexOf("]");
+  if (aStart !== -1 && aEnd > aStart) {
+    try { return JSON.parse(cleaned.slice(aStart, aEnd + 1)); } catch(e) {}
+  }
+  return null;
+}
+
+function matchPriority(itemName, priorityList) {
+  const norm = normalizeForMatch(itemName);
+  for (let i = 0; i < priorityList.length; i++) {
+    const raw = priorityList[i];
+    const alternatives = raw.split("/").map(s => s.trim()).filter(Boolean);
+    const matched = alternatives.some(alt => {
+      const catTokens = normalizeForMatch(alt).split(" ").filter(t => t.length > 1);
+      if (!catTokens.length) return false;
+      return catTokens.every(ct => norm.includes(ct));
+    });
+    if (matched) return i;
+  }
+  return priorityList.length;
+}
+
+/* ====== GITHUB SYNC MODULE ====== */
+const GitHubSync = {
+  OWNER: "neimaD7",
+  REPO: "aurora-log-data",
+  _shas: {},
+  _debounceTimers: {},
+  _listeners: [],
+  _status: "idle",
+  _lastSync: null,
+  _error: null,
+
+  getToken() { return localStorage.getItem("aurora_sync_token") || ""; },
+  setToken(t) { localStorage.setItem("aurora_sync_token", t); },
+  isConfigured() { return !!this.getToken(); },
+
+  _notifyListeners() {
+    const state = { status: this._status, lastSync: this._lastSync, error: this._error };
+    this._listeners.forEach(fn => { try { fn(state); } catch(e) {} });
+  },
+  onStatusChange(fn) { this._listeners.push(fn); return () => { this._listeners = this._listeners.filter(f => f !== fn); }; },
+
+  _setStatus(s, err) {
+    this._status = s;
+    if (err) this._error = err;
+    if (s === "synced") { this._lastSync = Date.now(); this._error = null; }
+    this._notifyListeners();
+  },
+
+  async _apiGet(path) {
+    const res = await fetch(`https://api.github.com/repos/${this.OWNER}/${this.REPO}/contents/${path}`, {
+      headers: { "Authorization": "Bearer " + this.getToken(), "Accept": "application/vnd.github.v3+json" }
+    });
+    if (res.status === 404) return null;
+    if (res.status === 403 || res.status === 429) { throw new Error("Rate limited"); }
+    if (!res.ok) throw new Error("GitHub API error: " + res.status);
+    return res.json();
+  },
+
+  async _apiPut(path, content, sha) {
+    const body = { message: "sync " + path, content: btoa(unescape(encodeURIComponent(content))) };
+    if (sha) body.sha = sha;
+    const res = await fetch(`https://api.github.com/repos/${this.OWNER}/${this.REPO}/contents/${path}`, {
+      method: "PUT",
+      headers: { "Authorization": "Bearer " + this.getToken(), "Accept": "application/vnd.github.v3+json", "Content-Type": "application/json" },
+      body: JSON.stringify(body)
+    });
+    if (res.status === 409) { return { conflict: true }; }
+    if (res.status === 403 || res.status === 429) { throw new Error("Rate limited"); }
+    if (!res.ok) throw new Error("GitHub PUT error: " + res.status);
+    const data = await res.json();
+    this._shas[path] = data.content.sha;
+    return data;
+  },
+
+  async pull(dataType) {
+    const path = dataType + ".json";
+    try {
+      const file = await this._apiGet(path);
+      if (!file) return null;
+      this._shas[path] = file.sha;
+      const decoded = decodeURIComponent(escape(atob(file.content.replace(/\n/g, ""))));
+      return JSON.parse(decoded);
+    } catch(e) {
+      console.error("Sync pull error (" + dataType + "):", e);
+      throw e;
+    }
+  },
+
+  async push(dataType, localData) {
+    if (!this.isConfigured()) return;
+    const path = dataType + ".json";
+    try {
+      this._setStatus("syncing");
+      // Get current remote for SHA and merge
+      let remoteData = null;
+      try {
+        const file = await this._apiGet(path);
+        if (file) {
+          this._shas[path] = file.sha;
+          const decoded = decodeURIComponent(escape(atob(file.content.replace(/\n/g, ""))));
+          remoteData = JSON.parse(decoded);
+        }
+      } catch(e) { /* file doesn't exist yet, that's fine */ }
+
+      // Merge
+      let merged;
+      if (dataType === "known_items") {
+        merged = this._mergeKnownItems(localData, remoteData);
+      } else {
+        merged = this._mergeEntries(localData, remoteData);
+      }
+
+      const content = JSON.stringify(merged, null, 2);
+      const result = await this._apiPut(path, content, this._shas[path]);
+
+      if (result && result.conflict) {
+        // SHA mismatch — re-pull and retry once
+        const file = await this._apiGet(path);
+        if (file) {
+          this._shas[path] = file.sha;
+          const decoded = decodeURIComponent(escape(atob(file.content.replace(/\n/g, ""))));
+          remoteData = JSON.parse(decoded);
+          merged = dataType === "known_items" ? this._mergeKnownItems(localData, remoteData) : this._mergeEntries(localData, remoteData);
+          await this._apiPut(path, JSON.stringify(merged, null, 2), this._shas[path]);
+        }
+      }
+
+      this._setStatus("synced");
+      return merged;
+    } catch(e) {
+      console.error("Sync push error (" + dataType + "):", e);
+      this._setStatus("error", e.message);
+      throw e;
+    }
+  },
+
+  _mergeEntries(local, remote) {
+    if (!remote) return local || [];
+    if (!local) return remote;
+    const map = {};
+    // Add remote entries first
+    for (const entry of remote) {
+      map[entry.id] = entry;
+    }
+    // Overlay local entries — last-modified wins
+    for (const entry of local) {
+      const existing = map[entry.id];
+      if (!existing || (entry.modifiedAt || 0) >= (existing.modifiedAt || 0)) {
+        map[entry.id] = entry;
+      }
+    }
+    return Object.values(map);
+  },
+
+  _mergeKnownItems(local, remote) {
+    if (!remote) return local || [];
+    if (!local) return remote;
+    const map = {};
+    for (const item of remote) {
+      map[normalizeForMatch(item.name)] = item;
+    }
+    for (const item of local) {
+      const key = normalizeForMatch(item.name);
+      const existing = map[key];
+      if (!existing) {
+        map[key] = item;
+      } else {
+        if ((item.modifiedAt || 0) > (existing.modifiedAt || 0)) {
+          map[key] = item;
+        }
+      }
+    }
+    return Object.values(map).sort((a, b) => a.name.localeCompare(b.name));
+  },
+
+  debouncedPush(dataType, localData) {
+    if (!this.isConfigured()) return;
+    if (this._debounceTimers[dataType]) clearTimeout(this._debounceTimers[dataType]);
+    this._debounceTimers[dataType] = setTimeout(() => {
+      this.push(dataType, localData).catch(() => {});
+    }, 2500);
+  },
+
+  async fullSync(getLocal, setLocal) {
+    if (!this.isConfigured()) return;
+    this._setStatus("syncing");
+    const types = [
+      { key: "entries", storageKey: "entries" },
+      { key: "upcoming", storageKey: "upcoming" },
+      { key: "known_items", storageKey: "known_items" }
+    ];
+    // Phase 1: Pull and merge only
+    for (const t of types) {
+      try {
+        const remoteData = await this.pull(t.key);
+        if (remoteData) {
+          const localData = getLocal(t.storageKey);
+          let merged;
+          if (t.key === "known_items") {
+            merged = this._mergeKnownItems(localData, remoteData);
+          } else {
+            merged = this._mergeEntries(localData, remoteData);
+          }
+          setLocal(t.storageKey, merged);
+        }
+      } catch(e) { console.error("fullSync pull error for " + t.key + ":", e); }
+    }
+    // Phase 1.5: Reap tombstones older than 24 hours
+    const REAP_AGE = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    for (const t of types) {
+      try {
+        const data = getLocal(t.storageKey);
+        if (data && data.length > 0) {
+          const reaped = data.filter(item => !(item._deleted && item.modifiedAt && (now - item.modifiedAt) > REAP_AGE));
+          if (reaped.length < data.length) {
+            console.log("Reaped " + (data.length - reaped.length) + " tombstones from " + t.key);
+            setLocal(t.storageKey, reaped);
+          }
+        }
+      } catch(e) { console.error("Reap error for " + t.key + ":", e); }
+    }
+    // Phase 2: Push all local data back (creates missing files, syncs merged results)
+    for (const t of types) {
+      try {
+        const data = getLocal(t.storageKey);
+        if (data && data.length > 0) {
+          await this.push(t.key, data);
+        }
+      } catch(e) { console.error("fullSync push error for " + t.key + ":", e); }
+    }
+    this._setStatus("synced");
+  }
+};
+
+/* TOP-LEVEL — never nest inside another component */
+function NameInput({ value, onChange, placeholder, knownItems, inputStyle }) {
+  const [showSugg, setShowSugg] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const touchRef = useRef({ y: 0, moved: false });
+  const items = knownItems || [];
+
+  const handleChange = (e) => {
+    const v = e.target.value;
+    onChange(v);
+    if (v.trim().length >= 2 && items.length > 0) {
+      const norm = normalizeForMatch(v);
+      const matches = items.filter(k => {
+        const kn = normalizeForMatch(k.name);
+        return kn.includes(norm) || norm.split(" ").some(t => t.length > 1 && kn.includes(t));
+      }).slice(0, 5);
+      setSuggestions(matches);
+      setShowSugg(matches.length > 0);
+    } else { setSuggestions([]); setShowSugg(false); }
+  };
+
+  const pick = (item) => { onChange(item.name); setSuggestions([]); setShowSugg(false); };
+  const style = inputStyle || { ...inp, background: "#000000", fontSize: "0.88rem", padding: "5px 7px" };
+
+  return (
+    <div style={{ position: "relative" }}>
+      <input value={value || ""} onChange={handleChange}
+        onFocus={() => { if (suggestions.length) setShowSugg(true); }}
+        onBlur={() => setTimeout(() => setShowSugg(false), 200)}
+        placeholder={placeholder} style={style} />
+      {showSugg && (
+        <div onTouchStart={(e) => { touchRef.current = { y: e.touches[0].clientY, moved: false }; }}
+          onTouchMove={() => { touchRef.current.moved = true; }}
+          style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#1c1c1e", border: "1px solid rgba(255,255,255,0.15)", borderRadius: 8, zIndex: 100, maxHeight: 160, overflowY: "auto", WebkitOverflowScrolling: "touch", boxShadow: "0 4px 16px rgba(0,0,0,0.6)" }}>
+          {suggestions.map((s, i) => (
+            <div key={i} onMouseDown={(e) => { e.preventDefault(); pick(s); }}
+              onTouchEnd={(e) => { if (touchRef.current.moved) return; e.preventDefault(); pick(s); }}
+              style={{ padding: "10px 12px", fontSize: "0.84rem", color: "#e5e5e7", cursor: "pointer", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
+              {s.name} <span style={{ color: "#666666", fontSize: "0.72rem", marginLeft: 6 }}>{s.unit}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AIIntake({ onSave, onSaveUpcoming, knownItems }) {
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [parsed, setParsed] = useState(null);
+  const [error, setError] = useState("");
+  const [images, setImages] = useState([]);
+  const fileRef = useRef();
+
+  const knownItemsList = knownItems.length > 0
+    ? "\n\nKNOWN ITEM NAMES (ALWAYS use these exact names when you recognize the same product):\n" + knownItems.map(k => `- "${k.name}"${k.unit ? ` (unit: ${k.unit})` : ""}`).join("\n")
+    : "";
+
+  const systemPrompt = `You are a document parser for Aurora, a construction and building materials supply warehouse in Portland, Oregon. Aurora's neighboring stores are: Hillsboro, Eugene, Gresham, Vancouver, Redmond.
+
+Identify the document type:
+
+- "PO" — Purchase Order: supplies arriving from an external vendor or supplier
+- "Transfer In" — Stock arriving AT Aurora FROM another store
+- "Transfer Out" — Stock leaving Aurora TO another store
+
+The user may provide MULTIPLE PHOTOS of the same document (e.g. a multi-page PO). Treat all images as pages of ONE document — combine all line items into a single result. Do NOT create separate entries per page.
+
+Return ONLY valid JSON, no markdown:
+{
+  "type": "PO" or "Transfer In" or "Transfer Out",
+  "party": vendor company name (for PO) or store name like "Hillsboro" (for transfers),
+  "docId": document or order number as string, or "",
+  "date": "YYYY-MM-DD" (use today ${today()} if not visible),
+  "lineItems": [ { "name": "item name", "qty": number, "unit": "bags/pcs/rolls/etc" } ],
+  "notes": ""
+}
+
+CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (same size, same dimensions, same grade) as a known item below, use the known item's exact name. But if the size or dimensions differ (e.g. 1/2" vs 5/8", 18" vs 24", Grade 40 vs Grade 60), treat it as a DIFFERENT item and use the name as written on the document. Do NOT substitute a different size from the known items list.` + knownItemsList;
+
+  const handleImage = (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { setImages(prev => [...prev, { base64: ev.target.result.split(",")[1], mediaType: file.type, preview: ev.target.result }]); };
+    reader.readAsDataURL(file);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+  const removeImage = (idx) => setImages(prev => prev.filter((_, i) => i !== idx));
+  const clearAllImages = () => { setImages([]); if (fileRef.current) fileRef.current.value = ""; };
+
+  const parse = async () => {
+    if (!input.trim() && images.length === 0) return;
+    if (!getApiKey()) { setError("API key required — tap KEY in the header."); return; }
+    setLoading(true); setError(""); setParsed(null);
+    try {
+      const userContent = [];
+      images.forEach((img) => {
+        userContent.push({ type: "image", source: { type: "base64", media_type: img.mediaType, data: img.base64 } });
+      });
+      const textPart = input.trim() || (images.length > 1 ? "Parse this " + images.length + "-page warehouse document. Combine all line items into one result." : "Parse this warehouse document.");
+      userContent.push({ type: "text", text: textPart });
+      const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: getApiHeaders(), body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 4096, system: systemPrompt, messages: [{ role: "user", content: userContent }] }) });
+      const data = await res.json();
+      if (data.error) { setError("API error: " + (data.error.message || "Unknown")); setLoading(false); return; }
+      const text = data.content?.map(b => b.text || "").join("").trim();
+      let result = extractJSON(text);
+      if (!result) { setError("Couldn't parse AI response — try again or enter manually."); setLoading(false); return; }
+      if (result.lineItems) {
+        result.lineItems = result.lineItems.map(li => {
+          const match = findBestMatch(li.name, knownItems);
+          if (match) return { ...li, name: match.name, unit: li.unit || match.unit || "", _matched: true };
+          return { ...li, _matched: false };
+        });
+      }
+      setParsed(result);
+    } catch (e) { setError("Error: " + e.message); }
+    setLoading(false);
+  };
+
+  const set = (k, v) => setParsed(p => ({ ...p, [k]: v }));
+  const updateLine = (idx, key, val) => setParsed(p => ({ ...p, lineItems: p.lineItems.map((li, i) => i === idx ? { ...li, [key]: val } : li) }));
+  const removeLine = (idx) => setParsed(p => ({ ...p, lineItems: p.lineItems.filter((_, i) => i !== idx) }));
+  const addLine = () => setParsed(p => ({ ...p, lineItems: [...(p.lineItems || []), { name: "", qty: "", unit: "" }] }));
+  const reset = () => { setParsed(null); setInput(""); clearAllImages(); };
+  const confirm = () => { if (!parsed) return; onSave(parsed); reset(); };
+  const stageUpcoming = () => { if (!parsed) return; onSaveUpcoming(parsed); reset(); };
+
+  const typeAccent = { "PO": "#aaaaaa", "Transfer In": "#00e676", "Transfer Out": "#ff3d3d" };
+
+  return (
+    <div style={{ background: "#000000", borderBottom: "1px solid #2a2a2a", padding: "12px 14px" }}>
+      {images.length > 0 && (
+        <div style={{ marginBottom: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+          {images.map((img, idx) => (
+            <div key={idx} style={{ position: "relative", display: "inline-block" }}>
+              <img src={img.preview} alt="" style={{ height: 80, maxWidth: 100, border: "1px solid rgba(255,255,255,0.06)", display: "block", objectFit: "cover" }} />
+              <button onClick={() => removeImage(idx)} style={{ position: "absolute", top: 2, right: 2, background: "#000000", border: "1px solid rgba(255,255,255,0.06)", color: "#e5e5e7", cursor: "pointer", fontSize: "0.7rem", padding: "0px 4px", lineHeight: "16px" }}>x</button>
+              <div style={{ position: "absolute", bottom: 2, left: 2, background: "#000000", color: "#666666", fontSize: "0.6rem", padding: "0 3px", fontWeight: 700 }}>{"P" + (idx + 1)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {!parsed && (
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); parse(); } }}
+            placeholder={images.length > 0 ? images.length + " photo" + (images.length > 1 ? "s" : "") + " — add more or hit GO" : "Describe a PO or transfer, or snap a photo"}
+            rows={2} style={{ ...inp, flex: 1, resize: "none", background: "#000000", fontSize: "0.9rem" }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <button onClick={() => fileRef.current?.click()} style={{ background: images.length > 0 ? "#1a2d5a" : "#141414", border: "1px solid rgba(255,255,255,0.06)", color: images.length > 0 ? "#7aa8f0" : "#666666", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer" }}>{images.length > 0 ? "+" + images.length : "PHOTO"}</button>
+            <button onClick={parse} disabled={loading || (!input.trim() && images.length === 0)} style={{ background: loading ? "#141414" : "#ffffff", color: loading ? "#2d4a8a" : "#0a0a0a", border: "none", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", cursor: loading ? "default" : "pointer" }}>{loading ? "..." : "GO"}</button>
+          </div>
+        </div>
+      )}
+      <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleImage} style={{ display: "none" }} />
+      {error && <div style={{ marginTop: 8, color: "#ff4444", fontSize: "0.82rem", padding: "6px 8px", background: "rgba(255,255,255,0.04)", border: "1px solid #1a0000" }}>{error}</div>}
+      {parsed && (
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: "16px", marginTop: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <span style={{ color: typeAccent[parsed.type] || "#ffffff", fontWeight: 700, fontSize: "0.76rem", letterSpacing: "0.1em" }}>{(parsed.type || "").toUpperCase()}</span>
+            <button onClick={reset} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: 26, height: 26, color: "#555555", cursor: "pointer", fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+          </div>
+          <div style={{ marginBottom: 10 }}>
+            <label style={lbl}>{parsed.type === "PO" ? "VENDOR" : parsed.type === "Transfer In" ? "FROM STORE" : "TO STORE"}</label>
+            {parsed.type !== "PO" ? (
+              <select value={parsed.party || ""} onChange={e => set("party", e.target.value)} style={{ ...inp, background: "#000000", padding: "7px 9px" }}>
+                <option value="">Select store</option>
+                {STORES.map(s => <option key={s}>{s}</option>)}
+              </select>
+            ) : (
+              <input value={parsed.party || ""} onChange={e => set("party", e.target.value)} style={{ ...inp, background: "#000000" }} />
+            )}
+          </div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10 }}>
+            <div style={{ flex: 1, minWidth: 0 }}><label style={lbl}>DOC #</label><input value={parsed.docId || ""} onChange={e => set("docId", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
+            <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}><label style={lbl}>DATE</label><input type="date" value={parsed.date || today()} onChange={e => set("date", e.target.value)} style={{ ...inp, background: "#000000", width: "100%", minWidth: 0 }} /></div>
+          </div>
+          <label style={{ ...lbl, marginBottom: 6 }}>LINE ITEMS</label>
+          {(parsed.lineItems || []).map((li, idx) => (
+            <div key={idx} style={{ marginBottom: 5 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 22px", gap: 5 }}>
+                <NameInput value={li.name} onChange={v => updateLine(idx, "name", v)} placeholder="Item name" knownItems={knownItems} />
+                <input value={li.qty || ""} onChange={e => updateLine(idx, "qty", e.target.value)} placeholder="Qty" style={{ ...inp, background: "#000000", fontSize: "0.88rem", padding: "5px 7px" }} />
+                <input value={li.unit || ""} onChange={e => updateLine(idx, "unit", e.target.value)} placeholder="Unit" style={{ ...inp, background: "#000000", fontSize: "0.88rem", padding: "5px 7px" }} />
+                <button onClick={() => removeLine(idx)} style={{ background: "none", border: "none", color: "#4a0000", cursor: "pointer", fontSize: "0.94rem", padding: 0, alignSelf: "center" }}>x</button>
+              </div>
+              {li._matched && <div style={{ fontSize: "0.66rem", color: "#00c853", letterSpacing: "0.06em", marginTop: 1, paddingLeft: 2 }}>MATCHED</div>}
+            </div>
+          ))}
+          <button onClick={addLine} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginTop: 2, marginBottom: 12 }}>+ LINE</button>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button onClick={confirm} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 10, padding: "9px 18px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.86rem", letterSpacing: "0.06em", cursor: "pointer" }}>LOG IT</button>
+            <button onClick={stageUpcoming} style={{ background: "rgba(201,168,76,0.1)", color: "#c9a84c", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 10, padding: "9px 18px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.86rem", letterSpacing: "0.06em", cursor: "pointer" }}>UPCOMING</button>
+            <button onClick={reset} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: "#666666", padding: "9px 14px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.82rem", cursor: "pointer" }}>CANCEL</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PullIntake({ onAddSO, knownItems }) {
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [parsed, setParsed] = useState(null);
+  const [error, setError] = useState("");
+  const [images, setImages] = useState([]);
+  const fileRef = useRef();
+
+  const knownItemsList = knownItems.length > 0
+    ? "\n\nKNOWN ITEM NAMES (ALWAYS use these exact names when you recognize the same product):\n" + knownItems.map(k => `- "${k.name}"${k.unit ? ` (unit: ${k.unit})` : ""}`).join("\n")
+    : "";
+
+  const systemPrompt = `You are a document parser for Aurora, a construction and building materials supply warehouse in Portland, Oregon.
+
+You are parsing a SALES ORDER (SO) or will-call ticket for the pull sheet. Extract the customer info and all line items.
+
+The user may provide MULTIPLE PHOTOS of the same document. Treat all images as pages of ONE document — combine all line items into a single result.
+
+Return ONLY valid JSON, no markdown:
+{
+  "customer": "customer or company name",
+  "jobSite": "job site, lot number, or address if visible, otherwise empty string",
+  "soNumber": "sales order or ticket number as string, or empty string",
+  "lineItems": [ { "name": "item name", "qty": number, "unit": "bags/pcs/rolls/etc" } ]
+}
+
+CRITICAL NAME MATCHING RULE: When a line item refers to the EXACT same product (same size, same dimensions, same grade) as a known item below, use the known item's exact name. But if the size or dimensions differ (e.g. 1/2" vs 5/8", 18" vs 24", Grade 40 vs Grade 60), treat it as a DIFFERENT item and use the name as written on the document. Do NOT substitute a different size from the known items list.` + knownItemsList;
+
+  const handleImage = (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => { setImages(prev => [...prev, { base64: ev.target.result.split(",")[1], mediaType: file.type, preview: ev.target.result }]); };
+    reader.readAsDataURL(file);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+  const removeImage = (idx) => setImages(prev => prev.filter((_, i) => i !== idx));
+
+  const parse = async () => {
+    if (!input.trim() && images.length === 0) return;
+    if (!getApiKey()) { setError("API key required — tap KEY in the header."); return; }
+    setLoading(true); setError(""); setParsed(null);
+    try {
+      const userContent = [];
+      images.forEach((img) => {
+        userContent.push({ type: "image", source: { type: "base64", media_type: img.mediaType, data: img.base64 } });
+      });
+      const textPart = input.trim() || (images.length > 1 ? "Parse this " + images.length + "-page sales order. Combine all line items into one result." : "Parse this sales order / will-call ticket.");
+      userContent.push({ type: "text", text: textPart });
+      const res = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: getApiHeaders(), body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 8192, system: systemPrompt, messages: [{ role: "user", content: userContent }] }) });
+      const data = await res.json();
+      if (data.error) { setError("API error: " + (data.error.message || "Unknown")); setLoading(false); return; }
+      if (data.stop_reason === "max_tokens") { setError("Response was cut off (too many items). Try fewer pages."); setLoading(false); return; }
+      const text = data.content?.map(b => b.text || "").join("").trim();
+      let result = extractJSON(text);
+      if (!result) { setError("Couldn't parse SO — try again or enter manually."); setLoading(false); return; }
+      if (result.lineItems) {
+        result.lineItems = result.lineItems.map(li => {
+          const match = findBestMatch(li.name, knownItems);
+          if (match) return { ...li, name: match.name, unit: li.unit || match.unit || "" };
+          return li;
+        });
+      }
+      setParsed(result);
+    } catch (e) { setError("Error: " + e.message); }
+    setLoading(false);
+  };
+
+  const updateField = (k, v) => setParsed(p => ({ ...p, [k]: v }));
+  const updateLine = (idx, key, val) => setParsed(p => ({ ...p, lineItems: p.lineItems.map((li, i) => i === idx ? { ...li, [key]: val } : li) }));
+  const removeLine = (idx) => setParsed(p => ({ ...p, lineItems: p.lineItems.filter((_, i) => i !== idx) }));
+  const addLine = () => setParsed(p => ({ ...p, lineItems: [...(p.lineItems || []), { name: "", qty: "", unit: "" }] }));
+  const reset = () => { setParsed(null); setInput(""); setImages([]); if (fileRef.current) fileRef.current.value = ""; };
+  const confirm = () => {
+    if (!parsed) return;
+    onAddSO({
+      id: Date.now().toString() + Math.random().toString(36).slice(2, 5),
+      customer: (parsed.customer || "").trim(),
+      jobSite: (parsed.jobSite || "").trim(),
+      soNumber: (parsed.soNumber || "").trim(),
+      lineItems: (parsed.lineItems || []).filter(li => (li.name || "").trim()).map(li => ({
+        name: (li.name || "").trim(), qty: Number(li.qty) || 0, unit: (li.unit || "").trim()
+      })),
+      addedAt: Date.now()
+    });
+    reset();
+  };
+
+  return (
+    <div style={{ background: "#000000", borderBottom: "1px solid #2a2a2a", padding: "12px 14px" }}>
+      {images.length > 0 && (
+        <div style={{ marginBottom: 10, display: "flex", gap: 8, flexWrap: "wrap", alignItems: "flex-start" }}>
+          {images.map((img, idx) => (
+            <div key={idx} style={{ position: "relative", display: "inline-block" }}>
+              <img src={img.preview} alt="" style={{ height: 80, maxWidth: 100, border: "1px solid rgba(255,255,255,0.06)", display: "block", objectFit: "cover" }} />
+              <button onClick={() => removeImage(idx)} style={{ position: "absolute", top: 2, right: 2, background: "#000000", border: "1px solid rgba(255,255,255,0.06)", color: "#e5e5e7", cursor: "pointer", fontSize: "0.7rem", padding: "0px 4px", lineHeight: "16px" }}>x</button>
+              <div style={{ position: "absolute", bottom: 2, left: 2, background: "#000000", color: "#666666", fontSize: "0.6rem", padding: "0 3px", fontWeight: 700 }}>{"P" + (idx + 1)}</div>
+            </div>
+          ))}
+        </div>
+      )}
+      {!parsed && (
+        <div style={{ display: "flex", gap: 8, alignItems: "flex-start" }}>
+          <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); parse(); } }}
+            placeholder={images.length > 0 ? images.length + " photo" + (images.length > 1 ? "s" : "") + " — add more or hit GO" : "Snap an SO / will-call, or type items"}
+            rows={2} style={{ ...inp, flex: 1, resize: "none", background: "#000000", fontSize: "0.9rem" }} />
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            <button onClick={() => fileRef.current?.click()} style={{ background: images.length > 0 ? "#1a2d5a" : "#141414", border: "1px solid rgba(255,255,255,0.06)", color: images.length > 0 ? "#7aa8f0" : "#666666", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.82rem", cursor: "pointer" }}>{images.length > 0 ? "+" + images.length : "PHOTO"}</button>
+            <button onClick={parse} disabled={loading || (!input.trim() && images.length === 0)} style={{ background: loading ? "#141414" : "#ffffff", color: loading ? "#2d4a8a" : "#0a0a0a", border: "none", padding: "7px 11px", fontFamily: "'Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", cursor: loading ? "default" : "pointer" }}>{loading ? "..." : "GO"}</button>
+          </div>
+        </div>
+      )}
+      <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handleImage} style={{ display: "none" }} />
+      {error && <div style={{ marginTop: 8, color: "#ff4444", fontSize: "0.82rem", padding: "6px 8px", background: "rgba(255,255,255,0.04)", border: "1px solid #1a0000" }}>{error}</div>}
+      {parsed && (
+        <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: "16px", marginTop: 8 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.76rem", letterSpacing: "0.1em" }}>SALES ORDER</span>
+            <button onClick={reset} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: 26, height: 26, color: "#555555", cursor: "pointer", fontSize: "0.9rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginBottom: 10, flexWrap: "wrap" }}>
+            <div style={{ flex: "2 1 150px" }}><label style={lbl}>CUSTOMER</label><input value={parsed.customer || ""} onChange={e => updateField("customer", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
+            <div style={{ flex: "1 1 90px" }}><label style={lbl}>SO #</label><input value={parsed.soNumber || ""} onChange={e => updateField("soNumber", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
+          </div>
+          <div style={{ marginBottom: 10 }}><label style={lbl}>JOB SITE / LOT</label><input value={parsed.jobSite || ""} onChange={e => updateField("jobSite", e.target.value)} style={{ ...inp, background: "#000000" }} /></div>
+          <label style={{ ...lbl, marginBottom: 6 }}>LINE ITEMS</label>
+          {(parsed.lineItems || []).map((li, idx) => (
+            <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 22px", gap: 5, marginBottom: 5 }}>
+              <NameInput value={li.name} onChange={v => updateLine(idx, "name", v)} placeholder="Item name" knownItems={knownItems} />
+              <input value={li.qty || ""} onChange={e => updateLine(idx, "qty", e.target.value)} placeholder="Qty" style={{ ...inp, background: "#000000", fontSize: "0.88rem", padding: "5px 7px" }} />
+              <input value={li.unit || ""} onChange={e => updateLine(idx, "unit", e.target.value)} placeholder="Unit" style={{ ...inp, background: "#000000", fontSize: "0.88rem", padding: "5px 7px" }} />
+              <button onClick={() => removeLine(idx)} style={{ background: "none", border: "none", color: "#4a0000", cursor: "pointer", fontSize: "0.94rem", padding: 0, alignSelf: "center" }}>x</button>
+            </div>
+          ))}
+          <button onClick={addLine} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginTop: 2, marginBottom: 12 }}>+ LINE</button>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={confirm} style={{ background: "#5b8fff", color: "#0a0a0a", border: "none", borderRadius: 10, padding: "9px 18px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.86rem", letterSpacing: "0.06em", cursor: "pointer" }}>ADD TO PULL</button>
+            <button onClick={reset} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: "#666666", padding: "9px 14px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.82rem", cursor: "pointer" }}>CANCEL</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PullItemRow({ item, checked, onToggle, expanded, onExpand }) {
+  const pct = checked ? 100 : 0;
+  return (
+    <div style={{ background: checked ? "rgba(0,200,83,0.06)" : "rgba(255,255,255,0.04)", border: "1px solid " + (checked ? "rgba(0,200,83,0.12)" : "rgba(255,255,255,0.06)"), borderRadius: 14, marginBottom: 8, transition: "all 0.15s ease" }}>
+      <div onClick={onToggle} style={{ display: "flex", alignItems: "center", gap: 12, padding: "14px 16px", cursor: "pointer", WebkitTapHighlightColor: "transparent" }}>
+        <div style={{
+          width: 26, height: 26, borderRadius: 8, border: "2px solid " + (checked ? "#00c853" : "rgba(255,255,255,0.15)"),
+          background: checked ? "#00c853" : "transparent", display: "flex", alignItems: "center",
+          justifyContent: "center", flexShrink: 0, transition: "all 0.15s"
+        }}>
+          {checked && <span style={{ color: "#0a0a0a", fontWeight: 700, fontSize: "1rem", lineHeight: 1 }}>✓</span>}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ color: checked ? "#557755" : "#e5e5e7", fontSize: "0.92rem", fontWeight: 700, textDecoration: checked ? "line-through" : "none", overflowWrap: "anywhere" }}>{item.name}</div>
+          <div style={{ color: checked ? "#335533" : "#5b8fff", fontWeight: 600, fontSize: "0.82rem", marginTop: 3 }}>
+            {item.totalQty}{item.unit ? " " + item.unit : ""}
+            {item.sources.length > 1 && <span style={{ color: "#444444", fontWeight: 400, fontSize: "0.7rem", marginLeft: 8 }}>{item.sources.length} orders</span>}
+          </div>
+        </div>
+        {item.sources.length > 1 && (
+          <button onClick={(e) => { e.stopPropagation(); onExpand(); }} style={{
+            background: expanded ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, color: expanded ? "#ffffff" : "#555555",
+            padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.66rem", cursor: "pointer", flexShrink: 0
+          }}>{expanded ? "HIDE" : "SPLIT"}</button>
+        )}
+      </div>
+      {expanded && item.sources.length > 1 && (
+        <div style={{ padding: "0 13px 10px 51px", borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+          {item.sources.map((src, si) => (
+            <div key={si} style={{ display: "flex", gap: 10, padding: "5px 0", alignItems: "baseline", borderBottom: si < item.sources.length - 1 ? "1px solid #151515" : "none" }}>
+              <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.78rem", whiteSpace: "nowrap", minWidth: 44 }}>{src.qty}{item.unit ? " " + item.unit : ""}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <span style={{ color: "#cccccc", fontSize: "0.8rem" }}>{src.customer}</span>
+                {src.jobSite && <span style={{ color: "#444444", fontSize: "0.7rem", marginLeft: 6 }}>{src.jobSite}</span>}
+                {src.soNumber && <span style={{ color: "#3a3a3a", fontSize: "0.66rem", marginLeft: 6 }}>SO {src.soNumber}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function PullPriorityModal({ onClose, priority, onSave }) {
+  const [items, setItems] = useState([...priority]);
+  const [newCat, setNewCat] = useState("");
+
+  const moveUp = (idx) => {
+    if (idx <= 0) return;
+    const next = [...items];
+    [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+    setItems(next);
+  };
+  const moveDown = (idx) => {
+    if (idx >= items.length - 1) return;
+    const next = [...items];
+    [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+    setItems(next);
+  };
+  const remove = (idx) => setItems(items.filter((_, i) => i !== idx));
+  const add = () => {
+    const val = newCat.trim();
+    if (!val) return;
+    setItems([...items, val]);
+    setNewCat("");
+  };
+  const save = () => { onSave(items); onClose(); };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(28,28,30,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, width: "min(420px,96vw)", maxHeight: "85vh", overflowY: "auto", padding: "22px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.1em" }}>PULL ORDER</span>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: 30, height: 30, color: "#555555", cursor: "pointer", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+        </div>
+        <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>Items matching earlier categories get pulled first. Use arrows to reorder.</div>
+        {items.map((cat, idx) => (
+          <div key={idx} style={{ display: "flex", alignItems: "center", gap: 6, padding: "7px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+            <span style={{ color: "#444444", fontSize: "0.68rem", fontWeight: 700, width: 18, textAlign: "center", flexShrink: 0 }}>{idx + 1}</span>
+            <span style={{ flex: 1, color: "#cccccc", fontSize: "0.88rem" }}>{cat}</span>
+            <button onClick={() => moveUp(idx)} disabled={idx === 0} style={{ background: "none", border: "1px solid " + (idx === 0 ? "#1a1a1a" : "#2a2a2a"), color: idx === 0 ? "#1a1a1a" : "#888888", padding: "3px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", cursor: idx === 0 ? "default" : "pointer" }}>&#9650;</button>
+            <button onClick={() => moveDown(idx)} disabled={idx === items.length - 1} style={{ background: "none", border: "1px solid " + (idx === items.length - 1 ? "#1a1a1a" : "#2a2a2a"), color: idx === items.length - 1 ? "#1a1a1a" : "#888888", padding: "3px 7px", fontFamily: "'Courier New',monospace", fontSize: "0.76rem", cursor: idx === items.length - 1 ? "default" : "pointer" }}>&#9660;</button>
+            <button onClick={() => remove(idx)} style={{ background: "none", border: "none", color: "#3a1010", cursor: "pointer", fontSize: "0.82rem", padding: "0 4px" }}>x</button>
+          </div>
+        ))}
+        <div style={{ display: "flex", gap: 6, marginTop: 10, marginBottom: 14 }}>
+          <input value={newCat} onChange={e => setNewCat(e.target.value)} onKeyDown={e => { if (e.key === "Enter") add(); }}
+            placeholder="New category..." style={{ ...inp, flex: 1, fontSize: "0.84rem", padding: "5px 7px", background: "#000000" }} />
+          <button onClick={add} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "5px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.74rem", cursor: "pointer" }}>+ ADD</button>
+        </div>
+        <button onClick={save} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 12, padding: "12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.06em", cursor: "pointer" }}>SAVE ORDER</button>
+      </div>
+    </div>
+  );
+}
+
+function PullSOCard({ so, onRemove }) {
+  const [confirmDel, setConfirmDel] = useState(false);
+  return (
+    <div style={{ background: "rgba(91,143,255,0.04)", border: "1px solid rgba(91,143,255,0.1)", borderRadius: 12, padding: "10px 14px", marginBottom: 6, display: "flex", alignItems: "center", gap: 10 }}>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <span style={{ color: "#e5e5e7", fontWeight: 700, fontSize: "0.82rem" }}>{so.customer || "Unknown"}</span>
+        {so.soNumber && <span style={{ color: "#3a3a3a", fontSize: "0.68rem", marginLeft: 8 }}>SO {so.soNumber}</span>}
+        {so.jobSite && <div style={{ color: "#444444", fontSize: "0.68rem", marginTop: 2 }}>{so.jobSite}</div>}
+        <div style={{ color: "#333333", fontSize: "0.64rem", marginTop: 2 }}>{(so.lineItems || []).length} items</div>
+      </div>
+      {confirmDel ? (
+        <div style={{ display: "flex", gap: 5, flexShrink: 0 }}>
+          <button onClick={() => onRemove(so.id)} style={{ background: "rgba(255,68,68,0.15)", color: "#ff4444", border: "none", borderRadius: 8, padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}>DEL</button>
+          <button onClick={() => setConfirmDel(false)} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, color: "#666666", padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.68rem", cursor: "pointer" }}>NO</button>
+        </div>
+      ) : (
+        <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.88rem", padding: "2px 4px", flexShrink: 0 }}>×</button>
+      )}
+    </div>
+  );
+}
+
+function EntryCard({ entry, onDelete, onEdit }) {
+  const [confirmDel, setConfirmDel] = useState(false);
+  const isPO = entry.type === "PO";
+  const isIn = entry.type === "Transfer In";
+  const accentColor = isPO ? "#333333" : isIn ? "#00c853" : "#cc0000";
+  const partyLine = isPO ? entry.party : isIn ? "From " + entry.party : "To " + entry.party;
+  const partyColor = isPO ? "#ffffff" : isIn ? "#00e676" : "#ff3d3d";
+
+  return (
+    <div style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 16, padding: "14px 16px", marginBottom: 10, animation: "fadeIn 0.3s ease" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 2 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: accentColor, flexShrink: 0 }} />
+            <span style={{ color: partyColor, fontWeight: 700, fontSize: "1rem", letterSpacing: "-0.01em" }}>{partyLine}</span>
+          </div>
+          {entry.docId && <span style={{ color: "#444444", fontSize: "0.72rem", marginLeft: 16 }}>{entry.docId}</span>}
+        </div>
+        <div style={{ flexShrink: 0, marginLeft: 8, display: "flex", gap: 6, alignItems: "center" }}>
+          {confirmDel ? (
+            <div style={{ display: "flex", gap: 5 }}>
+              <button onClick={() => onDelete(entry.id)} style={{ background: "rgba(255,68,68,0.15)", color: "#ff4444", border: "none", borderRadius: 8, padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}>DEL</button>
+              <button onClick={() => setConfirmDel(false)} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, color: "#666666", padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.68rem", cursor: "pointer" }}>NO</button>
+            </div>
+          ) : (
+            <React.Fragment>
+              <button onClick={() => onEdit(entry)} style={{ background: "none", border: "none", color: "#444444", cursor: "pointer", fontSize: "0.7rem", padding: "2px 4px", fontFamily: "'SF Mono','Menlo','Courier New',monospace" }}>EDIT</button>
+              <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.88rem", padding: "2px 4px" }}>×</button>
+            </React.Fragment>
+          )}
+        </div>
+      </div>
+      <div style={{ paddingLeft: 16 }}>
+        {(entry.lineItems || []).filter(li => li.name).map((li, idx) => (
+          <div key={idx} style={{ display: "flex", gap: 10, padding: "3px 0", alignItems: "baseline" }}>
+            {(li.qty || li.unit) && <span style={{ color: "#5b8fff", fontWeight: 600, fontSize: "0.82rem", whiteSpace: "nowrap", flexShrink: 0, minWidth: 52 }}>{li.qty}{li.unit ? " " + li.unit : ""}</span>}
+            <span style={{ color: "#e5e5e7", fontSize: "0.92rem", lineHeight: 1.45, overflowWrap: "anywhere" }}>{li.name}</span>
+          </div>
+        ))}
+      </div>
+      {entry.notes && <div style={{ marginTop: 8, fontSize: "0.76rem", color: "#555555", fontStyle: "italic", paddingLeft: 16 }}>{entry.notes}</div>}
+    </div>
+  );
+}
+
+function UpcomingCard({ entry, onConfirm, onDelete, onEdit }) {
+  const [confirmDel, setConfirmDel] = useState(false);
+  const isPO = entry.type === "PO";
+  const isIn = entry.type === "Transfer In";
+  const partyLine = isPO ? entry.party : isIn ? "From " + entry.party : "To " + entry.party;
+  const confirmLabel = entry.type === "Transfer Out" ? "SENT" : "RECEIVED";
+
+  return (
+    <div style={{ background: "rgba(201,168,76,0.06)", border: "1px solid rgba(201,168,76,0.15)", borderRadius: 16, padding: "14px 16px", marginBottom: 10, animation: "fadeIn 0.3s ease" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <span style={{ color: "#c9a84c", fontWeight: 600, fontSize: "0.68rem", letterSpacing: "0.1em" }}>{(entry.type || "").toUpperCase()}</span>
+          <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "1rem", marginTop: 3, letterSpacing: "-0.01em" }}>{partyLine}</div>
+          {entry.docId && <span style={{ color: "#444444", fontSize: "0.72rem" }}>{entry.docId}</span>}
+          <div style={{ color: "#3a3a3a", fontSize: "0.66rem", marginTop: 3 }}>{"Staged " + (entry.date || "")}</div>
+        </div>
+        <div style={{ flexShrink: 0, marginLeft: 8, display: "flex", gap: 6, alignItems: "center" }}>
+          {confirmDel ? (
+            <div style={{ display: "flex", gap: 5 }}>
+              <button onClick={() => onDelete(entry.id)} style={{ background: "rgba(255,68,68,0.15)", color: "#ff4444", border: "none", borderRadius: 8, padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.68rem", fontWeight: 600, cursor: "pointer" }}>DEL</button>
+              <button onClick={() => setConfirmDel(false)} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 8, color: "#666666", padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.68rem", cursor: "pointer" }}>NO</button>
+            </div>
+          ) : (
+            <React.Fragment>
+              <button onClick={() => onEdit(entry)} style={{ background: "none", border: "none", color: "#444444", cursor: "pointer", fontSize: "0.7rem", padding: "2px 4px", fontFamily: "'SF Mono','Menlo','Courier New',monospace" }}>EDIT</button>
+              <button onClick={() => setConfirmDel(true)} style={{ background: "none", border: "none", color: "#2a2a2a", cursor: "pointer", fontSize: "0.88rem", padding: "2px 4px" }}>×</button>
+            </React.Fragment>
+          )}
+        </div>
+      </div>
+      <div style={{ marginBottom: 12, paddingLeft: 0 }}>
+        {(entry.lineItems || []).filter(li => li.name).map((li, idx) => (
+          <div key={idx} style={{ display: "flex", gap: 10, padding: "3px 0", alignItems: "baseline" }}>
+            {(li.qty || li.unit) && <span style={{ color: "#5b8fff", fontWeight: 600, fontSize: "0.82rem", whiteSpace: "nowrap", flexShrink: 0, minWidth: 52 }}>{li.qty}{li.unit ? " " + li.unit : ""}</span>}
+            <span style={{ color: "#e5e5e7", fontSize: "0.92rem", lineHeight: 1.45, overflowWrap: "anywhere" }}>{li.name}</span>
+          </div>
+        ))}
+      </div>
+      {entry.notes && <div style={{ marginBottom: 10, fontSize: "0.76rem", color: "#555555", fontStyle: "italic" }}>{entry.notes}</div>}
+      <button onClick={() => onConfirm(entry)} style={{ background: "#c9a84c", color: "#0a0a0a", border: "none", borderRadius: 12, padding: "10px 20px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.86rem", letterSpacing: "0.06em", cursor: "pointer", width: "100%" }}>{confirmLabel}</button>
+    </div>
+  );
+}
+
+function DateHeader({ dateStr }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "24px 0 12px" }}>
+      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
+      <span style={{ color: "#555555", fontSize: "0.68rem", fontWeight: 600, letterSpacing: "0.16em", whiteSpace: "nowrap" }}>{formatDateHeading(dateStr).toUpperCase()}</span>
+      <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,0.06)" }} />
+    </div>
+  );
+}
+
+function AddModal({ onClose, onSave, onSaveUpcoming, defaultType, editEntry, editMode, knownItems }) {
+  const [form, setFormState] = useState(editEntry ? {
+    type: editEntry.type, party: editEntry.party, docId: editEntry.docId,
+    date: editEntry.date, lineItems: editEntry.lineItems.map(li => ({...li})), notes: editEntry.notes || ""
+  } : { type: defaultType || "PO", party: "", docId: "", date: today(), lineItems: [{ name: "", qty: "", unit: "" }], notes: "" });
+  const set = (k, v) => setFormState(f => ({ ...f, [k]: v }));
+  const updateLine = (idx, k, v) => setFormState(f => ({ ...f, lineItems: f.lineItems.map((li, i) => i === idx ? { ...li, [k]: v } : li) }));
+  const addLine = () => setFormState(f => ({ ...f, lineItems: [...f.lineItems, { name: "", qty: "", unit: "" }] }));
+  const removeLine = (idx) => setFormState(f => ({ ...f, lineItems: f.lineItems.filter((_, i) => i !== idx) }));
+  const isTransfer = form.type !== "PO";
+  const partyLabel = form.type === "PO" ? "VENDOR / SUPPLIER" : form.type === "Transfer In" ? "FROM STORE" : "TO STORE";
+  const isValid = form.party.trim() && form.lineItems.some(li => (li.name || "").trim());
+  const save = () => { if (!isValid) return; onSave(form); onClose(); };
+  const saveUpcoming = () => { if (!isValid) return; onSaveUpcoming(form); onClose(); };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(28,28,30,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, width: "min(500px,96vw)", maxHeight: "92vh", overflowY: "auto", padding: "22px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
+          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "1.05rem", letterSpacing: "0.08em" }}>{editEntry ? "EDIT ENTRY" : "LOG ENTRY"}</span>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: 30, height: 30, color: "#555555", cursor: "pointer", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <label style={lbl}>TYPE</label>
+          <select value={form.type} onChange={e => set("type", e.target.value)} style={{ ...inp, padding: "7px 9px" }}>
+            <option>PO</option><option>Transfer In</option><option>Transfer Out</option>
+          </select>
+        </div>
+        <div style={{ marginBottom: 12 }}>
+          <label style={lbl}>{partyLabel}</label>
+          {isTransfer ? (
+            <select value={form.party} onChange={e => set("party", e.target.value)} style={{ ...inp, padding: "7px 9px" }}>
+              <option value="">Select</option>
+              {STORES.map(s => <option key={s}>{s}</option>)}
+            </select>
+          ) : (
+            <input value={form.party} onChange={e => set("party", e.target.value)} placeholder="e.g. Pacific Supply Co." style={inp} />
+          )}
+        </div>
+        <div style={{ display: "flex", gap: 8, marginBottom: 12 }}>
+          <div style={{ flex: 1, minWidth: 0 }}><label style={lbl}>DOC #</label><input value={form.docId} onChange={e => set("docId", e.target.value)} placeholder="optional" style={inp} /></div>
+          <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}><label style={lbl}>DATE</label><input type="date" value={form.date} onChange={e => set("date", e.target.value)} style={{ ...inp, width: "100%", minWidth: 0 }} /></div>
+        </div>
+        <label style={{ ...lbl, marginBottom: 7 }}>LINE ITEMS</label>
+        {form.lineItems.map((li, idx) => (
+          <div key={idx} style={{ display: "grid", gridTemplateColumns: "1fr 56px 56px 22px", gap: 5, marginBottom: 5 }}>
+            <NameInput value={li.name} onChange={v => updateLine(idx, "name", v)} placeholder="Item name" knownItems={knownItems} />
+            <input value={li.qty} onChange={e => updateLine(idx, "qty", e.target.value)} placeholder="Qty" style={{ ...inp, fontSize: "0.88rem", padding: "5px 7px" }} />
+            <input value={li.unit} onChange={e => updateLine(idx, "unit", e.target.value)} placeholder="Unit" style={{ ...inp, fontSize: "0.88rem", padding: "5px 7px" }} />
+            <button onClick={() => removeLine(idx)} style={{ background: "none", border: "none", color: "#4a0000", cursor: "pointer", fontSize: "0.94rem", alignSelf: "center" }}>x</button>
+          </div>
+        ))}
+        <button onClick={addLine} style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#666666", padding: "3px 10px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer", marginBottom: 12 }}>+ LINE</button>
+        <div style={{ marginBottom: 16 }}><label style={lbl}>NOTES (OPTIONAL)</label><input value={form.notes} onChange={e => set("notes", e.target.value)} style={inp} /></div>
+        {editEntry ? (
+          <button onClick={save} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 12, padding: "12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.93rem", letterSpacing: "0.06em", cursor: "pointer" }}>SAVE CHANGES</button>
+        ) : (
+          <div style={{ display: "flex", gap: 8 }}>
+            <button onClick={save} style={{ flex: 1, background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 12, padding: "12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.06em", cursor: "pointer" }}>SAVE</button>
+            <button onClick={saveUpcoming} style={{ flex: 1, background: "rgba(201,168,76,0.1)", color: "#c9a84c", border: "1px solid rgba(201,168,76,0.2)", borderRadius: 12, padding: "12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.06em", cursor: "pointer" }}>UPCOMING</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ApiKeyModal({ onClose }) {
+  const [val, setVal] = useState(getApiKey());
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(28,28,30,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, width: "min(380px,92vw)", padding: "22px 20px" }}>
+        <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.1em", marginBottom: 14 }}>API KEY</div>
+        <input value={val} onChange={e => setVal(e.target.value)} placeholder="sk-ant-..." type="password" style={{ ...inp, marginBottom: 12 }} />
+        <button onClick={() => { setApiKeyVal(val); onClose(); }} style={{ width: "100%", background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 12, padding: "10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, cursor: "pointer" }}>SAVE</button>
+      </div>
+    </div>
+  );
+}
+
+function SyncTokenModal({ onClose, onSaved }) {
+  const [val, setVal] = useState(GitHubSync.getToken());
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(28,28,30,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, width: "min(380px,92vw)", padding: "22px 20px" }}>
+        <div style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.1em", marginBottom: 8 }}>SYNC TOKEN</div>
+        <div style={{ fontSize: "0.7rem", color: "#444444", marginBottom: 14, lineHeight: 1.5 }}>GitHub personal access token for syncing data across devices. Syncs to neimaD7/aurora-log-data.</div>
+        <input value={val} onChange={e => setVal(e.target.value)} placeholder="github_pat_..." type="password" style={{ ...inp, marginBottom: 12 }} />
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={() => { GitHubSync.setToken(val); if (onSaved) onSaved(); onClose(); }} style={{ flex: 1, background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 12, padding: "10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, cursor: "pointer" }}>SAVE</button>
+          {val && <button onClick={() => { GitHubSync.setToken(""); setVal(""); }} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: 12, color: "#666666", padding: "10px 14px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.76rem", cursor: "pointer" }}>CLEAR</button>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ItemDictModal({ onClose, knownItems, setKnownItems, persistKnown, onOpenLabels, onOpenApiKey, onOpenSync }) {
+  const [editName, setEditName] = useState(null);
+  const [editVal, setEditVal] = useState("");
+  const remove = (idx) => { const next = knownItems.map((k, i) => i === idx ? { ...k, _deleted: true, modifiedAt: Date.now() } : k); setKnownItems(next); persistKnown(next); };
+  const startEdit = (item, idx) => { setEditName(idx); setEditVal(item.name); };
+  const saveEdit = (idx) => {
+    if (!editVal.trim()) return;
+    const newName = editVal.trim();
+    const newKey = normalizeForMatch(newName);
+    // Check for tombstone collision — if renamed target was previously deleted, un-delete it instead of creating a duplicate
+    const tombstoneIdx = knownItems.findIndex((k, i) => i !== idx && normalizeForMatch(k.name) === newKey && k._deleted);
+    let next;
+    if (tombstoneIdx >= 0) {
+      // Remove the old entry, un-delete the tombstone with the new name
+      next = knownItems.map((k, i) => {
+        if (i === tombstoneIdx) return { ...k, name: newName, _deleted: undefined, modifiedAt: Date.now() };
+        if (i === idx) return { ...k, _deleted: true, modifiedAt: Date.now() };
+        return k;
+      });
+    } else {
+      next = knownItems.map((k, i) => i === idx ? { ...k, name: newName, modifiedAt: Date.now() } : k);
+    }
+    setKnownItems(next); persistKnown(next); setEditName(null);
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(28,28,30,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, width: "min(460px,96vw)", maxHeight: "85vh", overflowY: "auto", padding: "22px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.1em" }}>ITEM DICTIONARY</span>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: 30, height: 30, color: "#555555", cursor: "pointer", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+        </div>
+        <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>Auto-learned from entries. AI matches documents to these names. Tap to edit.</div>
+        {knownItems.filter(k => !k._deleted).length === 0 && <div style={{ color: "#333333", fontSize: "0.84rem", padding: "20px 0", textAlign: "center" }}>No items yet — log your first entry to start building the dictionary.</div>}
+        {knownItems.map((item, idx) => item._deleted ? null : (
+          <div key={idx} style={{ display: "flex", alignItems: "center", gap: 8, padding: "6px 0", borderBottom: "1px solid rgba(255,255,255,0.04)" }}>
+            {editName === idx ? (
+              <React.Fragment>
+                <input value={editVal} onChange={e => setEditVal(e.target.value)} onKeyDown={e => { if (e.key === "Enter") saveEdit(idx); }}
+                  style={{ ...inp, flex: 1, fontSize: "0.86rem", padding: "4px 7px", background: "#000000" }} autoFocus />
+                <button onClick={() => saveEdit(idx)} style={{ background: "none", border: "none", color: "#00c853", cursor: "pointer", fontSize: "0.72rem", fontFamily: "'Courier New',monospace", fontWeight: 700 }}>SAVE</button>
+              </React.Fragment>
+            ) : (
+              <React.Fragment>
+                <span onClick={() => startEdit(item, idx)} style={{ flex: 1, color: "#cccccc", fontSize: "0.88rem", cursor: "pointer" }}>
+                  {item.name} {item.unit && <span style={{ color: "#444444", fontSize: "0.72rem" }}>({item.unit})</span>}
+                </span>
+                <button onClick={() => remove(idx)} style={{ background: "none", border: "none", color: "#3a1010", cursor: "pointer", fontSize: "0.82rem" }}>x</button>
+              </React.Fragment>
+            )}
+          </div>
+        ))}
+        <div style={{ display: "flex", gap: 8, marginTop: 16, paddingTop: 14, borderTop: "1px solid rgba(255,255,255,0.04)" }}>
+          <button onClick={() => { onClose(); onOpenLabels(); }} style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: "#888888", padding: "10px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", fontWeight: 600, cursor: "pointer", letterSpacing: "0.06em" }}>LABELS</button>
+          <button onClick={() => { onClose(); onOpenApiKey(); }} style={{ flex: 1, background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: "#555555", padding: "10px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", cursor: "pointer", letterSpacing: "0.06em" }}>API KEY</button>
+          <button onClick={() => { onClose(); onOpenSync(); }} style={{ flex: 1, background: GitHubSync.isConfigured() ? "rgba(0,200,83,0.08)" : "rgba(255,255,255,0.04)", border: "1px solid " + (GitHubSync.isConfigured() ? "rgba(0,200,83,0.15)" : "rgba(255,255,255,0.08)"), borderRadius: 10, color: GitHubSync.isConfigured() ? "#00c853" : "#555555", padding: "10px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", cursor: "pointer", letterSpacing: "0.06em" }}>SYNC</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function LabelMakerModal({ onClose, knownItems }) {
+  const [labels, setLabels] = useState([{ id: "l1", name: "", overstock: "" }]);
+  const nextId = useRef(2);
+  const addLabel = () => { setLabels(l => [...l, { id: "l" + (nextId.current++), name: "", overstock: "" }]); };
+  const removeLabel = (id) => setLabels(l => l.filter(lb => lb.id !== id));
+  const updateLabel = (id, key, val) => setLabels(l => l.map(lb => lb.id === id ? { ...lb, [key]: val } : lb));
+  const dupLabel = (id) => setLabels(l => { const srcIdx = l.findIndex(lb => lb.id === id); if (srcIdx < 0) return l; const copy = { ...l[srcIdx], id: "l" + (nextId.current++) }; const next = [...l]; next.splice(srcIdx + 1, 0, copy); return next; });
+
+  const validLabels = labels.filter(lb => (lb.name || "").trim());
+
+  const printLabels = () => {
+    if (validLabels.length === 0) return;
+    const labelW = 5.75;
+    const labelH = 1.75;
+    const cols = 1;
+    const perPage = 5;
+    let html = '<!DOCTYPE html><html><head><style>';
+    html += '@page { size: 8.5in 11in; margin: 0.5in; }';
+    html += '* { margin: 0; padding: 0; box-sizing: border-box; }';
+    html += 'body { font-family: "Courier New", monospace; }';
+    html += '.label { width: ' + labelW + 'in; height: ' + labelH + 'in; border: 1px dashed #cccccc; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0.15in 0.25in; page-break-inside: avoid; overflow: hidden; position: relative; margin-bottom: -1px; }';
+    html += '.label:last-child { margin-bottom: 0; }';
+    html += '.item-name { font-weight: 700; line-height: 1.2; color: #000000; white-space: nowrap; }';
+    html += '.overstock { font-weight: 400; color: #555555; margin-top: 0.06in; white-space: nowrap; }';
+    html += '</style></head><body>';
+    validLabels.forEach((lb) => {
+      html += '<div class="label">';
+      html += '<div class="item-name" data-fit="true">' + lb.name.replace(/</g, "&lt;") + '</div>';
+      if ((lb.overstock || "").trim()) {
+        html += '<div class="overstock">Overstock in ' + lb.overstock.replace(/</g, "&lt;") + '</div>';
+      }
+      html += '</div>';
+    });
+    html += '<script>';
+    html += 'document.querySelectorAll(".label").forEach(function(label) {';
+    html += '  var nameEl = label.querySelector(".item-name");';
+    html += '  var osEl = label.querySelector(".overstock");';
+    html += '  var maxW = label.clientWidth - 36;';
+    html += '  var size = 96;';
+    html += '  nameEl.style.fontSize = size + "pt";';
+    html += '  while (nameEl.scrollWidth > maxW && size > 8) { size -= 1; nameEl.style.fontSize = size + "pt"; }';
+    html += '  if (osEl) {';
+    html += '    var osSize = Math.max(Math.round(size * 0.55), 14);';
+    html += '    osEl.style.fontSize = osSize + "pt";';
+    html += '    while (osEl.scrollWidth > maxW && osSize > 8) { osSize -= 1; osEl.style.fontSize = osSize + "pt"; }';
+    html += '  }';
+    html += '});';
+    html += '<\/script>';
+    html += '</body></html>';
+    const win = window.open('', '_blank');
+    if (win) { win.document.write(html); win.document.close(); setTimeout(() => win.print(), 800); }
+  };
+
+  return (
+    <div onClick={onClose} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.7)", WebkitBackdropFilter: "blur(20px)", backdropFilter: "blur(20px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 1000 }}>
+      <div onClick={e => e.stopPropagation()} style={{ background: "rgba(28,28,30,0.95)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 20, width: "min(500px,96vw)", maxHeight: "90vh", overflowY: "auto", padding: "22px 20px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <span style={{ color: "#ffffff", fontWeight: 700, fontSize: "0.94rem", letterSpacing: "0.1em" }}>LABEL MAKER</span>
+          <button onClick={onClose} style={{ background: "rgba(255,255,255,0.06)", border: "none", borderRadius: "50%", width: 30, height: 30, color: "#555555", cursor: "pointer", fontSize: "1.1rem", display: "flex", alignItems: "center", justifyContent: "center" }}>×</button>
+        </div>
+        <div style={{ fontSize: "0.72rem", color: "#555555", marginBottom: 14, lineHeight: 1.5 }}>Item labels for 2" x 6" C-channel holders. Print on cardstock, cut along dashed lines.</div>
+        {labels.map((lb, idx) => (
+          <div key={lb.id} style={{ marginBottom: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "12px 14px" }}>
+            <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
+              <div style={{ flex: 1 }}>
+                <label style={lbl}>ITEM NAME</label>
+                <input value={lb.name} onChange={e => updateLabel(lb.id, "name", e.target.value)} placeholder="e.g. #4 Rebar 20' Grade 60" style={{ ...inp, background: "#000000", fontSize: "0.86rem", padding: "6px 8px" }} />
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "flex-end", flexShrink: 0 }}>
+                <button onClick={() => dupLabel(lb.id)} title="Duplicate" style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#555555", padding: "2px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.68rem", cursor: "pointer" }}>DUP</button>
+                {labels.length > 1 && <button onClick={() => removeLabel(lb.id)} style={{ background: "none", border: "1px solid rgba(255,80,80,0.2)", borderRadius: 4, color: "#ff4444", cursor: "pointer", fontSize: "0.72rem", fontWeight: 700, padding: "2px 6px", fontFamily: "'Courier New',monospace" }}>DEL</button>}
+              </div>
+            </div>
+            <div>
+              <label style={lbl}>OVERSTOCK LOCATION (OPTIONAL)</label>
+              <input value={lb.overstock} onChange={e => updateLabel(lb.id, "overstock", e.target.value)} placeholder="e.g. Bin 5" style={{ ...inp, background: "#000000", fontSize: "0.84rem", padding: "5px 8px" }} />
+            </div>
+          </div>
+        ))}
+        <button onClick={addLabel} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: "#666666", padding: "8px 12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", cursor: "pointer", marginBottom: 16, width: "100%" }}>+ ADD LABEL</button>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button onClick={printLabels} disabled={validLabels.length === 0} style={{ flex: 1, background: validLabels.length > 0 ? "#ffffff" : "rgba(255,255,255,0.06)", color: validLabels.length > 0 ? "#0a0a0a" : "#555555", border: "none", borderRadius: 12, padding: "12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: 700, fontSize: "0.9rem", letterSpacing: "0.06em", cursor: validLabels.length > 0 ? "pointer" : "default" }}>
+            PRINT {validLabels.length > 0 ? "(" + validLabels.length + ")" : ""}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SyncStatusBar({ syncState }) {
+  if (!GitHubSync.isConfigured()) return null;
+  const { status, lastSync, error } = syncState;
+  let text = "";
+  let color = "#333333";
+  if (status === "syncing") { text = "SYNCING..."; color = "#5b8fff"; }
+  else if (status === "error") { text = "SYNC ERROR"; color = "#ff4444"; }
+  else if (status === "synced" && lastSync) {
+    const ago = Math.round((Date.now() - lastSync) / 1000);
+    if (ago < 60) text = "SYNCED " + ago + "s AGO";
+    else if (ago < 3600) text = "SYNCED " + Math.round(ago / 60) + "m AGO";
+    else text = "SYNCED " + Math.round(ago / 3600) + "h AGO";
+    color = "#2a4a2a";
+  } else { text = "SYNC IDLE"; color = "#333333"; }
+
+  return (
+    <div style={{ position: "fixed", bottom: 0, left: 0, right: 0, textAlign: "center", padding: "5px 0", paddingBottom: "calc(5px + env(safe-area-inset-bottom))", background: "rgba(0,0,0,0.9)", borderTop: "1px solid rgba(255,255,255,0.04)", zIndex: 500, WebkitBackdropFilter: "blur(10px)", backdropFilter: "blur(10px)" }}>
+      <span style={{ fontSize: "0.56rem", letterSpacing: "0.12em", color, fontFamily: "'SF Mono','Menlo','Courier New', monospace" }}>{text}</span>
+      {error && <span style={{ fontSize: "0.52rem", color: "#ff4444", marginLeft: 6 }}>{error}</span>}
+    </div>
+  );
+}
+
+function App() {
+  const [entries, setEntries] = useState([]);
+  const [upcoming, setUpcoming] = useState([]);
+  const [knownItems, setKnownItems] = useState([]);
+  const [pullQueue, setPullQueue] = useState([]);
+  const [pullPriority, setPullPriority] = useState([...DEFAULT_PULL_PRIORITY]);
+  const [checkedItems, setCheckedItems] = useState({});
+  const [expandedItems, setExpandedItems] = useState({});
+  const [tab, setTab] = useState("po");
+  const [showIntake, setShowIntake] = useState(false);
+  const [showPullIntake, setShowPullIntake] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [showDict, setShowDict] = useState(false);
+  const [showLabels, setShowLabels] = useState(false);
+  const [showPriority, setShowPriority] = useState(false);
+  const [showSOList, setShowSOList] = useState(false);
+  const [showSyncToken, setShowSyncToken] = useState(false);
+  const [loaded, setLoaded] = useState(false);
+  const [editEntry, setEditEntry] = useState(null);
+  const [editMode, setEditMode] = useState(null);
+  const [dataLost, setDataLost] = useState(false);
+  const [syncState, setSyncState] = useState({ status: "idle", lastSync: null, error: null });
+
+  // Keep refs for sync callbacks to access latest state
+  const entriesRef = useRef(entries);
+  const upcomingRef = useRef(upcoming);
+  const knownItemsRef = useRef(knownItems);
+  useEffect(() => { entriesRef.current = entries; }, [entries]);
+  useEffect(() => { upcomingRef.current = upcoming; }, [upcoming]);
+  useEffect(() => { knownItemsRef.current = knownItems; }, [knownItems]);
+
+  useEffect(() => {
+    // Listen for sync status changes
+    const unsub = GitHubSync.onStatusChange(setSyncState);
+
+    (async () => {
+      let localEntries = [], localUpcoming = [], localKnown = [];
+      try { const r = await window.storage.get("entries"); if (r?.value) { localEntries = JSON.parse(r.value); setEntries(localEntries); } } catch {}
+      try { const r = await window.storage.get("upcoming"); if (r?.value) { localUpcoming = JSON.parse(r.value); setUpcoming(localUpcoming); } } catch {}
+      try { const r = await window.storage.get("known_items"); if (r?.value) {
+        localKnown = JSON.parse(r.value);
+        // Migration: stamp modifiedAt on old items that don't have it
+        let migrated = false;
+        localKnown = localKnown.map(k => {
+          if (!k.modifiedAt) { migrated = true; return { ...k, modifiedAt: Date.now() }; }
+          return k;
+        });
+        if (migrated) { try { await window.storage.set("known_items", JSON.stringify(localKnown)); } catch {} }
+        setKnownItems(localKnown);
+      } } catch {}
+      try { const r = await window.storage.get("pull_queue"); if (r?.value) setPullQueue(JSON.parse(r.value)); } catch {}
+      try { const r = await window.storage.get("pull_priority"); if (r?.value) { const v = JSON.parse(r.value); if (Array.isArray(v) && v.length > 0) setPullPriority(v); } } catch {}
+      setLoaded(true);
+      window._appMounted = true;
+      if (window._dataLost) setDataLost(true);
+      if (!getApiKey()) setTimeout(() => setShowApiKey(true), 300);
+
+      // Background sync on load
+      if (GitHubSync.isConfigured()) {
+        try {
+          await GitHubSync.fullSync(
+            (key) => {
+              if (key === "entries") return localEntries;
+              if (key === "upcoming") return localUpcoming;
+              if (key === "known_items") return localKnown;
+              return [];
+            },
+            (key, merged) => {
+              if (key === "entries") { localEntries = merged; setEntries(merged); window.storage.set("entries", JSON.stringify(merged)); }
+              if (key === "upcoming") { localUpcoming = merged; setUpcoming(merged); window.storage.set("upcoming", JSON.stringify(merged)); }
+              if (key === "known_items") { localKnown = merged; setKnownItems(merged); window.storage.set("known_items", JSON.stringify(merged)); }
+            }
+          );
+        } catch(e) { console.error("Initial sync failed:", e); }
+      }
+    })();
+
+    return unsub;
+  }, []);
+
+  // Update sync status bar every 30s so "synced Xs ago" updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (syncState.lastSync) setSyncState(s => ({ ...s }));
+    }, 30000);
+    return () => clearInterval(interval);
+  }, [syncState.lastSync]);
+
+  const persist = async (next) => {
+    setEntries(next);
+    try { await window.storage.set("entries", JSON.stringify(next)); } catch {}
+    GitHubSync.debouncedPush("entries", next);
+  };
+  const persistUpcoming = async (next) => {
+    setUpcoming(next);
+    try { await window.storage.set("upcoming", JSON.stringify(next)); } catch {}
+    GitHubSync.debouncedPush("upcoming", next);
+  };
+  const persistKnown = async (next) => {
+    try { await window.storage.set("known_items", JSON.stringify(next)); } catch {}
+    GitHubSync.debouncedPush("known_items", next);
+  };
+  const persistPullQueue = async (next) => { setPullQueue(next); try { await window.storage.set("pull_queue", JSON.stringify(next)); } catch {} };
+  const persistPullPriority = async (next) => { setPullPriority(next); try { await window.storage.set("pull_priority", JSON.stringify(next)); } catch {} };
+
+  const learnItems = (lineItems) => {
+    const updated = [...knownItems];
+    let changed = false;
+    for (const li of (lineItems || [])) {
+      const name = (li.name || "").trim();
+      if (!name) continue;
+      const existingIdx = updated.findIndex(k => normalizeForMatch(k.name) === normalizeForMatch(name));
+      if (existingIdx === -1) { updated.push({ name, unit: (li.unit || "").trim(), modifiedAt: Date.now() }); changed = true; }
+      else if (updated[existingIdx]._deleted) { updated[existingIdx] = { ...updated[existingIdx], _deleted: false, modifiedAt: Date.now() }; changed = true; }
+    }
+    if (changed) { updated.sort((a, b) => a.name.localeCompare(b.name)); setKnownItems(updated); persistKnown(updated); }
+  };
+
+  const makeEntry = (data) => ({
+    id: Date.now().toString() + Math.random().toString(36).slice(2, 5),
+    type: data.type, party: (data.party || "").trim(), docId: (data.docId || "").trim(),
+    date: data.date || today(),
+    lineItems: (data.lineItems || []).filter(li => (li.name || "").trim()),
+    notes: (data.notes || "").trim(), createdAt: Date.now(), modifiedAt: Date.now()
+  });
+
+  const addEntry = (data) => {
+    const entry = makeEntry(data);
+    persist([entry, ...entries]);
+    learnItems(entry.lineItems);
+    setShowIntake(false);
+  };
+
+  const addUpcoming = (data) => {
+    const entry = makeEntry(data);
+    persistUpcoming([entry, ...upcoming]);
+    learnItems(entry.lineItems);
+    setShowIntake(false);
+  };
+
+  const confirmUpcoming = (upEntry) => {
+    // Soft-delete from upcoming
+    const updatedUpcoming = upcoming.map(u => u.id === upEntry.id ? { ...u, _deleted: true, modifiedAt: Date.now() } : u);
+    persistUpcoming(updatedUpcoming);
+    const entry = { ...upEntry, _deleted: false, date: today(), createdAt: Date.now(), modifiedAt: Date.now() };
+    persist([entry, ...entries]);
+  };
+
+  // Soft-delete instead of filtering
+  const deleteUpcoming = (id) => {
+    const updated = upcoming.map(u => u.id === id ? { ...u, _deleted: true, modifiedAt: Date.now() } : u);
+    persistUpcoming(updated);
+  };
+  const deleteEntry = (id) => {
+    const updated = entries.map(e => e.id === id ? { ...e, _deleted: true, modifiedAt: Date.now() } : e);
+    persist(updated);
+  };
+
+  const handleEdit = (entry) => { setEditEntry(entry); setEditMode("entry"); setShowAdd(true); };
+  const handleEditUpcoming = (entry) => { setEditEntry(entry); setEditMode("upcoming"); setShowAdd(true); };
+
+  const handleSaveEdit = (data) => {
+    if (editMode === "upcoming") {
+      const updated = upcoming.map(e => e.id === editEntry.id ? {
+        ...e, type: data.type, party: (data.party || "").trim(), docId: (data.docId || "").trim(),
+        date: data.date || today(), lineItems: (data.lineItems || []).filter(li => (li.name || "").trim()), notes: (data.notes || "").trim(),
+        modifiedAt: Date.now()
+      } : e);
+      persistUpcoming(updated);
+    } else {
+      const updated = entries.map(e => e.id === editEntry.id ? {
+        ...e, type: data.type, party: (data.party || "").trim(), docId: (data.docId || "").trim(),
+        date: data.date || today(), lineItems: (data.lineItems || []).filter(li => (li.name || "").trim()), notes: (data.notes || "").trim(),
+        modifiedAt: Date.now()
+      } : e);
+      persist(updated);
+    }
+    learnItems((data.lineItems || []).filter(li => (li.name || "").trim()));
+    setEditEntry(null); setEditMode(null); setShowAdd(false);
+  };
+
+  const closeModal = () => { setShowAdd(false); setEditEntry(null); setEditMode(null); };
+
+  const handleSyncSaved = () => {
+    // Trigger a full sync after saving the token
+    if (GitHubSync.isConfigured()) {
+      // Use a local snapshot that gets updated by setLocal callbacks
+      let snapEntries = [...entriesRef.current];
+      let snapUpcoming = [...upcomingRef.current];
+      let snapKnown = [...knownItemsRef.current];
+      GitHubSync.fullSync(
+        (key) => {
+          if (key === "entries") return snapEntries;
+          if (key === "upcoming") return snapUpcoming;
+          if (key === "known_items") return snapKnown;
+          return [];
+        },
+        (key, merged) => {
+          if (key === "entries") { snapEntries = merged; setEntries(merged); window.storage.set("entries", JSON.stringify(merged)); }
+          if (key === "upcoming") { snapUpcoming = merged; setUpcoming(merged); window.storage.set("upcoming", JSON.stringify(merged)); }
+          if (key === "known_items") { snapKnown = merged; setKnownItems(merged); window.storage.set("known_items", JSON.stringify(merged)); }
+        }
+      ).catch(e => console.error("Sync after token save failed:", e));
+    }
+  };
+
+  /* ===== PULL SHEET LOGIC ===== */
+  const loadDemoSOs = () => {
+    const demoSOs = [
+      {
+        id: "demo1", customer: "Martinez Concrete", jobSite: "Lot 14 — Bethany Ridge", soNumber: "SO-40821",
+        lineItems: [
+          { name: '24" Stakes', qty: 50, unit: "pcs" },
+          { name: '18" Stakes', qty: 30, unit: "pcs" },
+          { name: "Bag Ties", qty: 4, unit: "rolls" },
+          { name: "Form Oil", qty: 2, unit: "pails" },
+          { name: "Dobies", qty: 200, unit: "pcs" },
+          { name: "#4 Rebar 20' Grade 60", qty: 25, unit: "pcs" }
+        ], addedAt: Date.now()
+      },
+      {
+        id: "demo2", customer: "Willamette Builders", jobSite: "Block 7 — River Terrace", soNumber: "SO-40835",
+        lineItems: [
+          { name: '24" Stakes', qty: 30, unit: "pcs" },
+          { name: "Dobies", qty: 150, unit: "pcs" },
+          { name: "Anchor Bolts 1/2\" x 10\"", qty: 40, unit: "pcs" },
+          { name: "Form Clips", qty: 100, unit: "pcs" },
+          { name: "Snap Ties 8\"", qty: 75, unit: "pcs" },
+          { name: "Pier Papers 12\"", qty: 20, unit: "pcs" }
+        ], addedAt: Date.now() + 1
+      },
+      {
+        id: "demo3", customer: "JR Foundations", jobSite: "8824 SW Durham Rd", soNumber: "SO-40847",
+        lineItems: [
+          { name: "Bag Ties", qty: 2, unit: "rolls" },
+          { name: "Form Oil", qty: 1, unit: "pails" },
+          { name: '18" Stakes', qty: 20, unit: "pcs" },
+          { name: "Snap Ties 8\"", qty: 50, unit: "pcs" },
+          { name: "Flat Ties", qty: 30, unit: "pcs" }
+        ], addedAt: Date.now() + 2
+      }
+    ];
+    persistPullQueue(demoSOs);
+    setCheckedItems({});
+    setExpandedItems({});
+  };
+  const addSO = (so) => { persistPullQueue([...pullQueue, so]); setShowPullIntake(false); };
+  const removeSO = (id) => { persistPullQueue(pullQueue.filter(s => s.id !== id)); };
+  const clearPull = () => { persistPullQueue([]); setCheckedItems({}); setExpandedItems({}); setShowSOList(false); };
+
+  const mergedPullItems = (() => {
+    const map = {};
+    for (const so of pullQueue) {
+      for (const li of (so.lineItems || [])) {
+        const key = normalizeForMatch(li.name);
+        if (!key) continue;
+        if (!map[key]) {
+          map[key] = { name: li.name, totalQty: 0, unit: li.unit || "", sources: [] };
+        }
+        map[key].totalQty += (Number(li.qty) || 0);
+        if (!map[key].unit && li.unit) map[key].unit = li.unit;
+        map[key].sources.push({ soId: so.id, customer: so.customer, jobSite: so.jobSite, soNumber: so.soNumber, qty: Number(li.qty) || 0 });
+      }
+    }
+    const items = Object.values(map);
+    items.sort((a, b) => {
+      const pa = matchPriority(a.name, pullPriority);
+      const pb = matchPriority(b.name, pullPriority);
+      if (pa !== pb) return pa - pb;
+      return a.name.localeCompare(b.name);
+    });
+    return items;
+  })();
+
+  const pullCheckedCount = mergedPullItems.filter((_, i) => checkedItems[i]).length;
+  const pullTotalCount = mergedPullItems.length;
+
+  const toggleCheck = (idx) => setCheckedItems(prev => ({ ...prev, [idx]: !prev[idx] }));
+  const toggleExpand = (idx) => setExpandedItems(prev => ({ ...prev, [idx]: !prev[idx] }));
+
+  /* ===== VIEW LOGIC — filter out soft-deleted ===== */
+  const activeEntries = entries.filter(e => !e._deleted);
+  const activeUpcoming = upcoming.filter(e => !e._deleted);
+
+  const visible = tab === "po" ? activeEntries.filter(e => e.type === "PO") : tab === "transfers" ? activeEntries.filter(e => e.type === "Transfer In" || e.type === "Transfer Out") : [];
+  const grouped = (() => {
+    const map = {};
+    visible.forEach(e => { if (!map[e.date]) map[e.date] = []; map[e.date].push(e); });
+    return Object.entries(map).sort((a, b) => b[0].localeCompare(a[0]));
+  })();
+  const poCount = activeEntries.filter(e => e.type === "PO").length;
+  const trCount = activeEntries.filter(e => e.type !== "PO").length;
+  const upCount = activeUpcoming.length;
+  const plCount = pullQueue.length;
+
+  const tabBtn = (id, label, count, highlight) => (
+    <button onClick={() => setTab(id)} style={{
+      background: tab === id ? (highlight ? highlight : "#ffffff") : "transparent",
+      border: "none", borderRadius: 10,
+      color: tab === id ? (highlight ? "#000000" : "#000000") : "#555555",
+      padding: "8px 0", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontWeight: tab === id ? 700 : 500,
+      fontSize: "0.72rem", letterSpacing: "0.04em", cursor: "pointer", whiteSpace: "nowrap", flex: "1 1 0", textAlign: "center",
+      transition: "all 0.2s ease", position: "relative", zIndex: 1
+    }}>
+      {label}
+      {count > 0 && <span style={{ marginLeft: 3, fontSize: "0.58rem", opacity: tab === id ? 0.7 : 0.5 }}>{count}</span>}
+    </button>
+  );
+
+  const isPullTab = tab === "pull";
+
+  return (
+    <div style={{ minHeight: "100vh", background: "#000000", color: "#e5e5e7", fontFamily: "'Courier New', monospace", maxWidth: 660, margin: "0 auto" }}>
+      <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", padding: "18px 16px 16px", display: "flex", justifyContent: "flex-start", alignItems: "center", gap: 6 }}>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          <button onClick={() => setShowDict(true)} style={{ background: "none", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 10, color: knownItems.filter(k => !k._deleted).length > 0 ? "#777777" : "#444444", padding: "7px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.72rem", fontWeight: 600, cursor: "pointer" }}>
+              DICT{knownItems.filter(k => !k._deleted).length > 0 && <span style={{ fontSize: "0.56rem", color: "#555555", marginLeft: 3 }}>{knownItems.filter(k => !k._deleted).length}</span>}
+          </button>
+          {isPullTab ? (
+            <React.Fragment>
+              <button onClick={() => setShowPullIntake(s => !s)} style={{ background: showPullIntake ? "rgba(91,143,255,0.12)" : "rgba(255,255,255,0.06)", border: "1px solid " + (showPullIntake ? "rgba(91,143,255,0.3)" : "rgba(255,255,255,0.06)"), borderRadius: 10, color: showPullIntake ? "#5b8fff" : "#666666", padding: "7px 12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", fontWeight: 600, cursor: "pointer" }}>{showPullIntake ? "HIDE" : "+ SO"}</button>
+            </React.Fragment>
+          ) : (
+            <React.Fragment>
+              <button onClick={() => setShowIntake(s => !s)} style={{ background: showIntake ? "rgba(255,255,255,0.1)" : "rgba(255,255,255,0.06)", border: "1px solid " + (showIntake ? "rgba(255,255,255,0.2)" : "rgba(255,255,255,0.06)"), borderRadius: 10, color: showIntake ? "#ffffff" : "#666666", padding: "7px 12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", fontWeight: 600, cursor: "pointer" }}>{showIntake ? "HIDE" : "SCAN"}</button>
+              <button onClick={() => { setEditEntry(null); setEditMode(null); setShowAdd(true); }} style={{ background: "#ffffff", color: "#0a0a0a", border: "none", borderRadius: 10, padding: "7px 12px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.74rem", fontWeight: 700, cursor: "pointer" }}>+ LOG</button>
+            </React.Fragment>
+          )}
+        </div>
+      </div>
+
+      {dataLost && (
+        <div style={{ background: "#2a1000", border: "1px solid #c9a84c", padding: "10px 14px" }}>
+          <div style={{ color: "#c9a84c", fontWeight: 700, fontSize: "0.82rem", letterSpacing: "0.08em", marginBottom: 4 }}>DATA CORRUPTION DETECTED</div>
+          <div style={{ color: "#999", fontSize: "0.76rem", lineHeight: 1.5, marginBottom: 8 }}>Both main and backup data were corrupted and could not be recovered. Corrupted data was saved to a recovery key.</div>
+          <button onClick={() => setDataLost(false)} style={{ background: "none", border: "1px solid #3a3020", color: "#c9a84c", padding: "4px 12px", fontFamily: "'Courier New',monospace", fontSize: "0.72rem", cursor: "pointer" }}>DISMISS</button>
+        </div>
+      )}
+
+      {showIntake && !isPullTab && <AIIntake onSave={addEntry} onSaveUpcoming={addUpcoming} knownItems={knownItems} />}
+      {showPullIntake && isPullTab && <PullIntake onAddSO={addSO} knownItems={knownItems} />}
+
+      <div style={{ padding: "10px 16px 6px" }}>
+        <div style={{ display: "flex", background: "rgba(255,255,255,0.06)", borderRadius: 12, padding: 3, gap: 3 }}>
+          {tabBtn("po", "POs", poCount)}
+          {tabBtn("transfers", "XFERS", trCount)}
+          {tabBtn("upcoming", "UPCOMING", upCount, "#c9a84c")}
+          {tabBtn("pull", "PULL", plCount, "#5b8fff")}
+        </div>
+      </div>
+
+      <div style={{ padding: "0 12px calc(80px + env(safe-area-inset-bottom))" }}>
+        {!loaded ? (
+          <div style={{ padding: "80px 30px", textAlign: "center" }}>
+            <div style={{ fontSize: "2.5rem", marginBottom: 16, animation: "pulse 1.5s infinite" }}>📋</div>
+            <div style={{ color: "#444444", fontSize: "0.84rem" }}>Loading...</div>
+          </div>
+        ) : tab === "pull" ? (
+          pullQueue.length === 0 ? (
+            <div style={{ padding: "80px 30px", textAlign: "center" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: 16, opacity: 0.3 }}>📋</div>
+              <div style={{ color: "#555555", fontSize: "0.92rem", fontWeight: 600, marginBottom: 6 }}>No sales orders</div>
+              <div style={{ color: "#333333", fontSize: "0.76rem", marginBottom: 24, lineHeight: 1.5 }}>Tap + SO to scan or enter a sales order</div>
+              <button onClick={loadDemoSOs} style={{ background: "rgba(91,143,255,0.1)", border: "1px solid rgba(91,143,255,0.2)", borderRadius: 12, color: "#5b8fff", padding: "10px 20px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.78rem", fontWeight: 600, cursor: "pointer", letterSpacing: "0.04em" }}>LOAD DEMO</button>
+            </div>
+          ) : (
+            <div>
+              <div style={{ margin: "16px 0 8px" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: 6 }}>
+                  <span style={{ color: "#5b8fff", fontWeight: 700, fontSize: "0.82rem", letterSpacing: "0.06em" }}>
+                    {pullCheckedCount} / {pullTotalCount}
+                  </span>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => setShowSOList(s => !s)} style={{ background: "rgba(91,143,255,0.1)", border: "1px solid rgba(91,143,255,0.2)", borderRadius: 8, color: "#5b8fff", padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.64rem", fontWeight: 600, cursor: "pointer" }}>
+                      {pullQueue.length} SO{pullQueue.length !== 1 ? "s" : ""}
+                    </button>
+                    <button onClick={() => setShowPriority(true)} style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)", borderRadius: 8, color: "#666666", padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.64rem", cursor: "pointer" }}>ORDER</button>
+                    <button onClick={() => { if (confirm("Clear all SOs from pull sheet?")) clearPull(); }} style={{ background: "rgba(255,68,68,0.08)", border: "1px solid rgba(255,68,68,0.15)", borderRadius: 8, color: "#aa4444", padding: "4px 10px", fontFamily: "'SF Mono','Menlo','Courier New',monospace", fontSize: "0.64rem", fontWeight: 600, cursor: "pointer" }}>CLEAR</button>
+                  </div>
+                </div>
+                <div style={{ height: 4, background: "rgba(255,255,255,0.06)", width: "100%", borderRadius: 2, overflow: "hidden" }}>
+                  <div style={{ height: 4, borderRadius: 2, background: pullCheckedCount === pullTotalCount && pullTotalCount > 0 ? "#00c853" : "#5b8fff", width: pullTotalCount > 0 ? ((pullCheckedCount / pullTotalCount) * 100) + "%" : "0%", transition: "width 0.3s ease, background 0.3s ease" }} />
+                </div>
+              </div>
+
+              {showSOList && (
+                <div style={{ marginBottom: 12, padding: "8px 0" }}>
+                  <div style={{ fontSize: "0.68rem", color: "#555555", letterSpacing: "0.1em", marginBottom: 6 }}>LOADED ORDERS</div>
+                  {pullQueue.map(so => <PullSOCard key={so.id} so={so} onRemove={removeSO} />)}
+                </div>
+              )}
+
+              {pullCheckedCount === pullTotalCount && pullTotalCount > 0 && (
+                <div style={{ background: "rgba(0,200,83,0.08)", border: "1px solid rgba(0,200,83,0.15)", borderRadius: 14, padding: "14px 16px", marginBottom: 12, textAlign: "center" }}>
+                  <div style={{ color: "#00c853", fontWeight: 700, fontSize: "0.86rem", letterSpacing: "0.06em" }}>ALL ITEMS PULLED</div>
+                  <div style={{ color: "#335533", fontSize: "0.7rem", marginTop: 4 }}>Tap CLEAR when orders are loaded out.</div>
+                </div>
+              )}
+              {mergedPullItems.map((item, idx) => (
+                <PullItemRow key={item.name} item={item} checked={!!checkedItems[idx]}
+                  onToggle={() => toggleCheck(idx)} expanded={!!expandedItems[idx]}
+                  onExpand={() => toggleExpand(idx)} />
+              ))}
+            </div>
+          )
+        ) : tab === "upcoming" ? (
+          activeUpcoming.length === 0 ? (
+            <div style={{ padding: "80px 30px", textAlign: "center" }}>
+              <div style={{ fontSize: "2.5rem", marginBottom: 16, opacity: 0.3 }}>📦</div>
+              <div style={{ color: "#555555", fontSize: "0.92rem", fontWeight: 600, marginBottom: 6 }}>No upcoming orders</div>
+              <div style={{ color: "#333333", fontSize: "0.76rem", lineHeight: 1.5 }}>Orders staged here will appear when you tap UPCOMING during intake</div>
+            </div>
+          ) : (
+            activeUpcoming.map(entry => <UpcomingCard key={entry.id} entry={entry} onConfirm={confirmUpcoming} onDelete={deleteUpcoming} onEdit={handleEditUpcoming} />)
+          )
+        ) : grouped.length === 0 ? (
+          <div style={{ padding: "80px 30px", textAlign: "center" }}>
+            <div style={{ fontSize: "2.5rem", marginBottom: 16, opacity: 0.3 }}>{tab === "po" ? "📝" : "🔄"}</div>
+            <div style={{ color: "#555555", fontSize: "0.92rem", fontWeight: 600, marginBottom: 6 }}>{"No " + (tab === "po" ? "purchase orders" : "transfers") + " yet"}</div>
+            <div style={{ color: "#333333", fontSize: "0.76rem", lineHeight: 1.5 }}>Tap SCAN to photograph a document or + LOG to enter manually</div>
+          </div>
+        ) : (
+          grouped.map(([date, dayEntries]) => (
+            <div key={date}>
+              <DateHeader dateStr={date} />
+              {dayEntries.map(entry => <EntryCard key={entry.id} entry={entry} onDelete={deleteEntry} onEdit={handleEdit} />)}
+            </div>
+          ))
+        )}
+      </div>
+
+      <SyncStatusBar syncState={syncState} />
+
+      {showAdd && <AddModal onClose={closeModal} onSave={editEntry ? handleSaveEdit : addEntry} onSaveUpcoming={addUpcoming} defaultType={tab === "po" ? "PO" : tab === "transfers" ? "Transfer In" : "PO"} editEntry={editEntry} editMode={editMode} knownItems={knownItems} />}
+      {showApiKey && <ApiKeyModal onClose={() => setShowApiKey(false)} />}
+      {showDict && <ItemDictModal onClose={() => setShowDict(false)} knownItems={knownItems} setKnownItems={setKnownItems} persistKnown={persistKnown} onOpenLabels={() => setShowLabels(true)} onOpenApiKey={() => setShowApiKey(true)} onOpenSync={() => setShowSyncToken(true)} />}
+      {showLabels && <LabelMakerModal onClose={() => setShowLabels(false)} knownItems={knownItems} />}
+      {showPriority && <PullPriorityModal onClose={() => setShowPriority(false)} priority={pullPriority} onSave={persistPullPriority} />}
+      {showSyncToken && <SyncTokenModal onClose={() => setShowSyncToken(false)} onSaved={handleSyncSaved} />}
+    </div>
+  );
+}
+
+ReactDOM.render(<App />, document.getElementById("root"));
+</script>
+<script>
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(r) { r.unregister(); });
+  });
+}
+</script>
+</body>
+</html>
