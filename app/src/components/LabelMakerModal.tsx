@@ -42,7 +42,7 @@ export function LabelMakerModal({ onClose }: LabelMakerModalProps) {
     html += '.label { width: ' + labelW + 'in; height: ' + labelH + 'in; border: 1px dashed #cccccc; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: ' + padding + '; page-break-inside: avoid; overflow: hidden; position: relative; margin-bottom: -1px; }';
     if (isOverstock) { html += '.label { page-break-after: always; }'; html += '.label:last-child { page-break-after: auto; }'; }
     html += '.label:last-child { margin-bottom: 0; }';
-    html += '.item-name { font-weight: 700; line-height: 1.2; color: #000000; white-space: nowrap; }';
+    html += '.item-name { font-weight: 700; line-height: 1.2; color: #000000; ' + (isOverstock ? 'white-space: pre-line; text-align: center;' : 'white-space: nowrap;') + ' }';
     html += '.overstock { font-weight: 400; color: #555555; margin-top: ' + (isOverstock ? '0.2in' : '0.06in') + '; white-space: nowrap; }';
     html += '</style></head><body>';
     validLabels.forEach((lb) => {
@@ -58,9 +58,15 @@ export function LabelMakerModal({ onClose }: LabelMakerModalProps) {
     html += '  var nameEl = label.querySelector(".item-name");';
     html += '  var osEl = label.querySelector(".overstock");';
     html += '  var maxW = label.clientWidth - 36;';
+    html += '  var maxH = label.clientHeight - 24;';
     html += '  var size = ' + startSize + ';';
     html += '  nameEl.style.fontSize = size + "pt";';
-    html += '  while (nameEl.scrollWidth > maxW && size > 8) { size -= 1; nameEl.style.fontSize = size + "pt"; }';
+    if (isOverstock) {
+      // For overstock: shrink until text fits both width and height (text wraps via pre-line)
+      html += '  while ((nameEl.scrollWidth > maxW || nameEl.scrollHeight + (osEl ? osEl.scrollHeight + 20 : 0) > maxH) && size > 8) { size -= 1; nameEl.style.fontSize = size + "pt"; }';
+    } else {
+      html += '  while (nameEl.scrollWidth > maxW && size > 8) { size -= 1; nameEl.style.fontSize = size + "pt"; }';
+    }
     html += '  if (osEl) {';
     html += '    var osSize = Math.max(Math.round(size * ' + osRatio + '), ' + minOsSize + ');';
     html += '    osEl.style.fontSize = osSize + "pt";';
@@ -89,8 +95,12 @@ export function LabelMakerModal({ onClose }: LabelMakerModalProps) {
           <div key={lb.id} style={{ marginBottom: 8, background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 14, padding: "12px 14px" }}>
             <div style={{ display: "flex", gap: 6, marginBottom: 6 }}>
               <div style={{ flex: 1 }}>
-                <label style={lbl}>ITEM NAME</label>
-                <input value={lb.name} onChange={e => updateLabel(lb.id, "name", e.target.value)} placeholder="e.g. #4 Rebar 20' Grade 60" style={{ ...inp, background: "#000000", fontSize: "0.86rem", padding: "6px 8px" }} />
+                <label style={lbl}>ITEM NAME{labelSize === "overstock" ? " (one item per line)" : ""}</label>
+                {labelSize === "overstock" ? (
+                  <textarea value={lb.name} onChange={e => updateLabel(lb.id, "name", e.target.value)} placeholder={"e.g.\n#4 Rebar 20' Grade 60\n#5 Rebar 20' Grade 60"} rows={3} style={{ ...inp, background: "#000000", fontSize: "0.86rem", padding: "6px 8px", resize: "vertical", lineHeight: 1.4 }} />
+                ) : (
+                  <input value={lb.name} onChange={e => updateLabel(lb.id, "name", e.target.value)} placeholder="e.g. #4 Rebar 20' Grade 60" style={{ ...inp, background: "#000000", fontSize: "0.86rem", padding: "6px 8px" }} />
+                )}
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: 4, justifyContent: "flex-end", flexShrink: 0 }}>
                 <button onClick={() => dupLabel(lb.id)} title="Duplicate" style={{ background: "none", border: "1px solid rgba(255,255,255,0.06)", color: "#555555", padding: "2px 6px", fontFamily: "'Courier New',monospace", fontSize: "0.68rem", cursor: "pointer" }}>DUP</button>
