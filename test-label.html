@@ -1,0 +1,43 @@
+<!DOCTYPE html><html><head><style>
+@page { size: 8.5in 11in; margin: 0.25in; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: "Courier New",monospace; }
+.label { width: 5.75in; height: 1.75in; border: 1px dashed #cccccc; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0.15in 0.25in; page-break-inside: avoid; overflow: hidden; position: relative; }
+.item-name { font-weight: 700; line-height: 1.15; color: #000000; white-space: nowrap; }
+</style></head><body>
+<div class="label">
+  <div class="item-name" id="test">24" Pine Stakes</div>
+</div>
+<pre id="debug"></pre>
+<script>
+var cvs = document.createElement("canvas");
+var ctx = cvs.getContext("2d");
+var label = document.querySelector(".label");
+var nameEl = document.getElementById("test");
+var cs = getComputedStyle(label);
+var maxPx = label.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+var maxH = label.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+
+var info = "Label clientWidth: " + label.clientWidth + "px\n";
+info += "Padding L/R: " + cs.paddingLeft + " / " + cs.paddingRight + "\n";
+info += "Usable width: " + maxPx + "px\n";
+info += "Usable height: " + maxH + "px\n";
+info += "DPR: " + window.devicePixelRatio + "\n\n";
+
+// Canvas measure at different sizes
+for (var pt = 120; pt >= 20; pt -= 10) {
+  ctx.font = "700 " + pt + "pt \"Courier New\",monospace";
+  var w = ctx.measureText("24\" Pine Stakes").width;
+  info += pt + "pt canvas: " + Math.round(w) + "px " + (w <= maxPx ? "FITS" : "too wide") + "\n";
+}
+
+// Also check DOM-based at those sizes
+info += "\nDOM-based:\n";
+for (var pt = 120; pt >= 20; pt -= 10) {
+  nameEl.style.fontSize = pt + "pt";
+  info += pt + "pt DOM: scrollW=" + nameEl.scrollWidth + " clientW=" + nameEl.clientWidth + " " + (nameEl.scrollWidth <= maxPx ? "FITS" : "too wide") + "\n";
+}
+
+document.getElementById("debug").textContent = info;
+</script>
+</body></html>

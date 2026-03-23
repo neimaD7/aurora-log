@@ -1,0 +1,55 @@
+<!DOCTYPE html><html><head><style>
+@page { size: 8.5in 11in; margin: 0.25in; }
+* { margin: 0; padding: 0; box-sizing: border-box; }
+.label { width: 5.75in; height: 1.75in; border: 1px dashed #cccccc; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 0.15in 0.25in; overflow: hidden; position: relative; }
+.item-name { font-weight: 700; line-height: 1.05; color: #000000; white-space: nowrap; }
+</style></head><body>
+<h3>Courier New (current)</h3>
+<div class="label">
+  <div class="item-name" style="font-family:'Courier New',monospace" id="t1">24" Pine Stakes</div>
+</div>
+
+<h3>Arial Black</h3>
+<div class="label">
+  <div class="item-name" style="font-family:'Arial Black',sans-serif" id="t2">24" Pine Stakes</div>
+</div>
+
+<h3>Impact</h3>
+<div class="label">
+  <div class="item-name" style="font-family:Impact,sans-serif" id="t3">24" Pine Stakes</div>
+</div>
+
+<h3>Arial Bold</h3>
+<div class="label">
+  <div class="item-name" style="font-family:Arial,sans-serif" id="t4">24" Pine Stakes</div>
+</div>
+
+<pre id="debug"></pre>
+<script>
+var cvs = document.createElement("canvas");
+var ctx = cvs.getContext("2d");
+var maxW = 502;
+
+var fonts = [
+  {name: "Courier New", css: '700 Xpt "Courier New",monospace'},
+  {name: "Arial Black", css: '900 Xpt "Arial Black",sans-serif'},
+  {name: "Impact", css: '700 Xpt Impact,sans-serif'},
+  {name: "Arial Bold", css: '700 Xpt Arial,sans-serif'}
+];
+var text = '24" Pine Stakes';
+var info = "Max usable width: " + maxW + "px\n\n";
+
+fonts.forEach(function(f, i) {
+  var best = 8;
+  for (var pt = 200; pt >= 8; pt--) {
+    ctx.font = f.css.replace("X", pt);
+    if (ctx.measureText(text).width <= maxW) { best = pt; break; }
+  }
+  info += f.name + ": max " + best + "pt\n";
+  var el = document.getElementById("t" + (i+1));
+  if (el) el.style.fontSize = best + "pt";
+});
+
+document.getElementById("debug").textContent = info;
+</script>
+</body></html>
